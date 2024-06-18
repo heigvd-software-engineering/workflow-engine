@@ -10,6 +10,10 @@ import java.util.Objects;
 public class OutputConnector extends Connector {
     private final List<InputConnector> connectedTo = new LinkedList<>();
 
+    OutputConnector(int id, @Nonnull Node parent) {
+        super(id, parent);
+    }
+
     public List<InputConnector> getConnectedTo() {
         return Collections.unmodifiableList(connectedTo);
     }

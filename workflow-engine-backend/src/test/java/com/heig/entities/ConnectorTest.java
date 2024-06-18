@@ -1,5 +1,8 @@
 package com.heig.entities;
 
+import com.heig.entities.workflowTypes.WObject;
+import com.heig.entities.workflowTypes.WPrimitive;
+import com.heig.entities.workflowTypes.WPrimitiveTypes;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
@@ -7,25 +10,34 @@ import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class ConnectorTest {
+    private Node createNode() {
+        var w = new Workflow();
+        return w.createNode();
+    }
+
     @Test
     public void create() {
-        var connector = new InputConnector();
+        var n = createNode();
+
+        var connector = n.createInputConnector();
         Assertions.assertThrows(NullPointerException.class, () -> {
             connector.setType(null);
         });
 
         //Default
-        assert connector.getType() == WorkflowTypes.Object;
+        assert connector.getType() == WObject.of();
 
         //Setting the type
-        connector.setType(WorkflowTypes.Double);
-        assert connector.getType() == WorkflowTypes.Double;
+        connector.setType(WPrimitive.of(WPrimitiveTypes.Double));
+        assert connector.getType() == WPrimitive.of(WPrimitiveTypes.Double);
     }
 
     @Test
     public void input() {
-        var connector = new InputConnector();
-        var outputConnector = new OutputConnector();
+        var n = createNode();
+
+        var connector = n.createInputConnector();
+        var outputConnector = n.createOutputConnector();
 
         //Empty
         assert connector.getConnectedTo().isEmpty();
@@ -42,8 +54,10 @@ public class ConnectorTest {
 
     @Test
     public void output() {
-        var connector = new OutputConnector();
-        var inputConnector = new InputConnector();
+        var n = createNode();
+
+        var connector = n.createOutputConnector();
+        var inputConnector = n.createInputConnector();
 
         //We should not be able to add elements directly
         Assertions.assertThrows(UnsupportedOperationException.class, () -> {

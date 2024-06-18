@@ -1,0 +1,6 @@
+- Graphes avec https://jgrapht.org/
+    - Weakly connected pour détecter si on a le graphe qui est en plusieurs parties : 
+		- https://jgrapht.org/javadoc/org.jgrapht.core/org/jgrapht/alg/connectivity/package-summary.html => A directed graph is called weakly connected if replacing all of its directed edges with undirected edges produces a connected (undirected) graph 
+		- ConnectivityInspector isConnected https://jgrapht.org/javadoc/org.jgrapht.core/org/jgrapht/alg/connectivity/ConnectivityInspector.html
+    - CycleDetector pour détecter la présence de cycles
+		- CycleDetector detectCycles() https://jgrapht.org/javadoc/org.jgrapht.core/org/jgrapht/alg/cycle/CycleDetector.html

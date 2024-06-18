@@ -2,18 +2,30 @@ package com.heig.entities;
 
 import jakarta.annotation.Nonnull;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Node {
-    private int id = -1;
+    private final AtomicInteger currentId = new AtomicInteger(0);
+
+    private final int id;
     private boolean isDeterministic = false;
     private int timeout = 5000;
+    private final Workflow workflow;
 
-    private final List<InputConnector> inputs = new LinkedList<>();
-    private final List<OutputConnector> outputs = new LinkedList<>();
+    private final ConcurrentMap<Integer, InputConnector> inputs = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, OutputConnector> outputs = new ConcurrentHashMap<>();
+
+    Node(int id, Workflow workflow) {
+        if (id < 0) {
+            throw new IllegalArgumentException();
+        }
+        Objects.requireNonNull(workflow);
+        this.id = id;
+        this.workflow = workflow;
+    }
 
     public boolean getDeterministic() {
         return isDeterministic;
@@ -38,87 +50,60 @@ public class Node {
         return id;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public Map<Integer, InputConnector> getInputs() {
+        return Collections.unmodifiableMap(inputs);
     }
 
-    public List<InputConnector> getInputs() {
-        return Collections.unmodifiableList(inputs);
+    public Optional<InputConnector> getInput(int id) {
+        return Optional.ofNullable(inputs.get(id));
     }
 
-    public List<OutputConnector> getOutputs() {
-        return Collections.unmodifiableList(outputs);
+    public Map<Integer, OutputConnector> getOutputs() {
+        return Collections.unmodifiableMap(outputs);
     }
 
-    public boolean addInput(@Nonnull InputConnector input) {
-        Objects.requireNonNull(input);
-        if (inputs.contains(input)) {
-            return false;
-        }
-        return inputs.add(input);
+    public Optional<OutputConnector> getOutput(int id) {
+        return Optional.ofNullable(outputs.get(id));
+    }
+
+    public void disconnectEverything() {
+        inputs.values().forEach(workflow::disconnect);
+        outputs.values().forEach(output -> output.getConnectedTo().forEach(workflow::disconnect));
     }
 
     public boolean removeInput(@Nonnull InputConnector input) {
         Objects.requireNonNull(input);
-        if (!inputs.contains(input)) {
+        if (!inputs.containsKey(input.getId())) {
             return false;
         }
 
         //When removing an input, the output connected to it should be disconnected
-        Node.disconnect(input);
+        workflow.disconnect(input);
 
-        return inputs.remove(input);
-    }
-
-    public boolean addOutput(@Nonnull OutputConnector output) {
-        Objects.requireNonNull(output);
-        if (outputs.contains(output)) {
-            return false;
-        }
-        return outputs.add(output);
+        return inputs.remove(input.getId()) != null;
     }
 
     public boolean removeOutput(@Nonnull OutputConnector output) {
         Objects.requireNonNull(output);
-        if (!outputs.contains(output)) {
+        if (!outputs.containsKey(output.getId())) {
             return false;
         }
 
         //When removing an output, all the inputs connected to it should be disconnected
-        output.getConnectedTo().forEach(Node::disconnect);
+        output.getConnectedTo().forEach(workflow::disconnect);
 
-        return outputs.remove(output);
+        return outputs.remove(output.getId()) != null;
     }
 
-    public static boolean connect(@Nonnull OutputConnector output, @Nonnull InputConnector input) {
-        Objects.requireNonNull(output);
-        Objects.requireNonNull(input);
-
-        //Connects the output to the input
-        if (!output.addConnectedTo(input)) {
-            return false;
-        }
-
-        //If the input is already connected to an output, we disconnect it
-        if (!Node.disconnect(input)) {
-            return false;
-        }
-
-        //We connect the input to the output
-        input.setConnectedTo(output);
-        return true;
+    public InputConnector createInputConnector() {
+        var connector = new InputConnector(currentId.incrementAndGet(), this);
+        inputs.put(connector.getId(), connector);
+        return connector;
     }
 
-    public static boolean disconnect(@Nonnull InputConnector input) {
-        Objects.requireNonNull(input);
-
-        input.getConnectedTo().ifPresent(currentOutput -> {
-            if (!currentOutput.removeConnectedTo(input)) {
-                //Should never happen
-                throw new RuntimeException("Could not remove input" + input + " from " + currentOutput);
-            }
-        });
-        input.setConnectedTo(null);
-        return true;
+    public OutputConnector createOutputConnector() {
+        var connector = new OutputConnector(currentId.incrementAndGet(), this);
+        outputs.put(connector.getId(), connector);
+        return connector;
     }
 }
