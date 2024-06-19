@@ -1,4 +1,4 @@
-package com.heig.helpers;
+package com.heig.testHelpers;
 
 import com.heig.entities.Node;
 import com.heig.entities.OutputConnector;
@@ -15,5 +15,9 @@ public class TestUtils {
         output.setType(type);
 
         return Tuple.tuple(output, node);
+    }
+
+    public static boolean checkDoubleCompatibility(WType t1, WType t2) {
+        return t1.isCompatibleWith(t2) && t2.isCompatibleWith(t1);
     }
 }

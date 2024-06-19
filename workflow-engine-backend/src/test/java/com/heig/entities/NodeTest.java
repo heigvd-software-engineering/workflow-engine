@@ -1,6 +1,6 @@
 package com.heig.entities;
 
-import com.heig.helpers.TestScenario;
+import com.heig.testHelpers.TestScenario;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 

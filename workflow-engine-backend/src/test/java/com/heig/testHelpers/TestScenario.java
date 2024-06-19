@@ -1,10 +1,10 @@
-package com.heig.helpers;
+package com.heig.testHelpers;
 
 import com.heig.entities.*;
 import com.heig.entities.workflowTypes.WPrimitive;
 import com.heig.entities.workflowTypes.WPrimitiveTypes;
 
-import static com.heig.helpers.TestUtils.createPrimitiveNode;
+import static com.heig.testHelpers.TestUtils.createPrimitiveNode;
 
 public class TestScenario {
     public Workflow w;
@@ -31,23 +31,23 @@ public class TestScenario {
         //Addition node
         nodeAdd = w.createNode();
 
-        num1Input = nodeAdd.createInputConnector();
+        num1Input = nodeAdd.createInputConnector("num1");
         num1Input.setType(WPrimitive.of(WPrimitiveTypes.Integer));
-        num2Input = nodeAdd.createInputConnector();
+        num2Input = nodeAdd.createInputConnector("num2");
         num2Input.setType(WPrimitive.of(WPrimitiveTypes.Integer));
 
-        resultOutput = nodeAdd.createOutputConnector();
+        resultOutput = nodeAdd.createOutputConnector("result");
         resultOutput.setType(WPrimitive.of(WPrimitiveTypes.Integer));
 
         //String repeat node
         nodeStringRepeat = w.createNode();
 
-        timesInput = nodeStringRepeat.createInputConnector();
+        timesInput = nodeStringRepeat.createInputConnector("times");
         timesInput.setType(WPrimitive.of(WPrimitiveTypes.Integer));
-        stringInput = nodeStringRepeat.createInputConnector();
+        stringInput = nodeStringRepeat.createInputConnector("string");
         stringInput.setType(WPrimitive.of(WPrimitiveTypes.String));
 
-        stringOutput = nodeStringRepeat.createOutputConnector();
+        stringOutput = nodeStringRepeat.createOutputConnector("string");
         stringOutput.setType(WPrimitive.of(WPrimitiveTypes.String));
 
             /* Connect nodes

@@ -19,7 +19,7 @@ public class ConnectorTest {
     public void create() {
         var n = createNode();
 
-        var connector = n.createInputConnector();
+        var connector = n.createInputConnector("connector");
         Assertions.assertThrows(NullPointerException.class, () -> {
             connector.setType(null);
         });
@@ -36,8 +36,8 @@ public class ConnectorTest {
     public void input() {
         var n = createNode();
 
-        var connector = n.createInputConnector();
-        var outputConnector = n.createOutputConnector();
+        var connector = n.createInputConnector("input");
+        var outputConnector = n.createOutputConnector("output");
 
         //Empty
         assert connector.getConnectedTo().isEmpty();
@@ -56,8 +56,8 @@ public class ConnectorTest {
     public void output() {
         var n = createNode();
 
-        var connector = n.createOutputConnector();
-        var inputConnector = n.createInputConnector();
+        var connector = n.createOutputConnector("output");
+        var inputConnector = n.createInputConnector("input");
 
         //We should not be able to add elements directly
         Assertions.assertThrows(UnsupportedOperationException.class, () -> {

@@ -1,14 +1,12 @@
 package com.heig.entities;
 
+import com.heig.entities.workflowErrors.*;
+import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
-import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.cycle.CycleDetector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.SimpleDirectedGraph;
-import org.jgrapht.graph.builder.GraphBuilder;
-import org.jgrapht.traverse.BreadthFirstIterator;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -81,37 +79,59 @@ public class Workflow {
      * For the workflow to be valid we need all nodes to be connected one way or another to each other.
      * A workflow with no nodes is considered not valid (it cannot be executed).
      * The graph cannot contain cycles.
-     * @return Whether the workflow is valid or not
+     * @return The errors if there are some
      */
-    public boolean isValid() {
+    public Optional<WorkflowErrors> isValid() {
+        var errors = new WorkflowErrors();
         if (nodes.isEmpty()) {
-            return false;
+            errors.addError(new EmptyGraph());
+            return Optional.of(errors);
         }
 
         //Creating a directed graph with the vertices and edges currently in our graph
         var directedGraph = new DefaultDirectedGraph<Integer, DefaultEdge>(DefaultEdge.class);
-        nodes.values().forEach(node -> directedGraph.addVertex(node.getId()));
-        nodes.values()
-                .forEach(node ->
-                        node.getOutputs().values()
-                                .forEach(output ->
-                                        output.getConnectedTo()
-                                                .forEach(input ->
-                                                        directedGraph.addEdge(node.getId(), input.getParent().getId())
-                                                )
-                                )
-                );
+        for (var node : nodes.values()) {
+            directedGraph.addVertex(node.getId());
+        }
+
+        for (var node : nodes.values()) {
+            for (var output : node.getOutputs().values()) {
+                for (var input : output.getConnectedTo()) {
+                    var source = node.getId();
+                    var target = input.getParent().getId();
+                    if (!directedGraph.containsEdge(source, target)) {
+                        directedGraph.addEdge(source, target);
+                    }
+                }
+            }
+        }
 
         //Cycle detection
         var cycleDetector = new CycleDetector<>(directedGraph);
         if (cycleDetector.detectCycles()) {
-            return false;
+            errors.addError(new CycleDetected());
+            return Optional.of(errors);
         }
 
         //Checks that the graph is weakly connected
         var ci = new ConnectivityInspector<>(directedGraph);
         if (!ci.isConnected()) {
-            return false;
+            errors.addError(new NotConnectedGraph());
+            return Optional.of(errors);
+        }
+
+        //All inputs not marked as optional should be connected to an output
+        var hasError = false;
+        for (var node : nodes.values()) {
+            for (var input : node.getInputs().values().stream().filter(i -> !i.isOptional()).toList()) {
+                if (input.getConnectedTo().isEmpty()) {
+                    hasError = true;
+                    errors.addError(new InputNotConnected(input));
+                }
+            }
+        }
+        if (hasError) {
+            return Optional.of(errors);
         }
 
         //Check the types compatibility
@@ -119,12 +139,16 @@ public class Workflow {
             for (var output : node.getOutputs().values()) {
                 for (var input : output.getConnectedTo()) {
                     if (!output.getType().isCompatibleWith(input.getType())) {
-                        return false;
+                        hasError = true;
+                        errors.addError(new IncompatibleTypes(input, output));
                     }
                 }
             }
         }
+        if (hasError) {
+            return Optional.of(errors);
+        }
         
-        return true;
+        return Optional.empty();
     }
 }

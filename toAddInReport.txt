@@ -4,3 +4,5 @@
 		- ConnectivityInspector isConnected https://jgrapht.org/javadoc/org.jgrapht.core/org/jgrapht/alg/connectivity/ConnectivityInspector.html
     - CycleDetector pour détecter la présence de cycles
 		- CycleDetector detectCycles() https://jgrapht.org/javadoc/org.jgrapht.core/org/jgrapht/alg/cycle/CycleDetector.html
+- Explication de la structure des types pour le workflow
+- Explication de comment est géré la vérification du graphe (en lien avec la détection de cycle et de si le graphe est en plusieurs parties)

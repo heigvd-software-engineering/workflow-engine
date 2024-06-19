@@ -1,14 +1,9 @@
 package com.heig.entities;
 
-import com.heig.entities.workflowTypes.WObject;
 import com.heig.entities.workflowTypes.WPrimitive;
 import com.heig.entities.workflowTypes.WPrimitiveTypes;
-import com.heig.helpers.TestScenario;
+import com.heig.testHelpers.TestScenario;
 import io.quarkus.test.junit.QuarkusTest;
-import org.jgrapht.alg.connectivity.ConnectivityInspector;
-import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.traverse.DepthFirstIterator;
 import org.junit.jupiter.api.Test;
 
 import java.util.Objects;
@@ -47,44 +42,44 @@ public class WorkflowTest {
     public void valid() {
         var w = new Workflow();
         //An empty workflow is not valid
-        assert !w.isValid();
+        assert w.isValid().isPresent();
 
         var node1 = w.createNode();
         //A workflow with only one node is valid
-        assert w.isValid();
+        assert w.isValid().isEmpty();
 
         var node2 = w.createNode();
         //A workflow with 2 nodes but no connexions between them is not valid
-        assert !w.isValid();
+        assert w.isValid().isPresent();
 
-        var output = node1.createOutputConnector();
-        var input = node2.createInputConnector();
+        var output = node1.createOutputConnector("output");
+        var input = node2.createInputConnector("input");
         w.connect(output, input);
         //After creating a connexion between the two of them, the workflow is valid
-        assert w.isValid();
+        assert w.isValid().isEmpty();
 
         output.setType(WPrimitive.of(WPrimitiveTypes.Integer));
         //Input type : Object
         //Output type : Integer
         //=> Valid
-        assert w.isValid();
+        assert w.isValid().isEmpty();
 
         input.setType(WPrimitive.of(WPrimitiveTypes.Integer));
         //Input type : Integer
         //Output type : Integer
         //=> Valid
-        assert w.isValid();
+        assert w.isValid().isEmpty();
 
         //Input type : Double
         //Output type : Integer
         //=> Not valid
         input.setType(WPrimitive.of(WPrimitiveTypes.Double));
-        assert !w.isValid();
+        assert w.isValid().isPresent();
     }
 
     @Test
     public void validScenario() {
         var scenario = new TestScenario();
-        assert scenario.w.isValid();
+        assert scenario.w.isValid().isEmpty();
     }
 }

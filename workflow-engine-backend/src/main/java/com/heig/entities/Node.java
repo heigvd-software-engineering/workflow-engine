@@ -10,15 +10,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Node {
     private final AtomicInteger currentId = new AtomicInteger(0);
 
-    private final int id;
     private boolean isDeterministic = false;
     private int timeout = 5000;
-    private final Workflow workflow;
 
+    private final int id;
+    private final Workflow workflow;
     private final ConcurrentMap<Integer, InputConnector> inputs = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, OutputConnector> outputs = new ConcurrentHashMap<>();
 
-    Node(int id, Workflow workflow) {
+    Node(int id, @Nonnull Workflow workflow) {
         if (id < 0) {
             throw new IllegalArgumentException();
         }
@@ -95,15 +95,19 @@ public class Node {
         return outputs.remove(output.getId()) != null;
     }
 
-    public InputConnector createInputConnector() {
-        var connector = new InputConnector(currentId.incrementAndGet(), this);
+    public InputConnector createInputConnector(String name) {
+        var connector = new InputConnector(currentId.incrementAndGet(), this, name);
         inputs.put(connector.getId(), connector);
         return connector;
     }
 
-    public OutputConnector createOutputConnector() {
-        var connector = new OutputConnector(currentId.incrementAndGet(), this);
+    public OutputConnector createOutputConnector(String name) {
+        var connector = new OutputConnector(currentId.incrementAndGet(), this, name);
         outputs.put(connector.getId(), connector);
         return connector;
+    }
+
+    public void execute() {
+
     }
 }

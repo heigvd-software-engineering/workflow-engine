@@ -10,8 +10,17 @@ import java.util.Objects;
 public class OutputConnector extends Connector {
     private final List<InputConnector> connectedTo = new LinkedList<>();
 
-    OutputConnector(int id, @Nonnull Node parent) {
-        super(id, parent);
+    OutputConnector(int id, @Nonnull Node parent, String name) {
+        super(id, parent, name);
+    }
+
+    @Override
+    public void setName(String name) {
+        Objects.requireNonNull(name);
+        if (getParent().getOutputs().values().stream().anyMatch(i -> Objects.equals(i.getName(), name))) {
+            throw new IllegalArgumentException("Connector with the same name already exists");
+        }
+        super.setName(name);
     }
 
     public List<InputConnector> getConnectedTo() {
