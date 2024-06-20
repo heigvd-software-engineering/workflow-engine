@@ -1,7 +1,6 @@
 package com.heig.helpers;
 
-import com.heig.entities.workflowErrors.FailedExecution;
-import com.heig.entities.workflowErrors.WorkflowErrors;
+import com.heig.entities.workflow.errors.WorkflowErrors;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 

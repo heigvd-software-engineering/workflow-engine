@@ -1,9 +1,7 @@
 package com.heig.helpers;
 
-import com.heig.entities.workflowErrors.WorkflowError;
-import com.heig.entities.workflowErrors.WorkflowErrors;
+import com.heig.entities.workflow.errors.WorkflowErrors;
 
-import javax.swing.text.html.Option;
 import java.util.Optional;
 import java.util.function.Consumer;
 
