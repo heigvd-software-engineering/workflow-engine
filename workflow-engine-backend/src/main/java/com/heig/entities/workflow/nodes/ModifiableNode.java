@@ -10,8 +10,6 @@ import jakarta.annotation.Nonnull;
 import java.util.function.Function;
 
 public abstract class ModifiableNode extends Node {
-    private final Connector.Builder connectorBuilder = new Connector.Builder(this);
-
     protected ModifiableNode(int id, @Nonnull Workflow workflow) {
         super(id, workflow);
     }
@@ -46,7 +44,8 @@ public abstract class ModifiableNode extends Node {
         return super.removeOutput(output);
     }
 
+    @Override
     public Connector.Builder getConnectorBuilder() {
-        return connectorBuilder;
+        return super.getConnectorBuilder();
     }
 }

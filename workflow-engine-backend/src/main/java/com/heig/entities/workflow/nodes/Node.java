@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.nodes;
 
+import com.heig.entities.workflow.connectors.Connector;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.InputConnector;
@@ -29,6 +30,7 @@ public abstract class Node {
         }
     }
 
+    private final Connector.Builder connectorBuilder = new Connector.Builder(this);
     private final AtomicInteger currentId = new AtomicInteger(0);
 
     private boolean isDeterministic = false;
@@ -116,13 +118,13 @@ public abstract class Node {
         return outputs.remove(output.getId()) != null;
     }
 
-    protected InputConnector addInputConnector(Function<Integer, InputConnector> connectorSupplier) {
+    public InputConnector addInputConnector(Function<Integer, InputConnector> connectorSupplier) {
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
         inputs.put(connector.getId(), connector);
         return connector;
     }
 
-    protected OutputConnector addOutputConnector(Function<Integer, OutputConnector> connectorSupplier) {
+    public OutputConnector addOutputConnector(Function<Integer, OutputConnector> connectorSupplier) {
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
         outputs.put(connector.getId(), connector);
         return connector;
@@ -130,4 +132,8 @@ public abstract class Node {
 
     @Nonnull
     public abstract NodeArguments execute(@Nonnull NodeArguments arguments);
+
+    protected Connector.Builder getConnectorBuilder() {
+        return connectorBuilder;
+    }
 }

@@ -19,7 +19,7 @@ public class PrimitiveNode extends Node {
         super(id, workflow);
         Objects.requireNonNull(type);
 
-        output = addOutputConnector((connectorId) -> new OutputConnector(connectorId, this, outputName));
+        output = getConnectorBuilder().buildOutputConnector(outputName);
         output.setType(type);
         this.value = type.defaultValue();
     }

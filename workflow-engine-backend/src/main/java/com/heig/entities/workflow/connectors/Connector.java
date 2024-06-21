@@ -11,8 +11,8 @@ import java.util.stream.Stream;
 
 public abstract class Connector {
     public static class Builder {
-        private final ModifiableNode node;
-        public Builder(ModifiableNode node) {
+        private final Node node;
+        public Builder(Node node) {
             this.node = node;
         }
 
