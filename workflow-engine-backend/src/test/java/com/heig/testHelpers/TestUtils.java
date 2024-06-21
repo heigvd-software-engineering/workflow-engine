@@ -10,7 +10,7 @@ import groovy.lang.Tuple2;
 
 public class TestUtils {
     public static Tuple2<OutputConnector, PrimitiveNode> createPrimitiveNode(Workflow w, WType type) {
-        var node = w.createPrimitiveNode(type);
+        var node = w.getNodeBuilder().buildPrimitiveNode(type);
 
         return Tuple.tuple(node.getOutputConnector(), node);
     }

@@ -1,7 +1,5 @@
 package com.heig.entities.workflow.nodes;
 
-import com.heig.entities.workflow.connectors.InputConnector;
-import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.Workflow;
 import jakarta.annotation.Nonnull;
@@ -11,7 +9,7 @@ import org.graalvm.polyglot.HostAccess;
 
 import java.util.Objects;
 
-public class CodeNode extends Node {
+public class CodeNode extends ModifiableNode {
     public enum Language {
         JS("js", "function main(arguments, returnArguments){%s}");
 
@@ -34,7 +32,7 @@ public class CodeNode extends Node {
     private String code = "";
     private Language language = Language.JS;
 
-    public CodeNode(int id, @Nonnull Workflow workflow) {
+    protected CodeNode(int id, @Nonnull Workflow workflow) {
         super(id, workflow);
     }
 
@@ -76,30 +74,5 @@ public class CodeNode extends Node {
 
     public void setLanguage(@Nonnull Language language) {
         this.language = Objects.requireNonNull(language);;
-    }
-
-    @Override
-    public void setDeterministic(boolean deterministic) {
-        super.setDeterministic(deterministic);
-    }
-
-    @Override
-    public InputConnector createInputConnector(String name) {
-        return super.createInputConnector(name);
-    }
-
-    @Override
-    public boolean removeInput(@Nonnull InputConnector input) {
-        return super.removeInput(input);
-    }
-
-    @Override
-    public OutputConnector createOutputConnector(String name) {
-        return super.createOutputConnector(name);
-    }
-
-    @Override
-    public boolean removeOutput(@Nonnull OutputConnector output) {
-        return super.removeOutput(output);
     }
 }

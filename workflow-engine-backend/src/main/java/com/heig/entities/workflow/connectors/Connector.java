@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.connectors;
 
+import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WType;
@@ -9,6 +10,21 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 public abstract class Connector {
+    public static class Builder {
+        private final ModifiableNode node;
+        public Builder(ModifiableNode node) {
+            this.node = node;
+        }
+
+        public InputConnector buildInputConnector(String name) {
+            return node.addInputConnector((id) -> new InputConnector(id, node, name));
+        }
+
+        public OutputConnector buildOutputConnector(String name) {
+            return node.addOutputConnector((id) -> new OutputConnector(id, node, name));
+        }
+    }
+
     private WType type = WObject.of();
     private String name;
     private final int id;

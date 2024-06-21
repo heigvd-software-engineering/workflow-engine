@@ -11,7 +11,7 @@ public class WorkflowExecutorTest {
     @Test
     public void scenario() throws InterruptedException {
         var scenario = new TestScenario();
-        AtomicReference<State> currentState = new AtomicReference<>();
+        var currentState = new AtomicReference<State>();
         var executor = new WorkflowExecutor(scenario.w,
             state -> {
                 System.out.println("Workflow -> " + state);

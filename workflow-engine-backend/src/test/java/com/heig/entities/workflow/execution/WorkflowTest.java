@@ -14,13 +14,13 @@ public class WorkflowTest {
     @Test
     public void create() {
         var w = new Workflow();
-        var node1 = w.createCodeNode();
+        var node1 = w.getNodeBuilder().buildCodeNode();
         Objects.requireNonNull(node1);
         assert node1.getId() >= 0;
 
         assert w.getNode(node1.getId()).get() == node1;
 
-        var node2 = w.createCodeNode();
+        var node2 = w.getNodeBuilder().buildCodeNode();
         Objects.requireNonNull(node2);
         assert node2.getId() >= 0 && node1.getId() != node2.getId();
 
@@ -30,12 +30,12 @@ public class WorkflowTest {
     @Test
     public void remove() {
         var w = new Workflow();
-        var node1 = w.createCodeNode();
+        var node1 = w.getNodeBuilder().buildCodeNode();
 
         w.removeNode(node1);
         assert w.getNode(node1.getId()).isEmpty();
 
-        var node2 = w.createCodeNode();
+        var node2 = w.getNodeBuilder().buildCodeNode();
         assert node2.getId() != node1.getId();
     }
 
@@ -45,16 +45,16 @@ public class WorkflowTest {
         //An empty workflow is not valid
         assert w.isValid().isPresent();
 
-        var node1 = w.createCodeNode();
+        var node1 = w.getNodeBuilder().buildCodeNode();
         //A workflow with only one node is valid
         assert w.isValid().isEmpty();
 
-        var node2 = w.createCodeNode();
+        var node2 = w.getNodeBuilder().buildCodeNode();
         //A workflow with 2 nodes but no connexions between them is not valid
         assert w.isValid().isPresent();
 
-        var output = node1.createOutputConnector("output");
-        var input = node2.createInputConnector("input");
+        var output = node1.getConnectorBuilder().buildOutputConnector("output");
+        var input = node2.getConnectorBuilder().buildInputConnector("input");
         w.connect(output, input);
         //After creating a connexion between the two of them, the workflow is valid
         assert w.isValid().isEmpty();

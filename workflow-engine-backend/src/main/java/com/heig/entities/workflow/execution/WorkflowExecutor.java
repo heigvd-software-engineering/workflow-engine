@@ -99,17 +99,15 @@ public class WorkflowExecutor {
         }).thenComposeAsync(o -> {
             var toWait = new LinkedList<CompletableFuture<Void>>();
             for (var output : node.getOutputs().values()) {
-                AtomicReference<ResultOrError<Object>> res = new AtomicReference<>();
-                o.executePresent(
-                    value -> res.set(ResultOrError.result(value.getArgument(output.getName()).get())),
-                    errorMessage -> res.set(ResultOrError.error(errorMessage))
+                var res = o.applyPresent(
+                    value -> ResultOrError.result(value.getArgument(output.getName()).get()), ResultOrError::error
                 );
 
                 for (var input : output.getConnectedTo()) {
                     var other = input.getParent();
                     var stateOther = getStateFor(other);
                     synchronized (stateOther) {
-                        stateOther.setInputValue(input.getId(), res.get());
+                        stateOther.setInputValue(input.getId(), res);
 
                         if (stateOther.isReady()) {
                             toWait.add(executeNode(other));

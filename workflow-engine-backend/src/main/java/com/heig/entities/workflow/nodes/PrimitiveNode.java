@@ -15,11 +15,11 @@ public class PrimitiveNode extends Node {
 
     private Object value;
 
-    public PrimitiveNode(int id, @Nonnull Workflow workflow, @Nonnull WType type) {
+    protected PrimitiveNode(int id, @Nonnull Workflow workflow, @Nonnull WType type) {
         super(id, workflow);
         Objects.requireNonNull(type);
 
-        output = createOutputConnector(outputName);
+        output = addOutputConnector((connectorId) -> new OutputConnector(connectorId, this, outputName));
         output.setType(type);
         this.value = type.defaultValue();
     }

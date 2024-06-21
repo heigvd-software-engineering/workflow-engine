@@ -12,14 +12,14 @@ import org.junit.jupiter.api.Test;
 public class ConnectorTest {
     private CodeNode createCodeNode() {
         var w = new Workflow();
-        return w.createCodeNode();
+        return w.getNodeBuilder().buildCodeNode();
     }
 
     @Test
     public void create() {
         var n = createCodeNode();
 
-        var connector = n.createInputConnector("connector");
+        var connector = n.getConnectorBuilder().buildInputConnector("connector");
         Assertions.assertThrows(NullPointerException.class, () -> {
             connector.setType(null);
         });
@@ -36,8 +36,8 @@ public class ConnectorTest {
     public void input() {
         var n = createCodeNode();
 
-        var connector = n.createInputConnector("input");
-        var outputConnector = n.createOutputConnector("output");
+        var connector = n.getConnectorBuilder().buildInputConnector("input");
+        var outputConnector = n.getConnectorBuilder().buildOutputConnector("output");
 
         //Empty
         assert connector.getConnectedTo().isEmpty();
@@ -56,14 +56,14 @@ public class ConnectorTest {
     public void output() {
         var n = createCodeNode();
 
-        var connector = n.createOutputConnector("output");
+        var connector = n.getConnectorBuilder().buildOutputConnector("output");
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            n.createOutputConnector("output");
+            n.getConnectorBuilder().buildOutputConnector("output");
         });
 
-        var inputConnector = n.createInputConnector("input");
+        var inputConnector = n.getConnectorBuilder().buildInputConnector("input");
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            n.createInputConnector("input");
+            n.getConnectorBuilder().buildInputConnector("input");
         });
 
         //We should not be able to add elements directly

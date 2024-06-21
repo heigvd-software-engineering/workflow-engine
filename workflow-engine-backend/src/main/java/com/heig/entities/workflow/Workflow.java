@@ -17,19 +17,19 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 public class Workflow {
     private final AtomicInteger currentId = new AtomicInteger(0);
     private final ConcurrentMap<Integer, Node> nodes = new ConcurrentHashMap<>();
+    private final Node.Builder nodeBuilder = new Node.Builder(this);
 
-    public CodeNode createCodeNode() {
-        var node = new CodeNode(currentId.incrementAndGet(), this);
-        nodes.put(node.getId(), node);
-        return node;
+    public Node.Builder getNodeBuilder() {
+        return nodeBuilder;
     }
 
-    public PrimitiveNode createPrimitiveNode(@Nonnull WType type) {
-        var node = new PrimitiveNode(currentId.incrementAndGet(), this, type);
+    public <T extends Node> T addNode(Function<Integer, T> nodeCreator) {
+        var node = nodeCreator.apply(currentId.incrementAndGet());
         nodes.put(node.getId(), node);
         return node;
     }

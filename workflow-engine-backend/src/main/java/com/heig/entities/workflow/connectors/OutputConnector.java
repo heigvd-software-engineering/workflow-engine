@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 public class OutputConnector extends Connector {
     private final List<InputConnector> connectedTo = new LinkedList<>();
 
-    public OutputConnector(int id, @Nonnull Node parent, String name) {
+    protected OutputConnector(int id, @Nonnull Node parent, String name) {
         super(id, parent, name);
     }
 

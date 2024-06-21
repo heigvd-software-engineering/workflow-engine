@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 public class InputConnector extends Connector {
     private OutputConnector connectedTo = null;
 
-    public InputConnector(int id, @Nonnull Node parent, String name) {
+    protected InputConnector(int id, @Nonnull Node parent, String name) {
         super(id, parent, name);
     }
 

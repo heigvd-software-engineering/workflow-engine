@@ -38,7 +38,7 @@ public class TestScenario {
         nodeStr.setValue("Hey ! ");
 
         //Addition node
-        nodeAdd = w.createCodeNode();
+        nodeAdd = w.getNodeBuilder().buildCodeNode();
         nodeAdd.setCode(
             """
             let result = arguments.getArgument('num1').get() + arguments.getArgument('num2').get();
@@ -46,16 +46,16 @@ public class TestScenario {
             """
         );
 
-        num1Input = nodeAdd.createInputConnector("num1");
+        num1Input = nodeAdd.getConnectorBuilder().buildInputConnector("num1");
         num1Input.setType(WPrimitive.Integer);
-        num2Input = nodeAdd.createInputConnector("num2");
+        num2Input = nodeAdd.getConnectorBuilder().buildInputConnector("num2");
         num2Input.setType(WPrimitive.Integer);
 
-        resultOutput = nodeAdd.createOutputConnector("result");
+        resultOutput = nodeAdd.getConnectorBuilder().buildOutputConnector("result");
         resultOutput.setType(WPrimitive.Integer);
 
         //String repeat node
-        nodeStringRepeat = w.createCodeNode();
+        nodeStringRepeat = w.getNodeBuilder().buildCodeNode();
         nodeStringRepeat.setCode("arguments.getArgument('')");
         nodeStringRepeat.setCode(
             """
@@ -68,12 +68,12 @@ public class TestScenario {
             """
         );
 
-        timesInput = nodeStringRepeat.createInputConnector("times");
+        timesInput = nodeStringRepeat.getConnectorBuilder().buildInputConnector("times");
         timesInput.setType(WPrimitive.Integer);
-        stringInput = nodeStringRepeat.createInputConnector("string");
+        stringInput = nodeStringRepeat.getConnectorBuilder().buildInputConnector("string");
         stringInput.setType(WPrimitive.String);
 
-        stringOutput = nodeStringRepeat.createOutputConnector("string");
+        stringOutput = nodeStringRepeat.getConnectorBuilder().buildOutputConnector("string");
         stringOutput.setType(WPrimitive.String);
 
         /* Connect nodes
@@ -101,14 +101,14 @@ public class TestScenario {
         //and that the node "add" is connected to "stringRepeat"
         assert resultOutput.getConnectedTo().contains(timesInput);
 
-        var nodeLog = w.createCodeNode();
+        var nodeLog = w.getNodeBuilder().buildCodeNode();
         nodeLog.setCode(
             """
             console.log(arguments.getArgument('obj').get());
             """
         );
 
-        var objInput = nodeLog.createInputConnector("obj");
+        var objInput = nodeLog.getConnectorBuilder().buildInputConnector("obj");
         w.connect(stringOutput, objInput);
     }
 }

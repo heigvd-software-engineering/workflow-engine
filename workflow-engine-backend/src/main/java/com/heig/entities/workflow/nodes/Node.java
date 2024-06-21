@@ -4,14 +4,31 @@ import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
+import com.heig.entities.workflow.types.WType;
 import jakarta.annotation.Nonnull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 public abstract class Node {
+    public static class Builder {
+        private final Workflow workflow;
+        public Builder(Workflow workflow) {
+            this.workflow = workflow;
+        }
+
+        public CodeNode buildCodeNode() {
+            return workflow.addNode((id) -> new CodeNode(id, workflow));
+        }
+
+        public PrimitiveNode buildPrimitiveNode(@Nonnull WType type) {
+            return workflow.addNode((id) -> new PrimitiveNode(id, workflow, type));
+        }
+    }
+
     private final AtomicInteger currentId = new AtomicInteger(0);
 
     private boolean isDeterministic = false;
@@ -22,7 +39,7 @@ public abstract class Node {
     private final ConcurrentMap<Integer, InputConnector> inputs = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, OutputConnector> outputs = new ConcurrentHashMap<>();
 
-    public Node(int id, @Nonnull Workflow workflow) {
+    protected Node(int id, @Nonnull Workflow workflow) {
         if (id < 0) {
             throw new IllegalArgumentException();
         }
@@ -43,7 +60,7 @@ public abstract class Node {
         return timeout;
     }
 
-    public void setTimeout(int timeout) {
+    protected void setTimeout(int timeout) {
         if (timeout <= 0) {
             throw new IllegalArgumentException("The timeout must be greater than 0");
         }
@@ -99,14 +116,14 @@ public abstract class Node {
         return outputs.remove(output.getId()) != null;
     }
 
-    protected InputConnector createInputConnector(String name) {
-        var connector = new InputConnector(currentId.incrementAndGet(), this, name);
+    protected InputConnector addInputConnector(Function<Integer, InputConnector> connectorSupplier) {
+        var connector = connectorSupplier.apply(currentId.incrementAndGet());
         inputs.put(connector.getId(), connector);
         return connector;
     }
 
-    protected OutputConnector createOutputConnector(String name) {
-        var connector = new OutputConnector(currentId.incrementAndGet(), this, name);
+    protected OutputConnector addOutputConnector(Function<Integer, OutputConnector> connectorSupplier) {
+        var connector = connectorSupplier.apply(currentId.incrementAndGet());
         outputs.put(connector.getId(), connector);
         return connector;
     }
