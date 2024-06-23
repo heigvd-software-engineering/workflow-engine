@@ -1,6 +1,7 @@
 package com.heig.entities.workflow.connectors;
 
 import com.heig.entities.workflow.nodes.Node;
+import com.heig.entities.workflow.types.WType;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collections;
@@ -13,8 +14,8 @@ import java.util.stream.Stream;
 public class OutputConnector extends Connector {
     private final List<InputConnector> connectedTo = new LinkedList<>();
 
-    protected OutputConnector(int id, @Nonnull Node parent, String name) {
-        super(id, parent, name);
+    protected OutputConnector(int id, @Nonnull Node parent, @Nonnull String name, @Nonnull WType type, boolean isReadOnly) {
+        super(id, parent, name, type, isReadOnly);
     }
 
     public List<InputConnector> getConnectedTo() {

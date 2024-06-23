@@ -1,25 +1,30 @@
 package com.heig.entities.workflow.connectors;
 
 import com.heig.entities.workflow.Workflow;
+import com.heig.entities.workflow.errors.UnmodifiableConnector;
 import com.heig.entities.workflow.nodes.CodeNode;
+import com.heig.entities.workflow.nodes.PrimitiveNode;
 import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WPrimitive;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.PhantomReference;
+import java.util.Objects;
+
 @QuarkusTest
 public class ConnectorTest {
-    private CodeNode createCodeNode() {
-        var w = new Workflow();
+    private CodeNode createCodeNode(Workflow w) {
         return w.getNodeBuilder().buildCodeNode();
     }
 
     @Test
     public void create() {
-        var n = createCodeNode();
+        var w = new Workflow();
+        var n = createCodeNode(w);
 
-        var connector = n.getConnectorBuilder().buildInputConnector("connector");
+        var connector = n.getConnectorBuilder().buildInputConnector("connector", WObject.of());
         Assertions.assertThrows(NullPointerException.class, () -> {
             connector.setType(null);
         });
@@ -28,16 +33,33 @@ public class ConnectorTest {
         assert connector.getType() == WObject.of();
 
         //Setting the type
-        connector.setType(WPrimitive.Double);
+        assert connector.setType(WPrimitive.Double).isEmpty();
         assert connector.getType() == WPrimitive.Double;
+
+        //Setting the name
+        assert connector.setName("conn").isEmpty();
+        //If I want to set the same name again I should not be getting an error
+        assert connector.setName("conn").isEmpty();
+        assert Objects.equals(connector.getName(), "conn");
+
+        //Creating a primitive node (cannot change the output connector name or type after instantiation)
+        var p = w.getNodeBuilder().buildPrimitiveNode(WPrimitive.Integer);
+        assert Objects.equals(p.getOutputConnector().getName(), PrimitiveNode.OUTPUT_NAME);
+        assert p.getOutputConnector().getType() == WPrimitive.Integer;
+
+        var optError = p.getOutputConnector().setType(WPrimitive.Double);
+        assert optError.isPresent() && optError.get().getClass() == UnmodifiableConnector.class;
+        optError = p.getOutputConnector().setName("test");
+        assert optError.isPresent() && optError.get().getClass() == UnmodifiableConnector.class;
     }
 
     @Test
     public void input() {
-        var n = createCodeNode();
+        var w = new Workflow();
+        var n = createCodeNode(w);
 
-        var connector = n.getConnectorBuilder().buildInputConnector("input");
-        var outputConnector = n.getConnectorBuilder().buildOutputConnector("output");
+        var connector = n.getConnectorBuilder().buildInputConnector("input", WObject.of());
+        var outputConnector = n.getConnectorBuilder().buildOutputConnector("output", WObject.of());
 
         //Empty
         assert connector.getConnectedTo().isEmpty();
@@ -54,16 +76,17 @@ public class ConnectorTest {
 
     @Test
     public void output() {
-        var n = createCodeNode();
+        var w = new Workflow();
+        var n = createCodeNode(w);
 
-        var connector = n.getConnectorBuilder().buildOutputConnector("output");
+        var connector = n.getConnectorBuilder().buildOutputConnector("conn", WObject.of());
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            n.getConnectorBuilder().buildOutputConnector("output");
+            n.getConnectorBuilder().buildOutputConnector("conn", WObject.of());
         });
 
-        var inputConnector = n.getConnectorBuilder().buildInputConnector("input");
+        var inputConnector = n.getConnectorBuilder().buildInputConnector("conn", WObject.of());
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            n.getConnectorBuilder().buildInputConnector("input");
+            n.getConnectorBuilder().buildInputConnector("conn", WObject.of());
         });
 
         //We should not be able to add elements directly

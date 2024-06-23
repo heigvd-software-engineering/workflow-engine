@@ -53,31 +53,33 @@ public class WorkflowTest {
         //A workflow with 2 nodes but no connexions between them is not valid
         assert w.isValid().isPresent();
 
-        var output = node1.getConnectorBuilder().buildOutputConnector("output");
-        var input = node2.getConnectorBuilder().buildInputConnector("input");
+        //Input type : Object
+        //Output type : Object
+        var output = node1.getConnectorBuilder().buildOutputConnector("output", WObject.of());
+        var input = node2.getConnectorBuilder().buildInputConnector("input", WObject.of());
         w.connect(output, input);
         //After creating a connexion between the two of them, the workflow is valid
         assert w.isValid().isEmpty();
 
-        output.setType(WPrimitive.Integer);
+        assert output.setType(WPrimitive.Integer).isEmpty();
         //Input type : Object
         //Output type : Integer
         //=> Valid
         assert w.isValid().isEmpty();
 
-        input.setType(WPrimitive.Integer);
+        assert input.setType(WPrimitive.Integer).isEmpty();
         //Input type : Integer
         //Output type : Integer
         //=> Valid
         assert w.isValid().isEmpty();
 
-        output.setType(WObject.of());
+        assert output.setType(WObject.of()).isEmpty();
         //Input type : Integer
         //Output type : Object
         //=> Not valid
         assert w.isValid().isPresent();
 
-        output.setType(WPrimitive.Double);
+        assert output.setType(WPrimitive.Double).isEmpty();
         //Input type : Integer
         //Output type : Double
         //=> Not valid

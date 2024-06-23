@@ -30,7 +30,7 @@ public abstract class Node {
         }
     }
 
-    private final Connector.Builder connectorBuilder = new Connector.Builder(this);
+    protected final Connector.Builder connectorBuilder;
     private final AtomicInteger currentId = new AtomicInteger(0);
 
     private boolean isDeterministic = false;
@@ -41,13 +41,13 @@ public abstract class Node {
     private final ConcurrentMap<Integer, InputConnector> inputs = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, OutputConnector> outputs = new ConcurrentHashMap<>();
 
-    protected Node(int id, @Nonnull Workflow workflow) {
+    protected Node(int id, @Nonnull Workflow workflow, boolean areConnectorsReadOnly) {
         if (id < 0) {
             throw new IllegalArgumentException();
         }
-        Objects.requireNonNull(workflow);
         this.id = id;
-        this.workflow = workflow;
+        this.workflow = Objects.requireNonNull(workflow);
+        this.connectorBuilder = new Connector.Builder(this, areConnectorsReadOnly);
     }
 
     public boolean getDeterministic() {

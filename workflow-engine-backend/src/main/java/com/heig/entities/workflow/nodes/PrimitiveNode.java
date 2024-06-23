@@ -10,17 +10,16 @@ import jakarta.annotation.Nonnull;
 import java.util.Objects;
 
 public class PrimitiveNode extends Node {
-    private final String outputName = "output";
+    public static final String OUTPUT_NAME = "output";
     private final OutputConnector output;
 
     private Object value;
 
     protected PrimitiveNode(int id, @Nonnull Workflow workflow, @Nonnull WType type) {
-        super(id, workflow);
+        super(id, workflow, true);
         Objects.requireNonNull(type);
 
-        output = getConnectorBuilder().buildOutputConnector(outputName);
-        output.setType(type);
+        output = getConnectorBuilder().buildOutputConnector(OUTPUT_NAME, type);
         this.value = type.defaultValue();
     }
 
@@ -28,7 +27,7 @@ public class PrimitiveNode extends Node {
     @Override
     public NodeArguments execute(@Nonnull NodeArguments arguments) {
         var args = new NodeArguments();
-        args.putArgument(outputName, value);
+        args.putArgument(OUTPUT_NAME, value);
         return args;
     }
 

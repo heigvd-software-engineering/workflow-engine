@@ -6,6 +6,7 @@ import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.nodes.PrimitiveNode;
+import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WPrimitive;
 
 import static com.heig.testHelpers.TestUtils.createPrimitiveNode;
@@ -46,13 +47,10 @@ public class TestScenario {
             """
         );
 
-        num1Input = nodeAdd.getConnectorBuilder().buildInputConnector("num1");
-        num1Input.setType(WPrimitive.Integer);
-        num2Input = nodeAdd.getConnectorBuilder().buildInputConnector("num2");
-        num2Input.setType(WPrimitive.Integer);
+        num1Input = nodeAdd.getConnectorBuilder().buildInputConnector("num1", WPrimitive.Integer);
+        num2Input = nodeAdd.getConnectorBuilder().buildInputConnector("num2", WPrimitive.Integer);
 
-        resultOutput = nodeAdd.getConnectorBuilder().buildOutputConnector("result");
-        resultOutput.setType(WPrimitive.Integer);
+        resultOutput = nodeAdd.getConnectorBuilder().buildOutputConnector("result", WPrimitive.Integer);
 
         //String repeat node
         nodeStringRepeat = w.getNodeBuilder().buildCodeNode();
@@ -68,13 +66,10 @@ public class TestScenario {
             """
         );
 
-        timesInput = nodeStringRepeat.getConnectorBuilder().buildInputConnector("times");
-        timesInput.setType(WPrimitive.Integer);
-        stringInput = nodeStringRepeat.getConnectorBuilder().buildInputConnector("string");
-        stringInput.setType(WPrimitive.String);
+        timesInput = nodeStringRepeat.getConnectorBuilder().buildInputConnector("times", WPrimitive.Integer);
+        stringInput = nodeStringRepeat.getConnectorBuilder().buildInputConnector("string", WPrimitive.String);
 
-        stringOutput = nodeStringRepeat.getConnectorBuilder().buildOutputConnector("string");
-        stringOutput.setType(WPrimitive.String);
+        stringOutput = nodeStringRepeat.getConnectorBuilder().buildOutputConnector("string", WPrimitive.String);
 
         /* Connect nodes
             ┌─num1─┐   ┌───────add──────┐
@@ -108,7 +103,7 @@ public class TestScenario {
             """
         );
 
-        var objInput = nodeLog.getConnectorBuilder().buildInputConnector("obj");
+        var objInput = nodeLog.getConnectorBuilder().buildInputConnector("obj", WObject.of());
         w.connect(stringOutput, objInput);
     }
 }

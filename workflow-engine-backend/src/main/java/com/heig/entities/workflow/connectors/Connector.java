@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.connectors;
 
+import com.heig.entities.workflow.errors.WorkflowError;
 import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.types.WObject;
@@ -7,37 +8,39 @@ import com.heig.entities.workflow.types.WType;
 import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public abstract class Connector {
     public static class Builder {
         private final Node node;
-        public Builder(Node node) {
-            this.node = node;
+        private final boolean isReadOnly;
+        public Builder(@Nonnull Node node, boolean isReadOnly) {
+            this.node = Objects.requireNonNull(node);
+            this.isReadOnly = isReadOnly;
         }
 
-        public InputConnector buildInputConnector(String name) {
-            return node.addInputConnector((id) -> new InputConnector(id, node, name));
+        public InputConnector buildInputConnector(@Nonnull String name, @Nonnull WType type) {
+            return node.addInputConnector((id) -> new InputConnector(id, node, name, type, isReadOnly));
         }
 
-        public OutputConnector buildOutputConnector(String name) {
-            return node.addOutputConnector((id) -> new OutputConnector(id, node, name));
+        public OutputConnector buildOutputConnector(@Nonnull String name, @Nonnull WType type) {
+            return node.addOutputConnector((id) -> new OutputConnector(id, node, name, type, isReadOnly));
         }
     }
 
-    private WType type = WObject.of();
-    private String name;
     private final int id;
     private final Node parent;
+    private final ConnectorData data;
 
-    public Connector(int id, @Nonnull Node parent, String name) {
+    public Connector(int id, @Nonnull Node parent, @Nonnull String name, @Nonnull WType type, boolean isReadOnly) {
         if (id < 0) {
             throw new IllegalArgumentException();
         }
-        Objects.requireNonNull(parent);
+        this.parent = Objects.requireNonNull(parent);
         this.id = id;
-        this.parent = parent;
-        setName(name);
+        this.data = isReadOnly ? new ConnectorData(this, name, type) : new ModifiableConnectorData(this, name, type);
     }
 
     public int getId() {
@@ -49,23 +52,22 @@ public abstract class Connector {
     }
 
     public String getName() {
-        return name;
+        return data.getName();
     }
 
-    public void setName(String name) {
-        Objects.requireNonNull(name);
-        if (getExistingConnectors().anyMatch(i -> Objects.equals(i.getName(), name))) {
-            throw new IllegalArgumentException("Connector with the same name already exists");
+    public Optional<WorkflowError> setName(String name) {
+        if (Objects.equals(name, this.getName())) {
+            return Optional.empty();
         }
-        this.name = name;
+        return data.setName(name);
     }
 
     public WType getType() {
-        return type;
+        return data.getType();
     }
 
-    public void setType(@Nonnull WType type) {
-        this.type = Objects.requireNonNull(type);
+    public Optional<WorkflowError> setType(@Nonnull WType type) {
+        return data.setType(type);
     }
 
     protected abstract Stream<Connector> getExistingConnectors();

@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 public abstract class ModifiableNode extends Node {
     protected ModifiableNode(int id, @Nonnull Workflow workflow) {
-        super(id, workflow);
+        super(id, workflow, false);
     }
 
     @Override
