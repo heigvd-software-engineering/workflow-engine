@@ -8,10 +8,11 @@ import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.ResultOrError;
+import jakarta.annotation.Nonnull;
 
 import java.util.LinkedList;
+import java.util.Objects;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -24,23 +25,27 @@ public class WorkflowExecutor {
     private final Consumer<State> workflowStateChanged;
     private final WorkflowErrors workflowErrors = new WorkflowErrors();
 
-    public WorkflowExecutor(Workflow workflow, Consumer<State> workflowStateChanged, BiConsumer<Node, State> nodeStateChanged) {
-        this.workflow = workflow;
-        this.workflowStateChanged = workflowStateChanged;
-        this.nodeStateChanged = nodeStateChanged;
+    public WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull Consumer<State> workflowStateChanged, @Nonnull BiConsumer<Node, State> nodeStateChanged) {
+        this.workflow = Objects.requireNonNull(workflow);
+        this.workflowStateChanged = Objects.requireNonNull(workflowStateChanged);
+        this.nodeStateChanged = Objects.requireNonNull(nodeStateChanged);
     }
 
-    private NodeState getStateFor(Node node) {
+    private NodeState getStateFor(@Nonnull Node node) {
+        Objects.requireNonNull(node);
         return states.computeIfAbsent(node.getId(), id -> new NodeState(node));
     }
 
-    private void changeNodeState(Node node, State state) {
+    private void changeNodeState(@Nonnull Node node, @Nonnull State state) {
+        Objects.requireNonNull(node);
+        Objects.requireNonNull(state);
         var ns = getStateFor(node);
         ns.setState(state);
         nodeStateChanged.accept(node, state);
     }
 
-    private CompletableFuture<Void> executeNode(Node node) {
+    private CompletableFuture<Void> executeNode(@Nonnull Node node) {
+        Objects.requireNonNull(node);
         return CompletableFuture.supplyAsync(() -> {
             var ns = getStateFor(node);
             var error = false;

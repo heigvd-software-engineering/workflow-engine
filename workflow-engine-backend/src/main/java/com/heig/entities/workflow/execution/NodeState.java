@@ -20,7 +20,8 @@ public class NodeState {
         this.node = node;
     }
 
-    public void setInputValue(int connectorId, ResultOrError<Object> value) {
+    public void setInputValue(int connectorId, @Nonnull ResultOrError<Object> value) {
+        Objects.requireNonNull(value);
         valuesMap.put(connectorId, value);
     }
 
@@ -41,8 +42,8 @@ public class NodeState {
         return node.getInputs().values().stream().filter(i -> !i.isOptional()).noneMatch(c -> valuesMap.get(c.getId()) == null);
     }
 
-    public synchronized void setState(State state) {
-        this.state = state;
+    public synchronized void setState(@Nonnull State state) {
+        this.state = Objects.requireNonNull(state);
     }
 
     public synchronized State getState() {

@@ -3,8 +3,6 @@ package com.heig.entities.workflow.connectors;
 import com.heig.entities.workflow.errors.NameAlreadyUsed;
 import com.heig.entities.workflow.errors.UnmodifiableConnector;
 import com.heig.entities.workflow.errors.WorkflowError;
-import com.heig.entities.workflow.errors.WorkflowErrors;
-import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WType;
 import jakarta.annotation.Nonnull;
 

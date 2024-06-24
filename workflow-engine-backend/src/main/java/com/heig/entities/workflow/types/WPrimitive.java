@@ -17,12 +17,12 @@ public enum WPrimitive implements WType {
 
     private final Object defaultValue;
     WPrimitive(@Nonnull Object defaultValue) {
-        Objects.requireNonNull(defaultValue);
-        this.defaultValue = defaultValue;
+        this.defaultValue = Objects.requireNonNull(defaultValue);
     }
 
     @Override
-    public boolean canBeConvertedFrom(WType other) {
+    public boolean canBeConvertedFrom(@Nonnull WType other) {
+        Objects.requireNonNull(other);
         if (other instanceof WPrimitive primitive) {
             return this == primitive;
         }

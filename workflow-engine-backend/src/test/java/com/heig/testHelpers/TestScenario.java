@@ -2,7 +2,6 @@ package com.heig.testHelpers;
 
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.nodes.CodeNode;
-import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.nodes.PrimitiveNode;

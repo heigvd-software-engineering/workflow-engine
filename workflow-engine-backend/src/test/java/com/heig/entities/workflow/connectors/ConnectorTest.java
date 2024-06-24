@@ -10,7 +10,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.lang.ref.PhantomReference;
 import java.util.Objects;
 
 @QuarkusTest

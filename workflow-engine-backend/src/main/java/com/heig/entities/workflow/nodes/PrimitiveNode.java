@@ -23,7 +23,6 @@ public class PrimitiveNode extends Node {
         this.value = type.defaultValue();
     }
 
-    @Nonnull
     @Override
     public NodeArguments execute(@Nonnull NodeArguments arguments) {
         var args = new NodeArguments();

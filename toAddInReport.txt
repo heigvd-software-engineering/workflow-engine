@@ -9,3 +9,5 @@
 - Expliquer pourquoi avoir fait des Builder pour les Nodes et les Connectors (problème de visibilité des constructeurs de Nodes et ne pas pouvoir y accéder depuis Workflow pour les créer à cause de l'organisation des packages)
 	- Expliquer pourquoi faire une ModifiableNode qui permet de modifier les input / output et les deterministic etc
 - Expliquer la structure de ConnectorData et Connector (pourquoi utiliser un bridge pattern ici => pour ne pas avoir à créer ModifiableInputConnector, ModifiableOutputConnector, ModifiableInputFlowConnector, ...)
+- Expliquer pourquoi avoir utilisé @CheckReturnValue peut-être => pour avoir un warning si on n'utilise pas la valeur de retour
+- Expliquer pourquoi les @Nonnull et les Objects.requireNonNull() => Pour être sûr de ne jamais recevoir de valeur nulle

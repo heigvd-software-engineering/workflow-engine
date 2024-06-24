@@ -4,10 +4,12 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class WorkflowTypes {
     private static WType determineCommonTypeOf(@Nonnull Stream<WType> stream) {
+        Objects.requireNonNull(stream);
         return stream.reduce((acc, t) -> {
             //Here we can determine that the type is Object with Object and Integer as parameters for example
             if (acc.canBeConvertedFrom(t)) {
@@ -31,7 +33,8 @@ public class WorkflowTypes {
         }).orElse(WObject.of());
     }
 
-    public static WType fromObject(Object o) {
+    public static WType fromObject(@Nonnull Object o) {
+        Objects.requireNonNull(o);
         if (o instanceof Collection<?> collection) {
             var valueType = determineCommonTypeOf(collection.stream().map(WorkflowTypes::fromObject));
             return WCollection.of(valueType);
@@ -68,7 +71,6 @@ public class WorkflowTypes {
         if (o instanceof Character) {
             return WPrimitive.Character;
         }
-
         return WObject.of();
     }
 }

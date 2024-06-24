@@ -6,6 +6,7 @@ import jakarta.annotation.Nonnull;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.HostAccess;
+import org.wildfly.common.annotation.NotNull;
 
 import java.util.Objects;
 
@@ -15,17 +16,17 @@ public class CodeNode extends ModifiableNode {
 
         private final String graalLanguageCode;
         private final String mainCodeTemplate;
-        Language(String graalLanguageCode, String mainCodeTemplate) {
-            this.graalLanguageCode = graalLanguageCode;
-            this.mainCodeTemplate = mainCodeTemplate;
+        Language(@Nonnull String graalLanguageCode, @Nonnull String mainCodeTemplate) {
+            this.graalLanguageCode = Objects.requireNonNull(graalLanguageCode);
+            this.mainCodeTemplate = Objects.requireNonNull(mainCodeTemplate);
         }
 
         public String getGraalLanguageCode() {
             return graalLanguageCode;
         }
 
-        public String completeMain(String code) {
-            return mainCodeTemplate.formatted(code);
+        public String completeMain(@NotNull String code) {
+            return mainCodeTemplate.formatted(Objects.requireNonNull(code));
         }
     }
 
@@ -36,7 +37,6 @@ public class CodeNode extends ModifiableNode {
         super(id, workflow);
     }
 
-    @Nonnull
     @Override
     public NodeArguments execute(@Nonnull NodeArguments arguments) {
         Objects.requireNonNull(arguments);

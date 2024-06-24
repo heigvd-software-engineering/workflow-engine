@@ -1,5 +1,9 @@
 package com.heig.entities.workflow.types;
 
+import jakarta.annotation.Nonnull;
+
+import java.util.Objects;
+
 public class WObject implements WType {
     private static final WObject instance = new WObject();
 
@@ -10,7 +14,8 @@ public class WObject implements WType {
     }
 
     @Override
-    public boolean canBeConvertedFrom(WType other) {
+    public boolean canBeConvertedFrom(@Nonnull WType other) {
+        Objects.requireNonNull(other);
         return true;
     }
 

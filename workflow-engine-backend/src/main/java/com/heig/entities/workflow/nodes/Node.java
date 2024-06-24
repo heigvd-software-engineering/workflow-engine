@@ -17,8 +17,8 @@ import java.util.function.Function;
 public abstract class Node {
     public static class Builder {
         private final Workflow workflow;
-        public Builder(Workflow workflow) {
-            this.workflow = workflow;
+        public Builder(@Nonnull Workflow workflow) {
+            this.workflow = Objects.requireNonNull(workflow);
         }
 
         public CodeNode buildCodeNode() {
@@ -118,19 +118,20 @@ public abstract class Node {
         return outputs.remove(output.getId()) != null;
     }
 
-    public InputConnector addInputConnector(Function<Integer, InputConnector> connectorSupplier) {
+    public InputConnector addInputConnector(@Nonnull Function<Integer, InputConnector> connectorSupplier) {
+        Objects.requireNonNull(connectorSupplier);
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
         inputs.put(connector.getId(), connector);
         return connector;
     }
 
-    public OutputConnector addOutputConnector(Function<Integer, OutputConnector> connectorSupplier) {
+    public OutputConnector addOutputConnector(@Nonnull Function<Integer, OutputConnector> connectorSupplier) {
+        Objects.requireNonNull(connectorSupplier);
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
         outputs.put(connector.getId(), connector);
         return connector;
     }
 
-    @Nonnull
     public abstract NodeArguments execute(@Nonnull NodeArguments arguments);
 
     protected Connector.Builder getConnectorBuilder() {

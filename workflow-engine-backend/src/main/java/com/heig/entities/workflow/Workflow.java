@@ -3,10 +3,7 @@ package com.heig.entities.workflow;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.errors.*;
-import com.heig.entities.workflow.nodes.CodeNode;
 import com.heig.entities.workflow.nodes.Node;
-import com.heig.entities.workflow.nodes.PrimitiveNode;
-import com.heig.entities.workflow.types.WType;
 import jakarta.annotation.Nonnull;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.cycle.CycleDetector;
@@ -28,13 +25,15 @@ public class Workflow {
         return nodeBuilder;
     }
 
-    public <T extends Node> T addNode(Function<Integer, T> nodeCreator) {
+    public <T extends Node> T addNode(@Nonnull Function<Integer, T> nodeCreator) {
+        Objects.requireNonNull(nodeCreator);
         var node = nodeCreator.apply(currentId.incrementAndGet());
         nodes.put(node.getId(), node);
         return node;
     }
 
-    public boolean removeNode(Node node) {
+    public boolean removeNode(@Nonnull Node node) {
+        Objects.requireNonNull(node);
         //When removing a node we need to disconnect everything connected to it
         node.disconnectEverything();
 

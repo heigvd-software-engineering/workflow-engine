@@ -1,15 +1,13 @@
 package com.heig.entities.workflow.connectors;
 
 import com.heig.entities.workflow.errors.WorkflowError;
-import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.nodes.Node;
-import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WType;
+import io.smallrye.common.annotation.CheckReturnValue;
 import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public abstract class Connector {
@@ -38,6 +36,8 @@ public abstract class Connector {
         if (id < 0) {
             throw new IllegalArgumentException();
         }
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(type);
         this.parent = Objects.requireNonNull(parent);
         this.id = id;
         this.data = isReadOnly ? new ConnectorData(this, name, type) : new ModifiableConnectorData(this, name, type);
@@ -47,15 +47,18 @@ public abstract class Connector {
         return id;
     }
 
+    @Nonnull
     public Node getParent() {
         return parent;
     }
 
+    @Nonnull
     public String getName() {
         return data.getName();
     }
 
-    public Optional<WorkflowError> setName(String name) {
+    @CheckReturnValue
+    public Optional<WorkflowError> setName(@Nonnull String name) {
         if (Objects.equals(name, this.getName())) {
             return Optional.empty();
         }
@@ -66,6 +69,7 @@ public abstract class Connector {
         return data.getType();
     }
 
+    @CheckReturnValue
     public Optional<WorkflowError> setType(@Nonnull WType type) {
         return data.setType(type);
     }
