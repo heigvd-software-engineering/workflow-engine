@@ -93,6 +93,10 @@ public class WorkflowExecutor {
                     changeNodeState(node, State.FAILED);
                     return ResultOrError.<NodeArguments>error(we);
                 } else {
+                    if (node.isDeterministic()) {
+                        ns.setHasBeenModified(false);
+                    }
+
                     changeNodeState(node, State.FINISHED);
                     return ResultOrError.result(result);
                 }

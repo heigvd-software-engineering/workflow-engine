@@ -50,11 +50,11 @@ public abstract class Node {
         this.connectorBuilder = new Connector.Builder(this, areConnectorsReadOnly);
     }
 
-    public boolean getDeterministic() {
+    public boolean isDeterministic() {
         return isDeterministic;
     }
 
-    protected void setDeterministic(boolean deterministic) {
+    protected void setIsDeterministic(boolean deterministic) {
         isDeterministic = deterministic;
     }
 

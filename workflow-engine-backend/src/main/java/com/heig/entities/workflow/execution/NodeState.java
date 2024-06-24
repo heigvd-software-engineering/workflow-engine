@@ -14,10 +14,10 @@ public class NodeState {
     private State state = State.IDLE;
     private final ConcurrentMap<Integer, ResultOrError<Object>> valuesMap = new ConcurrentHashMap<>();
     private final Node node;
+    private boolean hasBeenModified = false;
 
     public NodeState(@Nonnull Node node) {
-        Objects.requireNonNull(node);
-        this.node = node;
+        this.node = Objects.requireNonNull(node);
     }
 
     public void setInputValue(int connectorId, @Nonnull ResultOrError<Object> value) {
@@ -48,5 +48,13 @@ public class NodeState {
 
     public synchronized State getState() {
         return state;
+    }
+
+    public void setHasBeenModified(boolean hasBeenModified) {
+        this.hasBeenModified = hasBeenModified;
+    }
+
+    public boolean hasBeenModified() {
+        return hasBeenModified;
     }
 }

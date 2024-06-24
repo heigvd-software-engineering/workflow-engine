@@ -20,8 +20,8 @@ public abstract class ModifiableNode extends Node {
     }
 
     @Override
-    public void setDeterministic(boolean deterministic) {
-        super.setDeterministic(deterministic);
+    public void setIsDeterministic(boolean deterministic) {
+        super.setIsDeterministic(deterministic);
     }
 
     @Override

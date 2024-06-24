@@ -8,7 +8,7 @@ import java.util.Objects;
 public abstract class WorkflowNodeError extends WorkflowError {
     private final Node node;
     public WorkflowNodeError(@Nonnull Node node) {
-        this.node = Objects.requireNonNull(node);;
+        this.node = Objects.requireNonNull(node);
     }
 
     public Node getNode() {

@@ -11,3 +11,4 @@
 - Expliquer la structure de ConnectorData et Connector (pourquoi utiliser un bridge pattern ici => pour ne pas avoir à créer ModifiableInputConnector, ModifiableOutputConnector, ModifiableInputFlowConnector, ...)
 - Expliquer pourquoi avoir utilisé @CheckReturnValue peut-être => pour avoir un warning si on n'utilise pas la valeur de retour
 - Expliquer pourquoi les @Nonnull et les Objects.requireNonNull() => Pour être sûr de ne jamais recevoir de valeur nulle
+- Expliquer pourquoi avoir utilisé ObjectOutputStream et non un parser plus classique -> on perde le type réel avec un parser classique (type GSON) ce qui peut faire que le code fonctionne la 1ère fois mais quand on va charger depuis le cache ça va ne plus fonctionner

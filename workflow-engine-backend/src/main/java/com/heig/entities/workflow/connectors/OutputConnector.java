@@ -1,6 +1,7 @@
 package com.heig.entities.workflow.connectors;
 
 import com.heig.entities.workflow.nodes.Node;
+import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WType;
 import jakarta.annotation.Nonnull;
 

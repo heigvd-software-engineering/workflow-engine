@@ -2,6 +2,8 @@ package com.heig.entities.workflow.types;
 
 import jakarta.annotation.Nonnull;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,7 +40,7 @@ public class WCollection implements WType {
     }
 
     @Override
-    public Object defaultValue() {
+    public Collection<?> defaultValue() {
         return List.of();
     }
 }

@@ -47,7 +47,7 @@ public class WMap implements WType {
     }
 
     @Override
-    public Object defaultValue() {
+    public Map<?, ?> defaultValue() {
         return Map.of();
     }
 }
