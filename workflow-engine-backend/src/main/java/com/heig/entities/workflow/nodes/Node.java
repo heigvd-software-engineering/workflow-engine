@@ -43,7 +43,7 @@ public abstract class Node {
 
     protected Node(int id, @Nonnull Workflow workflow, boolean areConnectorsReadOnly) {
         if (id < 0) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("The id cannot be negative");
         }
         this.id = id;
         this.workflow = Objects.requireNonNull(workflow);

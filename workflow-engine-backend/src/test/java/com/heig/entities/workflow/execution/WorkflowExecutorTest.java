@@ -25,8 +25,11 @@ public class WorkflowExecutorTest {
         assert executor.executeWorkflow();
         //While the workflow is running we wait. Only there for tests rightness purpose.
         while(currentState.get() != State.FINISHED && currentState.get() != State.FAILED) {
-            Thread.sleep(10);
+            Thread.sleep(50);
         }
         assert currentState.get() != State.FAILED;
+
+        //After the workflow execution, we clear the cache
+        executor.clearCache();
     }
 }

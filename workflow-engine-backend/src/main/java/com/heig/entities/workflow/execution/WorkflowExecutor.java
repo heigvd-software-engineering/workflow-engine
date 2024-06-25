@@ -1,9 +1,7 @@
 package com.heig.entities.workflow.execution;
 
-import com.heig.entities.workflow.errors.FailedExecution;
-import com.heig.entities.workflow.errors.MissingOutputValue;
-import com.heig.entities.workflow.errors.WorkflowErrors;
-import com.heig.entities.workflow.errors.WrongType;
+import com.heig.entities.workflow.cache.Cache;
+import com.heig.entities.workflow.errors.*;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.types.WorkflowTypes;
@@ -12,9 +10,11 @@ import jakarta.annotation.Nonnull;
 
 import java.util.LinkedList;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class WorkflowExecutor {
     private final Object stateLock = new Object();
@@ -24,11 +24,13 @@ public class WorkflowExecutor {
     private final BiConsumer<Node, State> nodeStateChanged;
     private final Consumer<State> workflowStateChanged;
     private final WorkflowErrors workflowErrors = new WorkflowErrors();
+    private final Cache cache;
 
     public WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull Consumer<State> workflowStateChanged, @Nonnull BiConsumer<Node, State> nodeStateChanged) {
         this.workflow = Objects.requireNonNull(workflow);
         this.workflowStateChanged = Objects.requireNonNull(workflowStateChanged);
         this.nodeStateChanged = Objects.requireNonNull(nodeStateChanged);
+        this.cache = Cache.get(workflow);
     }
 
     private NodeState getStateFor(@Nonnull Node node) {
@@ -46,18 +48,28 @@ public class WorkflowExecutor {
 
     private CompletableFuture<Void> executeNode(@Nonnull Node node) {
         Objects.requireNonNull(node);
-        return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.supplyAsync((Supplier<ResultOrError<NodeArguments>>) () -> {
             var ns = getStateFor(node);
+            //Case if the node hasn't been modified and neither have the previous nodes (the node needs to be deterministic too)
+            if (ns.getState() == State.FINISHED && !ns.hasBeenModified() && node.isDeterministic()) {
+                var optCache = cache.get(node);
+                if (optCache.isPresent()) {
+                    return ResultOrError.result(optCache.get());
+                }
+            }
+
             var error = false;
             var we = new WorkflowErrors();
             var args = new NodeArguments();
             //To run a node, we need all inputs (except the ones marked as optional) values to be available with no error
             for (var input : node.getInputs().values()) {
-                var inputValue = ns.getInputValue(input.getId());
+                var inputValueOpt = ns.getInputValue(input.getId());
                 //The only way for res to be null is when it is an optional input
-                if (inputValue == null) {
+                if (inputValueOpt.isEmpty()) {
                     continue;
                 }
+                var inputValue = inputValueOpt.get();
+
                 if (inputValue.getErrorMessage().isPresent()) {
                     error = true;
                     we.merge(inputValue.getErrorMessage().get());
@@ -67,16 +79,30 @@ public class WorkflowExecutor {
             }
             if (error) {
                 changeNodeState(node, State.FAILED);
-                return ResultOrError.<NodeArguments>error(we);
+                return ResultOrError.error(we);
             }
 
             changeNodeState(node, State.RUNNING);
             try {
-                var result = node.execute(args);
+                var fut = CompletableFuture
+                    .supplyAsync(() -> Optional.of(node.execute(args)))
+                    .completeOnTimeout(Optional.empty(), node.getTimeout(), TimeUnit.MILLISECONDS);
+                var resultOpt = fut.join();
+                if (resultOpt.isEmpty()) {
+                    we.addError(new ExecutionTimeout(node));
+                    return ResultOrError.error(we);
+                }
+                var result = resultOpt.get();
+
+                //Checking that every output needed (non-optional) is present and of the correct type
                 var isErrored = false;
                 for (var output : node.getOutputs().values()) {
                     var argument = result.getArgument(output.getName());
                     if (argument.isEmpty()) {
+                        if (output.isOptional()) {
+                            continue;
+                        }
+
                         we.addError(new MissingOutputValue(output));
                         isErrored = true;
                         continue;
@@ -91,10 +117,11 @@ public class WorkflowExecutor {
                 }
                 if (isErrored) {
                     changeNodeState(node, State.FAILED);
-                    return ResultOrError.<NodeArguments>error(we);
+                    return ResultOrError.error(we);
                 } else {
                     if (node.isDeterministic()) {
                         ns.setHasBeenModified(false);
+                        cache.set(node, result);
                     }
 
                     changeNodeState(node, State.FINISHED);
@@ -103,13 +130,21 @@ public class WorkflowExecutor {
             } catch (Exception e) {
                 changeNodeState(node, State.FAILED);
                 we.addError(new FailedExecution(node, e.getMessage()));
-                return ResultOrError.<NodeArguments>error(we);
+                return ResultOrError.error(we);
             }
         }).thenComposeAsync(o -> {
             var toWait = new LinkedList<CompletableFuture<Void>>();
             for (var output : node.getOutputs().values()) {
                 var res = o.applyPresent(
-                    value -> ResultOrError.result(value.getArgument(output.getName()).get()), ResultOrError::error
+                    value -> {
+                        var opt = value.getArgument(output.getName());
+                        if (opt.isPresent()) {
+                            return ResultOrError.result(opt.get());
+                        } else if (output.isOptional()) {
+                            return ResultOrError.result(output.getType().defaultValue());
+                        }
+                        throw new RuntimeException("Should never happen! Already checked before");
+                    }, ResultOrError::error
                 );
 
                 for (var input : output.getConnectedTo()) {
@@ -148,11 +183,19 @@ public class WorkflowExecutor {
             return false;
         }
 
+        workflow.getNodes().values().forEach(n -> {
+            var ns = getStateFor(n);
+            if (ns.getState() == State.FAILED) {
+                ns.setState(State.IDLE);
+            }
+            ns.clearInputs();
+        });
+
         //The starting nodes of our workflow are the nodes that have no input connected (we already know that all inputs
         //that are not optional are connected to an output thanks to workflow.isValid())
-        var noInputsNodes = workflow.getNodes().values().stream().filter(n -> n.getInputs().values().stream().noneMatch(i -> i.getConnectedTo().isPresent())).toList();
+        var notConnectedNodes = workflow.getNodes().values().stream().filter(n -> n.getInputs().values().stream().noneMatch(i -> i.getConnectedTo().isPresent())).toList();
         var toWait = new LinkedList<CompletableFuture<Void>>();
-        for (var node : noInputsNodes) {
+        for (var node : notConnectedNodes) {
             toWait.add(executeNode(node));
         }
         var waitAll = CompletableFuture.allOf(toWait.toArray(CompletableFuture[]::new));
@@ -175,5 +218,9 @@ public class WorkflowExecutor {
 
     public WorkflowErrors getWorkflowErrors() {
         return workflowErrors;
+    }
+
+    public void clearCache() {
+        cache.clear();
     }
 }

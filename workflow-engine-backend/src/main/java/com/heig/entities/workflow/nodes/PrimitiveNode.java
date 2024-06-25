@@ -20,6 +20,7 @@ public class PrimitiveNode extends Node {
         Objects.requireNonNull(type);
 
         output = getConnectorBuilder().buildOutputConnector(OUTPUT_NAME, type);
+        setIsDeterministic(true);
         this.value = type.defaultValue();
     }
 

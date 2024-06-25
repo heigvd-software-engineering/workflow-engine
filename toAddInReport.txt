@@ -12,3 +12,5 @@
 - Expliquer pourquoi avoir utilisé @CheckReturnValue peut-être => pour avoir un warning si on n'utilise pas la valeur de retour
 - Expliquer pourquoi les @Nonnull et les Objects.requireNonNull() => Pour être sûr de ne jamais recevoir de valeur nulle
 - Expliquer pourquoi avoir utilisé ObjectOutputStream et non un parser plus classique -> on perde le type réel avec un parser classique (type GSON) ce qui peut faire que le code fonctionne la 1ère fois mais quand on va charger depuis le cache ça va ne plus fonctionner
+- Expliquer le fonctionnement de ConfigProvider.getConfig() avec le application.properties de Quarkus https://quarkus.io/guides/config-reference#programmatically-access
+- Expliquer pourquoi avoir fait une instance avec les caches (1 par workflow) => Vu que get et set sont synchronized, on doit avoir le même objet pour que cela fonctionne (et donc que l'on ne modifie pas les fichiers constituant le cache en même temps)

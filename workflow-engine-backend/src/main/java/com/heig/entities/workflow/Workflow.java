@@ -1,8 +1,10 @@
 package com.heig.entities.workflow;
 
+import com.heig.entities.workflow.cache.Cache;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.errors.*;
+import com.heig.entities.workflow.execution.WorkflowExecutor;
 import com.heig.entities.workflow.nodes.Node;
 import jakarta.annotation.Nonnull;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
@@ -20,6 +22,13 @@ public class Workflow {
     private final AtomicInteger currentId = new AtomicInteger(0);
     private final ConcurrentMap<Integer, Node> nodes = new ConcurrentHashMap<>();
     private final Node.Builder nodeBuilder = new Node.Builder(this);
+    private final UUID uuid;
+    private final String name;
+
+    Workflow(@Nonnull UUID uuid, @Nonnull String name) {
+        this.uuid = Objects.requireNonNull(uuid);
+        this.name = Objects.requireNonNull(name);
+    }
 
     public Node.Builder getNodeBuilder() {
         return nodeBuilder;
@@ -46,6 +55,14 @@ public class Workflow {
 
     public Optional<Node> getNode(int id) {
         return Optional.ofNullable(nodes.get(id));
+    }
+
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public boolean connect(@Nonnull OutputConnector output, @Nonnull InputConnector input) {

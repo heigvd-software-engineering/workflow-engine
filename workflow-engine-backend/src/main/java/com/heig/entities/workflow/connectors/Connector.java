@@ -34,7 +34,7 @@ public abstract class Connector {
 
     public Connector(int id, @Nonnull Node parent, @Nonnull String name, @Nonnull WType type, boolean isReadOnly) {
         if (id < 0) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("The id cannot be negative");
         }
         Objects.requireNonNull(name);
         Objects.requireNonNull(type);
@@ -72,6 +72,10 @@ public abstract class Connector {
     @CheckReturnValue
     public Optional<WorkflowError> setType(@Nonnull WType type) {
         return data.setType(type);
+    }
+
+    public boolean isOptional() {
+        return false;
     }
 
     protected abstract Stream<Connector> getExistingConnectors();

@@ -19,10 +19,6 @@ public class InputConnector extends Connector {
         return Optional.ofNullable(connectedTo);
     }
 
-    public boolean isOptional() {
-        return false;
-    }
-
     public void setConnectedTo(OutputConnector connectedTo) {
         this.connectedTo = connectedTo;
     }

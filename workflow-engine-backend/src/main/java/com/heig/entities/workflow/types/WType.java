@@ -4,6 +4,7 @@ import jakarta.annotation.Nonnull;
 
 import java.io.*;
 import java.util.Objects;
+import java.util.Optional;
 
 public interface WType {
     boolean canBeConvertedFrom(@Nonnull WType other);
@@ -17,12 +18,12 @@ public interface WType {
             throw new RuntimeException(e);
         }
     }
-    default Object fromFile(@Nonnull File input) {
+    default Optional<Object> fromFile(@Nonnull File input) {
         Objects.requireNonNull(input);
         try (var ois = new ObjectInputStream(new FileInputStream(input))) {
-            return ois.readObject();
+            return Optional.ofNullable(ois.readObject());
         } catch (Exception e) {
-            return null;
+            return Optional.empty();
         }
     }
 }
