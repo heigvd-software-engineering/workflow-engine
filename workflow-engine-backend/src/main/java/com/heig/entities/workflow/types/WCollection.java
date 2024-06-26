@@ -9,19 +9,19 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class WCollection implements WType {
-    private static final ConcurrentMap<WType, WCollection> cache = new ConcurrentHashMap<>();
-    private final WType valueType;
+public class WCollection implements WIterableType {
+    private static final ConcurrentMap<WIterableType, WCollection> cache = new ConcurrentHashMap<>();
+    private final WIterableType valueType;
 
-    private WCollection(@Nonnull WType valueType) {
+    private WCollection(@Nonnull WIterableType valueType) {
         this.valueType = Objects.requireNonNull(valueType);
     }
 
-    public WType getValueType() {
+    public WIterableType getValueType() {
         return valueType;
     }
 
-    public static WCollection of(@Nonnull WType valueType) {
+    public static WCollection of(@Nonnull WIterableType valueType) {
         return cache.computeIfAbsent(valueType, WCollection::new);
     }
 

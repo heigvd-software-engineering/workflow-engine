@@ -4,7 +4,7 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
 
-public class WObject implements WType {
+public class WObject implements WIterableType {
     private static final WObject instance = new WObject();
 
     private WObject() {}

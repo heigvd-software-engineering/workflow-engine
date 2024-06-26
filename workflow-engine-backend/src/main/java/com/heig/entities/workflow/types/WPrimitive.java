@@ -4,7 +4,7 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
 
-public enum WPrimitive implements WType {
+public enum WPrimitive implements WIterableType {
     Integer(0),
     String(""),
     Boolean(true),

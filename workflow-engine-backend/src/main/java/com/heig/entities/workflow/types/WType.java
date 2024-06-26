@@ -26,4 +26,8 @@ public interface WType {
             return Optional.empty();
         }
     }
+    default int getHashCode(@Nonnull Object value) {
+        Objects.requireNonNull(value);
+        return value.hashCode();
+    }
 }

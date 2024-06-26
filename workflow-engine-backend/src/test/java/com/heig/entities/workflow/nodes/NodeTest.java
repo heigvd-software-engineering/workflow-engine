@@ -1,7 +1,12 @@
 package com.heig.entities.workflow.nodes;
 
+import com.heig.entities.workflow.WorkflowManager;
+import com.heig.entities.workflow.connectors.InputFlowConnector;
+import com.heig.entities.workflow.connectors.OutputConnector;
+import com.heig.entities.workflow.connectors.OutputFlowConnector;
 import com.heig.testHelpers.TestScenario;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -9,6 +14,14 @@ public class NodeTest {
     @Test
     public void create() {
         var scenario = new TestScenario();
+
+        //Adding another flow connector should throw because the name exists already
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            scenario.nodeAdd.getConnectorBuilder().buildInputFlowConnector();
+        });
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            scenario.nodeAdd.getConnectorBuilder().buildOutputFlowConnector();
+        });
 
         /* We now directly link the "num1" node to the "stringRepeat" node
             ┌─num1─┐
@@ -55,8 +68,8 @@ public class NodeTest {
         */
         assert scenario.nodeAdd.removeInput(scenario.num1Input);
 
-        //The node add should have only one input remaining
-        assert scenario.nodeAdd.getInputs().size() == 1;
+        //The node "add" should not have the "num1" input anymore
+        assert !scenario.nodeAdd.getInputs().containsKey(scenario.num1Input.getId());
         //The output connexion of the "num1" node should be connected to no one
         assert scenario.num1Output.getConnectedTo().isEmpty();
 
@@ -76,8 +89,8 @@ public class NodeTest {
         */
         assert scenario.nodeAdd.removeOutput(scenario.resultOutput);
 
-        //The "add" node should have no more outputs connexions
-        assert scenario.nodeAdd.getOutputs().isEmpty();
+        //The "add" node should not have the "result" output anymore
+        assert !scenario.nodeAdd.getOutputs().containsKey(scenario.resultOutput.getId());
         //The "times" connexion of the "stringRepeat" node should have no connexion
         assert scenario.timesInput.getConnectedTo().isEmpty();
     }
@@ -113,5 +126,21 @@ public class NodeTest {
         assert scenario.num1Input.getConnectedTo().isEmpty();
         assert scenario.num2Input.getConnectedTo().isEmpty();
         assert scenario.resultOutput.getConnectedTo().isEmpty();
+    }
+
+    @Test
+    public void removeReadOnlyConnector() {
+        var w = WorkflowManager.createWorkflow("ro-connector");
+        var n = w.getNodeBuilder().buildCodeNode();
+
+        //We should not be able to remove the input flow connector
+        var iFlow = n.getInputs().values().stream().filter(c -> c.getName().equals(InputFlowConnector.CONNECTOR_NAME)).findFirst();
+        assert iFlow.isPresent();
+        assert !n.removeInput(iFlow.get());
+
+        //We should not be able to remove the output flow connector
+        var oFlow = n.getOutputs().values().stream().filter(c -> c.getName().equals(OutputFlowConnector.CONNECTOR_NAME)).findFirst();
+        assert oFlow.isPresent();
+        assert !n.removeOutput(oFlow.get());
     }
 }

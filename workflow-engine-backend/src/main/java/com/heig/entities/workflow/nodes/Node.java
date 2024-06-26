@@ -48,6 +48,10 @@ public abstract class Node {
         this.id = id;
         this.workflow = Objects.requireNonNull(workflow);
         this.connectorBuilder = new Connector.Builder(this, areConnectorsReadOnly);
+
+        //We add the input and output flow connector for every node
+        connectorBuilder.buildInputFlowConnector();
+        connectorBuilder.buildOutputFlowConnector();
     }
 
     public boolean isDeterministic() {
@@ -118,14 +122,14 @@ public abstract class Node {
         return outputs.remove(output.getId()) != null;
     }
 
-    public InputConnector addInputConnector(@Nonnull Function<Integer, InputConnector> connectorSupplier) {
+    public <T extends InputConnector> T addInputConnector(@Nonnull Function<Integer, T> connectorSupplier) {
         Objects.requireNonNull(connectorSupplier);
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
         inputs.put(connector.getId(), connector);
         return connector;
     }
 
-    public OutputConnector addOutputConnector(@Nonnull Function<Integer, OutputConnector> connectorSupplier) {
+    public <T extends OutputConnector> T addOutputConnector(@Nonnull Function<Integer, T> connectorSupplier) {
         Objects.requireNonNull(connectorSupplier);
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
         outputs.put(connector.getId(), connector);

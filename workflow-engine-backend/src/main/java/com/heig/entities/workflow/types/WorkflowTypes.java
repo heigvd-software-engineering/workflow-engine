@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 public class WorkflowTypes {
-    private static WType determineCommonTypeOf(@Nonnull Stream<WType> stream) {
+    private static WIterableType determineCommonTypeOf(@Nonnull Stream<WIterableType> stream) {
         Objects.requireNonNull(stream);
         return stream.reduce((acc, t) -> {
             //Here we can determine that the type is Object with Object and Integer as parameters for example
@@ -33,15 +33,33 @@ public class WorkflowTypes {
         }).orElse(WObject.of());
     }
 
+    private static Stream<WIterableType> ensureAllAreIterableTypes(Stream<WType> stream) {
+        var wIterableList = stream.map(wType -> {
+            if (wType instanceof WIterableType w) {
+                return w;
+            }
+            return null;
+        }).toList();
+        if (wIterableList.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("Collection contains non-iterable type !");
+        }
+        return wIterableList.stream();
+    }
+
     public static WType fromObject(@Nonnull Object o) {
         Objects.requireNonNull(o);
         if (o instanceof Collection<?> collection) {
-            var valueType = determineCommonTypeOf(collection.stream().map(WorkflowTypes::fromObject));
+            var wTypeStream = collection.stream().map(WorkflowTypes::fromObject);
+            var valueType = determineCommonTypeOf(ensureAllAreIterableTypes(wTypeStream));
             return WCollection.of(valueType);
         }
         if (o instanceof Map<?, ?> map) {
-            var keyType = determineCommonTypeOf(map.keySet().stream().map(WorkflowTypes::fromObject));
-            var valueType = determineCommonTypeOf(map.values().stream().map(WorkflowTypes::fromObject));
+            var keyWTypeStream = map.keySet().stream().map(WorkflowTypes::fromObject);
+            var valuesWTypeStream = map.values().stream().map(WorkflowTypes::fromObject);
+
+            var keyType = determineCommonTypeOf(ensureAllAreIterableTypes(keyWTypeStream));
+            var valueType = determineCommonTypeOf(ensureAllAreIterableTypes(valuesWTypeStream));
+
             return WMap.of(keyType, valueType);
         }
         if (o instanceof Integer) {
@@ -70,6 +88,9 @@ public class WorkflowTypes {
         }
         if (o instanceof Character) {
             return WPrimitive.Character;
+        }
+        if (o instanceof WFlow) {
+            return WFlow.of();
         }
         return WObject.of();
     }

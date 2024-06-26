@@ -22,4 +22,8 @@ public class WorkflowManager {
     public static Optional<Workflow> getWorkflow(UUID uuid) {
         return Optional.ofNullable(workflows.get(uuid));
     }
+
+    public static void removeWorkflow(UUID uuid) {
+        workflows.remove(uuid);
+    }
 }

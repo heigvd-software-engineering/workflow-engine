@@ -54,7 +54,6 @@ public class TestScenario {
 
         //String repeat node
         nodeStringRepeat = w.getNodeBuilder().buildCodeNode();
-        nodeStringRepeat.setCode("arguments.getArgument('')");
         nodeStringRepeat.setCode(
             """
             let times = arguments.getArgument('times').get();

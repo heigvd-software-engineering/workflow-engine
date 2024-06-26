@@ -25,7 +25,7 @@ public abstract class ModifiableNode extends Node {
     }
 
     @Override
-    public InputConnector addInputConnector(@Nonnull Function<Integer, InputConnector> connectorSupplier) {
+    public <T extends InputConnector> T addInputConnector(@Nonnull Function<Integer, T> connectorSupplier) {
         Objects.requireNonNull(connectorSupplier);
         return super.addInputConnector(connectorSupplier);
     }
@@ -33,11 +33,14 @@ public abstract class ModifiableNode extends Node {
     @Override
     public boolean removeInput(@Nonnull InputConnector input) {
         Objects.requireNonNull(input);
+        if (input.isReadOnly()) {
+            return false;
+        }
         return super.removeInput(input);
     }
 
     @Override
-    public OutputConnector addOutputConnector(@Nonnull Function<Integer, OutputConnector> connectorSupplier) {
+    public <T extends OutputConnector> T addOutputConnector(@Nonnull Function<Integer, T> connectorSupplier) {
         Objects.requireNonNull(connectorSupplier);
         return super.addOutputConnector(connectorSupplier);
     }
@@ -45,6 +48,9 @@ public abstract class ModifiableNode extends Node {
     @Override
     public boolean removeOutput(@Nonnull OutputConnector output) {
         Objects.requireNonNull(output);
+        if (output.isReadOnly()) {
+            return false;
+        }
         return super.removeOutput(output);
     }
 

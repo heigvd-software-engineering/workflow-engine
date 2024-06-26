@@ -1,6 +1,7 @@
 package com.heig.entities.workflow.types;
 
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -38,5 +39,28 @@ public class WorkflowTypesTest {
         //Test the type for more complex types
         assert WorkflowTypes.fromObject(List.of(List.of(Map.of(1, 2)), List.of(Map.of("a", 2)))) == WCollection.of(WCollection.of(WMap.of(WObject.of(), WPrimitive.Integer)));
         assert WorkflowTypes.fromObject(List.of(List.of(Map.of(List.of(1), 2)), List.of(Map.of(List.of("a"), 2)))) == WCollection.of(WCollection.of(WMap.of(WCollection.of(WObject.of()), WPrimitive.Integer)));
+
+        //Test for WFlow
+        assert WorkflowTypes.fromObject(WFlow.of()) == WFlow.of();
+
+        //Should not be able to create a list of WFlow
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            WorkflowTypes.fromObject(List.of(WFlow.of()));
+        });
+
+        //Should not be able to create a map with WFlow as value
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            WorkflowTypes.fromObject(Map.of(1, WFlow.of()));
+        });
+
+        //Should not be able to create a map with WFlow as key
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            WorkflowTypes.fromObject(Map.of(WFlow.of(), 1));
+        });
+
+        //Should not be able to create a list of list of WFlow
+        Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            WorkflowTypes.fromObject(List.of(List.of(WFlow.of())));
+        });
     }
 }

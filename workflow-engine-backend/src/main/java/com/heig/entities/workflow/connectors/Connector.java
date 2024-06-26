@@ -26,11 +26,20 @@ public abstract class Connector {
         public OutputConnector buildOutputConnector(@Nonnull String name, @Nonnull WType type) {
             return node.addOutputConnector((id) -> new OutputConnector(id, node, name, type, isReadOnly));
         }
+
+        public InputFlowConnector buildInputFlowConnector() {
+            return node.addInputConnector((id) -> new InputFlowConnector(id, node));
+        }
+
+        public OutputFlowConnector buildOutputFlowConnector() {
+            return node.addOutputConnector((id) -> new OutputFlowConnector(id, node));
+        }
     }
 
     private final int id;
     private final Node parent;
     private final ConnectorData data;
+    private final boolean isReadOnly;
 
     public Connector(int id, @Nonnull Node parent, @Nonnull String name, @Nonnull WType type, boolean isReadOnly) {
         if (id < 0) {
@@ -40,7 +49,12 @@ public abstract class Connector {
         Objects.requireNonNull(type);
         this.parent = Objects.requireNonNull(parent);
         this.id = id;
+        this.isReadOnly = isReadOnly;
         this.data = isReadOnly ? new ConnectorData(this, name, type) : new ModifiableConnectorData(this, name, type);
+    }
+
+    public boolean isReadOnly() {
+        return isReadOnly;
     }
 
     public int getId() {

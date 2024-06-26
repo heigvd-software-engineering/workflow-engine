@@ -50,14 +50,6 @@ public class WorkflowExecutor {
         Objects.requireNonNull(node);
         return CompletableFuture.supplyAsync((Supplier<ResultOrError<NodeArguments>>) () -> {
             var ns = getStateFor(node);
-            //Case if the node hasn't been modified and neither have the previous nodes (the node needs to be deterministic too)
-            if (ns.getState() == State.FINISHED && !ns.hasBeenModified() && node.isDeterministic()) {
-                var optCache = cache.get(node);
-                if (optCache.isPresent()) {
-                    return ResultOrError.result(optCache.get());
-                }
-            }
-
             var error = false;
             var we = new WorkflowErrors();
             var args = new NodeArguments();
@@ -66,6 +58,9 @@ public class WorkflowExecutor {
                 var inputValueOpt = ns.getInputValue(input.getId());
                 //The only way for res to be null is when it is an optional input
                 if (inputValueOpt.isEmpty()) {
+                    if (!input.isOptional()) {
+                        throw new RuntimeException("Should never happen ! The input should have been optional to be null !");
+                    }
                     continue;
                 }
                 var inputValue = inputValueOpt.get();
@@ -80,6 +75,14 @@ public class WorkflowExecutor {
             if (error) {
                 changeNodeState(node, State.FAILED);
                 return ResultOrError.error(we);
+            }
+
+            //Case if the node hasn't been modified and neither have the previous nodes (the node needs to be deterministic too)
+            if (!ns.hasBeenModified() && node.isDeterministic()) {
+                var optCache = cache.get(node, args);
+                if (optCache.isPresent()) {
+                    return ResultOrError.result(optCache.get());
+                }
             }
 
             changeNodeState(node, State.RUNNING);
@@ -100,6 +103,8 @@ public class WorkflowExecutor {
                     var argument = result.getArgument(output.getName());
                     if (argument.isEmpty()) {
                         if (output.isOptional()) {
+                            //If there are no value for the output and that the output is optional, we put the default value for the output type
+                            result.putArgument(output.getName(), output.getType().defaultValue());
                             continue;
                         }
 
@@ -121,7 +126,7 @@ public class WorkflowExecutor {
                 } else {
                     if (node.isDeterministic()) {
                         ns.setHasBeenModified(false);
-                        cache.set(node, result);
+                        cache.set(node, args, result);
                     }
 
                     changeNodeState(node, State.FINISHED);
@@ -140,8 +145,6 @@ public class WorkflowExecutor {
                         var opt = value.getArgument(output.getName());
                         if (opt.isPresent()) {
                             return ResultOrError.result(opt.get());
-                        } else if (output.isOptional()) {
-                            return ResultOrError.result(output.getType().defaultValue());
                         }
                         throw new RuntimeException("Should never happen! Already checked before");
                     }, ResultOrError::error
@@ -185,9 +188,7 @@ public class WorkflowExecutor {
 
         workflow.getNodes().values().forEach(n -> {
             var ns = getStateFor(n);
-            if (ns.getState() == State.FAILED) {
-                ns.setState(State.IDLE);
-            }
+            ns.setState(State.IDLE);
             ns.clearInputs();
         });
 
