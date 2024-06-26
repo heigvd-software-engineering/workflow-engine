@@ -63,4 +63,25 @@ public class WorkflowTypesTest {
             WorkflowTypes.fromObject(List.of(List.of(WFlow.of())));
         });
     }
+
+    private boolean testType(WType type) {
+        return WorkflowTypes.typeFromString(WorkflowTypes.typeToString(type)) == type;
+    }
+
+    @Test
+    public void typeStringConverter() {
+        assert testType(WPrimitive.String);
+        assert testType(WPrimitive.Integer);
+
+        assert testType(WFlow.of());
+        assert testType(WObject.of());
+
+        assert testType(WCollection.of(WPrimitive.String));
+        assert testType(WCollection.of(WObject.of()));
+        assert testType(WCollection.of(WCollection.of(WPrimitive.Double)));
+
+        assert testType(WMap.of(WObject.of(), WCollection.of(WPrimitive.Double)));
+        assert testType(WMap.of(WPrimitive.Byte, WMap.of(WObject.of(), WPrimitive.Boolean)));
+        assert testType(WCollection.of(WMap.of(WMap.of(WPrimitive.Character, WPrimitive.Long), WMap.of(WObject.of(), WPrimitive.Integer))));
+    }
 }

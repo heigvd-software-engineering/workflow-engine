@@ -4,6 +4,8 @@ import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.nodes.Node;
+import com.heig.entities.workflow.types.WType;
+import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.Utils;
 import io.quarkus.runtime.util.HashUtil;
 import io.smallrye.common.annotation.CheckReturnValue;
@@ -41,8 +43,8 @@ public class Cache {
         return new File(cacheDirectory, String.valueOf(node.getId()));
     }
 
-    private File getOutputConnectorFile(@Nonnull File nodeCacheDirectory, @Nonnull OutputConnector outputConnector) {
-        return new File(nodeCacheDirectory, outputConnector.getId() + ".obj");
+    private File getOutputConnectorFile(@Nonnull File nodeCacheDirectory, @Nonnull OutputConnector outputConnector, boolean isType) {
+        return new File(nodeCacheDirectory, outputConnector.getId() + "." + (isType ? "type" : "obj"));
     }
 
     private File getInfoFile(@Nonnull File nodeCacheDirectory) {
@@ -52,18 +54,6 @@ public class Cache {
     private static int getHashFor(@Nonnull Node node, @Nonnull NodeArguments inputs) {
         Objects.requireNonNull(node);
         Objects.requireNonNull(inputs);
-//        for (var argumentName : inputs.getArguments().keySet()) {
-//            var inputConnectorOpt = node.getInputs().values().stream()
-//                    .filter(o -> o.getName().equals(argumentName))
-//                    .findFirst();
-//            if (inputConnectorOpt.isEmpty()) {
-//                continue;
-//            }
-//            var inputConnector = inputConnectorOpt.get();
-//
-//            var argument = inputs.getArguments().get(argumentName);
-//            lstHashCodes.add(inputConnector.getType().getHashCode(argument));
-//        }
         var lstHashCodes = new LinkedList<Integer>();
         for (var input : node.getInputs().values()) {
             var argumentOpt = inputs.getArgument(input.getName());
@@ -106,28 +96,6 @@ public class Cache {
             throw new RuntimeException(e);
         }
 
-//        for (var argumentName : outputs.getArguments().keySet()) {
-//            var outputConnectorOpt = node.getOutputs().values().stream()
-//                    .filter(o -> o.getName().equals(argumentName))
-//                    .findFirst();
-//            if (outputConnectorOpt.isEmpty()) {
-//                continue;
-//            }
-//            var outputConnector = outputConnectorOpt.get();
-//
-//            var argument = outputs.getArguments().get(argumentName);
-//
-//            var cacheFile = getOutputConnectorFile(nodeCacheDirectory, outputConnector);
-//            try {
-//                if (!cacheFile.createNewFile()) {
-//                    throw new RuntimeException("Could not create cache file");
-//                }
-//                outputConnector.getType().toFile(cacheFile, argument);
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }
-
         for (var output : node.getOutputs().values()) {
             var argumentOpt = outputs.getArgument(output.getName());
             if (argumentOpt.isEmpty()) {
@@ -136,12 +104,17 @@ public class Cache {
             }
             var argument = argumentOpt.get();
 
-            var cacheFile = getOutputConnectorFile(nodeCacheDirectory, output);
+            var cacheFile = getOutputConnectorFile(nodeCacheDirectory, output, false);
+            var cacheFileType = getOutputConnectorFile(nodeCacheDirectory, output, true);
             try {
-                if (!cacheFile.createNewFile()) {
+                if (!cacheFile.createNewFile() || !cacheFileType.createNewFile()) {
                     throw new RuntimeException("Could not create cache file");
                 }
-                output.getType().toFile(cacheFile, argument);
+                //Here we cannot use output.getType() directly. Imagine the output type is an object but the real
+                //type of the argument is a file. We should do the processing for the file type and not the object type
+                var argumentType = WorkflowTypes.fromObject(argument);
+                WorkflowTypes.toFile(cacheFileType, WorkflowTypes.typeToString(argumentType));
+                argumentType.toFile(cacheFile, argument);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -172,10 +145,17 @@ public class Cache {
 
         var nodesArguments = new NodeArguments();
         for (var outputConnector : node.getOutputs().values()) {
-            var cacheFile = getOutputConnectorFile(nodeCacheDirectory, outputConnector);
-            if (cacheFile.exists()) {
-                var obj = outputConnector.getType().fromFile(cacheFile);
-                obj.ifPresent(o -> nodesArguments.putArgument(outputConnector.getName(), o));
+            var cacheFile = getOutputConnectorFile(nodeCacheDirectory, outputConnector, false);
+            var cacheFileType = getOutputConnectorFile(nodeCacheDirectory, outputConnector, true);
+            if (cacheFileType.exists() && cacheFile.exists()) {
+                var typeOpt = WorkflowTypes.fromFile(cacheFileType);
+                if (typeOpt.isPresent() && typeOpt.get() instanceof String objTypeStr) {
+                    var objType = WorkflowTypes.typeFromString(objTypeStr);
+                    var obj = objType.fromFile(cacheFile);
+                    obj.ifPresent(o -> nodesArguments.putArgument(outputConnector.getName(), o));
+                } else {
+                    throw new RuntimeException("Could not find type for the cached value");
+                }
             }
         }
 

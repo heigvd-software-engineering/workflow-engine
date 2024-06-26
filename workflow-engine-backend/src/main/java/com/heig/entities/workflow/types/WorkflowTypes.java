@@ -2,9 +2,8 @@ package com.heig.entities.workflow.types;
 
 import jakarta.annotation.Nonnull;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.io.*;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class WorkflowTypes {
@@ -93,5 +92,108 @@ public class WorkflowTypes {
             return WFlow.of();
         }
         return WObject.of();
+    }
+
+    public static void toFile(@Nonnull File output, @Nonnull Object value) {
+        Objects.requireNonNull(output);
+        Objects.requireNonNull(value);
+        try (var oos = new ObjectOutputStream(new FileOutputStream(output))) {
+            oos.writeObject(value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Optional<Object> fromFile(@Nonnull File input) {
+        Objects.requireNonNull(input);
+        try (var ois = new ObjectInputStream(new FileInputStream(input))) {
+            return Optional.ofNullable(ois.readObject());
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public static WType typeFromString(@Nonnull String strType) {
+        Objects.requireNonNull(strType);
+        return typeFromString(new StringBuilder(strType));
+    }
+
+    private static boolean consumeIfPresent(@Nonnull StringBuilder builder, @Nonnull String toFind) {
+        if (builder.toString().startsWith(toFind)) {
+            builder.delete(0, toFind.length());
+            return true;
+        }
+        return false;
+    }
+
+    private static WType typeFromString(@Nonnull StringBuilder builder) {
+        Objects.requireNonNull(builder);
+        if (consumeIfPresent(builder, "Map ")) {
+            var keyType = (WIterableType) typeFromString(builder);
+            consumeIfPresent(builder, " ");
+            var valueType = (WIterableType) typeFromString(builder);
+            return WMap.of(keyType, valueType);
+        }
+        if (consumeIfPresent(builder, "Collection ")) {
+            var valueType = (WIterableType) typeFromString(builder);
+            return WCollection.of(valueType);
+        }
+        if (consumeIfPresent(builder, "Primitive ")) {
+            if (consumeIfPresent(builder, "Integer")) {
+                return WPrimitive.Integer;
+            }
+            if (consumeIfPresent(builder, "String")) {
+                return WPrimitive.String;
+            }
+            if (consumeIfPresent(builder, "Boolean")) {
+                return WPrimitive.Boolean;
+            }
+            if (consumeIfPresent(builder, "Byte")) {
+                return WPrimitive.Byte;
+            }
+            if (consumeIfPresent(builder, "Short")) {
+                return WPrimitive.Short;
+            }
+            if (consumeIfPresent(builder, "Long")) {
+                return WPrimitive.Long;
+            }
+            if (consumeIfPresent(builder, "Float")) {
+                return WPrimitive.Float;
+            }
+            if (consumeIfPresent(builder, "Double")) {
+                return WPrimitive.Double;
+            }
+            if (consumeIfPresent(builder, "Character")) {
+                return WPrimitive.Character;
+            }
+            throw new RuntimeException("Primitive type not supported !");
+        }
+        if (consumeIfPresent(builder, "Flow")) {
+            return WFlow.of();
+        }
+        if (consumeIfPresent(builder, "Object")) {
+            return WObject.of();
+        }
+        throw new RuntimeException("Type not supported !");
+    }
+
+    public static String typeToString(@Nonnull WType type) {
+        Objects.requireNonNull(type);
+        if (type instanceof WMap map) {
+            return "Map %s %s".formatted(typeToString(map.getKeyType()), typeToString(map.getValueType()));
+        }
+        if (type instanceof WCollection collection) {
+            return "Collection %s".formatted(typeToString(collection.getValueType()));
+        }
+        if (type instanceof WPrimitive primitive) {
+            return "Primitive %s".formatted(primitive.name());
+        }
+        if (type instanceof WFlow) {
+            return "Flow";
+        }
+        if (type instanceof WObject) {
+            return "Object";
+        }
+        throw new RuntimeException("Unsupported type !");
     }
 }
