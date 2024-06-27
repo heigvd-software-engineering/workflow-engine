@@ -93,4 +93,9 @@ public abstract class Connector {
     }
 
     protected abstract Stream<Connector> getExistingConnectors();
+
+    @Override
+    public String toString() {
+        return getParent() + ": " + getName();
+    }
 }

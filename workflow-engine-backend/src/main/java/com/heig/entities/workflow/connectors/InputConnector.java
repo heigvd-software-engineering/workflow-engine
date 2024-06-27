@@ -27,4 +27,9 @@ public class InputConnector extends Connector {
     protected Stream<Connector> getExistingConnectors() {
         return getParent().getInputs().values().stream().map(Function.identity());
     }
+
+    @Override
+    public String toString() {
+        return super.toString() + " (I)";
+    }
 }

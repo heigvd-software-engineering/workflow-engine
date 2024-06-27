@@ -9,6 +9,7 @@ import com.heig.entities.workflow.connectors.OutputFlowConnector;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.nodes.PrimitiveNode;
 import com.heig.entities.workflow.types.WFlow;
+import com.heig.entities.workflow.types.WPrimitive;
 import com.heig.entities.workflow.types.WType;
 import com.heig.entities.workflow.types.WorkflowTypes;
 import groovy.lang.Tuple;
@@ -20,7 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class TestUtils {
-    public static Tuple2<OutputConnector, PrimitiveNode> createPrimitiveNode(Workflow w, WType type) {
+    public static Tuple2<OutputConnector, PrimitiveNode> createPrimitiveNode(Workflow w, WPrimitive type) {
         var node = w.getNodeBuilder().buildPrimitiveNode(type);
 
         return Tuple.tuple(node.getOutputConnector(), node);

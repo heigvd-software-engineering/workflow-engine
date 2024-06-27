@@ -5,15 +5,13 @@ import com.heig.entities.workflow.errors.*;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.types.WorkflowTypes;
-import com.heig.helpers.ResultOrError;
+import com.heig.helpers.ResultOrWorkflowError;
 import jakarta.annotation.Nonnull;
 
 import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.*;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class WorkflowExecutor {
@@ -21,15 +19,13 @@ public class WorkflowExecutor {
     private State state = State.IDLE;
     private final Workflow workflow;
     private final ConcurrentMap<Integer, NodeState> states = new ConcurrentHashMap<>();
-    private final BiConsumer<Node, State> nodeStateChanged;
-    private final Consumer<State> workflowStateChanged;
+    private final WorkflowExecutionListener listener;
     private final WorkflowErrors workflowErrors = new WorkflowErrors();
     private final Cache cache;
 
-    public WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull Consumer<State> workflowStateChanged, @Nonnull BiConsumer<Node, State> nodeStateChanged) {
+    public WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener) {
         this.workflow = Objects.requireNonNull(workflow);
-        this.workflowStateChanged = Objects.requireNonNull(workflowStateChanged);
-        this.nodeStateChanged = Objects.requireNonNull(nodeStateChanged);
+        this.listener = Objects.requireNonNull(listener);
         this.cache = Cache.get(workflow);
     }
 
@@ -43,12 +39,12 @@ public class WorkflowExecutor {
         Objects.requireNonNull(state);
         var ns = getStateFor(node);
         ns.setState(state);
-        nodeStateChanged.accept(node, state);
+        listener.nodeStateChanged(node, state);
     }
 
     private CompletableFuture<Void> executeNode(@Nonnull Node node) {
         Objects.requireNonNull(node);
-        return CompletableFuture.supplyAsync((Supplier<ResultOrError<NodeArguments>>) () -> {
+        return CompletableFuture.supplyAsync((Supplier<ResultOrWorkflowError<NodeArguments>>) () -> {
             var ns = getStateFor(node);
             var error = false;
             var we = new WorkflowErrors();
@@ -67,21 +63,21 @@ public class WorkflowExecutor {
 
                 if (inputValue.getErrorMessage().isPresent()) {
                     error = true;
-                    we.merge(inputValue.getErrorMessage().get());
+                    we.addError(new ErroredInputConnector(input));
                 } else {
                     args.putArgument(input.getName(), inputValue.getResult().get());
                 }
             }
             if (error) {
                 changeNodeState(node, State.FAILED);
-                return ResultOrError.error(we);
+                return ResultOrWorkflowError.error(we);
             }
 
             //Case if the node hasn't been modified and neither have the previous nodes (the node needs to be deterministic too)
             if (!ns.hasBeenModified() && node.isDeterministic()) {
                 var optCache = cache.get(node, args);
                 if (optCache.isPresent()) {
-                    return ResultOrError.result(optCache.get());
+                    return ResultOrWorkflowError.result(optCache.get());
                 }
             }
 
@@ -93,7 +89,7 @@ public class WorkflowExecutor {
                 var resultOpt = fut.join();
                 if (resultOpt.isEmpty()) {
                     we.addError(new ExecutionTimeout(node));
-                    return ResultOrError.error(we);
+                    return ResultOrWorkflowError.error(we);
                 }
                 var result = resultOpt.get();
 
@@ -122,7 +118,7 @@ public class WorkflowExecutor {
                 }
                 if (isErrored) {
                     changeNodeState(node, State.FAILED);
-                    return ResultOrError.error(we);
+                    return ResultOrWorkflowError.error(we);
                 } else {
                     if (node.isDeterministic()) {
                         ns.setHasBeenModified(false);
@@ -130,24 +126,24 @@ public class WorkflowExecutor {
                     }
 
                     changeNodeState(node, State.FINISHED);
-                    return ResultOrError.result(result);
+                    return ResultOrWorkflowError.result(result);
                 }
             } catch (Exception e) {
                 changeNodeState(node, State.FAILED);
                 we.addError(new FailedExecution(node, e.getMessage()));
-                return ResultOrError.error(we);
+                return ResultOrWorkflowError.error(we);
             }
         }).thenComposeAsync(o -> {
             var toWait = new LinkedList<CompletableFuture<Void>>();
             for (var output : node.getOutputs().values()) {
-                var res = o.applyPresent(
+                var res = o.apply(
                     value -> {
                         var opt = value.getArgument(output.getName());
                         if (opt.isPresent()) {
-                            return ResultOrError.result(opt.get());
+                            return ResultOrWorkflowError.result(opt.get());
                         }
                         throw new RuntimeException("Should never happen! Already checked before");
-                    }, ResultOrError::error
+                    }, ResultOrWorkflowError::error
                 );
 
                 for (var input : output.getConnectedTo()) {
@@ -173,7 +169,7 @@ public class WorkflowExecutor {
                 return false;
             }
             state = State.RUNNING;
-            workflowStateChanged.accept(state);
+            listener.workflowStateChanged(state);
         }
 
         var errors = workflow.isValid();
@@ -181,7 +177,7 @@ public class WorkflowExecutor {
             workflowErrors.merge(errors.get());
             synchronized (stateLock) {
                 state = State.FAILED;
-                workflowStateChanged.accept(state);
+                listener.workflowStateChanged(state);
             }
             return false;
         }
@@ -205,12 +201,12 @@ public class WorkflowExecutor {
             if (failed) {
                 synchronized (stateLock) {
                     state = State.FAILED;
-                    workflowStateChanged.accept(state);
+                    listener.workflowStateChanged(state);
                 }
             } else {
                 synchronized (stateLock) {
                     state = State.FINISHED;
-                    workflowStateChanged.accept(state);
+                    listener.workflowStateChanged(state);
                 }
             }
         });

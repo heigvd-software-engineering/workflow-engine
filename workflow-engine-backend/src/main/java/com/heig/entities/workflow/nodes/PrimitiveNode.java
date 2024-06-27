@@ -3,6 +3,7 @@ package com.heig.entities.workflow.nodes;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.execution.NodeArguments;
+import com.heig.entities.workflow.types.WPrimitive;
 import com.heig.entities.workflow.types.WType;
 import com.heig.entities.workflow.types.WorkflowTypes;
 import jakarta.annotation.Nonnull;
@@ -15,7 +16,7 @@ public class PrimitiveNode extends Node {
 
     private Object value;
 
-    protected PrimitiveNode(int id, @Nonnull Workflow workflow, @Nonnull WType type) {
+    protected PrimitiveNode(int id, @Nonnull Workflow workflow, @Nonnull WPrimitive type) {
         super(id, workflow, true);
         Objects.requireNonNull(type);
 
@@ -43,5 +44,10 @@ public class PrimitiveNode extends Node {
 
     public OutputConnector getOutputConnector() {
         return output;
+    }
+
+    @Override
+    public String toString() {
+        return "Primitive" + super.toString();
     }
 }

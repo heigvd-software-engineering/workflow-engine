@@ -5,6 +5,7 @@ import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
+import com.heig.entities.workflow.types.WPrimitive;
 import com.heig.entities.workflow.types.WType;
 import jakarta.annotation.Nonnull;
 
@@ -25,7 +26,7 @@ public abstract class Node {
             return workflow.addNode((id) -> new CodeNode(id, workflow));
         }
 
-        public PrimitiveNode buildPrimitiveNode(@Nonnull WType type) {
+        public PrimitiveNode buildPrimitiveNode(@Nonnull WPrimitive type) {
             return workflow.addNode((id) -> new PrimitiveNode(id, workflow, type));
         }
     }
@@ -140,5 +141,10 @@ public abstract class Node {
 
     protected Connector.Builder getConnectorBuilder() {
         return connectorBuilder;
+    }
+
+    @Override
+    public String toString() {
+        return "Node (" + getId() + ")";
     }
 }

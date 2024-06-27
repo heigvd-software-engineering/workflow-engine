@@ -43,4 +43,9 @@ public class OutputConnector extends Connector {
     protected Stream<Connector> getExistingConnectors() {
         return getParent().getOutputs().values().stream().map(Function.identity());
     }
+
+    @Override
+    public String toString() {
+        return super.toString() + " (O)";
+    }
 }

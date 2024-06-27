@@ -1,7 +1,10 @@
 package com.heig.entities.workflow.execution;
 
+import com.heig.entities.workflow.WorkflowManager;
+import com.heig.entities.workflow.nodes.Node;
 import com.heig.testHelpers.TestScenario;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -13,13 +16,17 @@ public class WorkflowExecutorTest {
         var scenario = new TestScenario();
         var currentState = new AtomicReference<State>();
         var executor = new WorkflowExecutor(scenario.w,
-            state -> {
-                System.out.println("Workflow -> " + state);
-                currentState.set(state);
-            }
-            ,
-            (node, state) -> {
-                System.out.println(node.getId() + " -> " + state);
+            new WorkflowExecutionListener() {
+                @Override
+                public void workflowStateChanged(@Nonnull State state) {
+                    System.out.println("Workflow -> " + state);
+                    currentState.set(state);
+                }
+
+                @Override
+                public void nodeStateChanged(@Nonnull Node node, @Nonnull State state) {
+                    System.out.println(node.getId() + " -> " + state);
+                }
             }
         );
         assert executor.executeWorkflow();

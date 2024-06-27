@@ -130,13 +130,15 @@ public class Cache {
         }
 
         var infoFile = getInfoFile(nodeCacheDirectory);
-        int cachedHashCode = 0;
-        if (infoFile.exists()) {
-            try (var sr = new BufferedInputStream(new FileInputStream(infoFile))) {
-                cachedHashCode = ByteBuffer.wrap(sr.readAllBytes()).getInt();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+        if (!infoFile.exists()) {
+            return Optional.empty();
+        }
+
+        int cachedHashCode;
+        try (var sr = new BufferedInputStream(new FileInputStream(infoFile))) {
+            cachedHashCode = ByteBuffer.wrap(sr.readAllBytes()).getInt();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
         if (cachedHashCode != getHashFor(node, currentInputs)) {
@@ -152,6 +154,7 @@ public class Cache {
                 if (typeOpt.isPresent() && typeOpt.get() instanceof String objTypeStr) {
                     var objType = WorkflowTypes.typeFromString(objTypeStr);
                     var obj = objType.fromFile(cacheFile);
+                    //Because we checked the hash before, every output that should be available will be
                     obj.ifPresent(o -> nodesArguments.putArgument(outputConnector.getName(), o));
                 } else {
                     throw new RuntimeException("Could not find type for the cached value");

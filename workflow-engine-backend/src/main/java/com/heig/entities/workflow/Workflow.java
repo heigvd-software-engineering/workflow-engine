@@ -95,7 +95,7 @@ public class Workflow {
         input.getConnectedTo().ifPresent(currentOutput -> {
             if (!currentOutput.removeConnectedTo(input)) {
                 //Should never happen
-                throw new RuntimeException("Could not remove input" + input + " from " + currentOutput);
+                throw new RuntimeException("Could not disconnect input" + input + " from " + currentOutput);
             }
         });
         input.setConnectedTo(null);

@@ -35,10 +35,12 @@ public class CacheTest {
     @Test
     public void test() {
         var w = WorkflowManager.createWorkflow("test-w");
-        var node = w.getNodeBuilder().buildPrimitiveNode(WCollection.of(WObject.of()));
+        var node = w.getNodeBuilder().buildCodeNode();
+        node.getConnectorBuilder().buildOutputConnector("out", WCollection.of(WObject.of()));
+
         var cache = Cache.get(w);
         var arguments = new NodeArguments();
-        arguments.putArgument(PrimitiveNode.OUTPUT_NAME, List.of(1, "a", (byte) 0));
+        arguments.putArgument("out", List.of(1, "a", (byte) 0));
         arguments.putArgument(OutputFlowConnector.CONNECTOR_NAME, WFlow.of());
 
         //Set the value in the cache
@@ -46,7 +48,7 @@ public class CacheTest {
 
         var resReturn = cache.get(node, new NodeArguments());
         assert resReturn.isPresent();
-        var outputArg = resReturn.get().getArgument(PrimitiveNode.OUTPUT_NAME);
+        var outputArg = resReturn.get().getArgument("out");
         assert outputArg.isPresent();
 
         //Verifying if we have a list with the correct values
@@ -112,10 +114,12 @@ public class CacheTest {
     @Test
     public void testSpecific() {
         var w = WorkflowManager.createWorkflow("test-w");
-        var node = w.getNodeBuilder().buildPrimitiveNode(WCollection.of(WPrimitive.String));
+        var node = w.getNodeBuilder().buildCodeNode();
+        node.getConnectorBuilder().buildOutputConnector("out", WCollection.of(WPrimitive.String));
+
         var cache = Cache.get(w);
         var arguments = new NodeArguments();
-        arguments.putArgument(PrimitiveNode.OUTPUT_NAME, Sets.newHashSet("test1", "test2"));
+        arguments.putArgument("out", Sets.newHashSet("test1", "test2"));
         arguments.putArgument(OutputFlowConnector.CONNECTOR_NAME, WFlow.of());
 
         //Set the value in the cache
@@ -123,7 +127,7 @@ public class CacheTest {
 
         var resReturn = cache.get(node, new NodeArguments());
         assert resReturn.isPresent();
-        var outputArg = resReturn.get().getArgument(PrimitiveNode.OUTPUT_NAME);
+        var outputArg = resReturn.get().getArgument("out");
         assert outputArg.isPresent();
 
         //With this test we verify that the underlying type is still a set

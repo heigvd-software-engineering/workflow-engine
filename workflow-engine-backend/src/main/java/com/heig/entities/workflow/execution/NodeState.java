@@ -1,7 +1,7 @@
 package com.heig.entities.workflow.execution;
 
 import com.heig.entities.workflow.nodes.Node;
-import com.heig.helpers.ResultOrError;
+import com.heig.helpers.ResultOrWorkflowError;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collections;
@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class NodeState {
     private State state = State.IDLE;
-    private final ConcurrentMap<Integer, ResultOrError<Object>> valuesMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, ResultOrWorkflowError<Object>> valuesMap = new ConcurrentHashMap<>();
     private final Node node;
     private boolean hasBeenModified = false;
 
@@ -21,16 +21,16 @@ public class NodeState {
         this.node = Objects.requireNonNull(node);
     }
 
-    public void setInputValue(int connectorId, @Nonnull ResultOrError<Object> value) {
+    public void setInputValue(int connectorId, @Nonnull ResultOrWorkflowError<Object> value) {
         Objects.requireNonNull(value);
         valuesMap.put(connectorId, value);
     }
 
-    public Optional<ResultOrError<Object>> getInputValue(int connectorId) {
+    public Optional<ResultOrWorkflowError<Object>> getInputValue(int connectorId) {
         return Optional.ofNullable(valuesMap.get(connectorId));
     }
 
-    public Map<Integer, ResultOrError<Object>> getValues() {
+    public Map<Integer, ResultOrWorkflowError<Object>> getValues() {
         return Collections.unmodifiableMap(valuesMap);
     }
 

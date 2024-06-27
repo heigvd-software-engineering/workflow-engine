@@ -75,4 +75,9 @@ public class CodeNode extends ModifiableNode {
     public void setLanguage(@Nonnull Language language) {
         this.language = Objects.requireNonNull(language);;
     }
+
+    @Override
+    public String toString() {
+        return "Code" + super.toString();
+    }
 }
