@@ -4,10 +4,8 @@ import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.nodes.Node;
-import com.heig.entities.workflow.types.WType;
 import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.Utils;
-import io.quarkus.runtime.util.HashUtil;
 import io.smallrye.common.annotation.CheckReturnValue;
 import jakarta.annotation.Nonnull;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -28,7 +26,7 @@ public class Cache {
     private Cache(@Nonnull Workflow w) {
         Objects.requireNonNull(w);
 
-        cacheDirectory = new File(cacheRootDirectory, w.getUuid().toString());
+        cacheDirectory = new File(cacheRootDirectory, w.getUUID().toString());
         clear();
         if (!cacheDirectory.mkdirs()) {
             throw new RuntimeException("Could not create workflow cache directory");
@@ -36,7 +34,7 @@ public class Cache {
     }
 
     public static Cache get(@Nonnull Workflow w) {
-        return instances.computeIfAbsent(w.getUuid(), (uuid) -> new Cache(w));
+        return instances.computeIfAbsent(w.getUUID(), (uuid) -> new Cache(w));
     }
 
     private File getNodeCacheDirectory(@Nonnull Node node) {

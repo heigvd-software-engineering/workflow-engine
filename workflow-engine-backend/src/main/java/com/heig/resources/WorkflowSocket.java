@@ -1,31 +1,24 @@
 package com.heig.resources;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.heig.entities.workflow.NodeModifiedListener;
 import com.heig.entities.workflow.execution.State;
 import com.heig.entities.workflow.execution.WorkflowExecutionListener;
-import com.heig.entities.workflow.execution.WorkflowManager;
 import com.heig.entities.workflow.nodes.Node;
-import com.heig.entities.workflow.types.WType;
 import com.heig.helpers.ResultOrStringError;
-import com.heig.helpers.Utils;
 import com.heig.services.WorkflowService;
-import io.quarkus.logging.Log;
-import io.smallrye.mutiny.tuples.Tuple2;
+import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.websocket.*;
 import jakarta.websocket.server.ServerEndpoint;
-import org.jboss.logging.Logger;
 
-import java.util.Deque;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
@@ -68,11 +61,16 @@ public class WorkflowSocket {
         public void nodeStateChanged(@Nonnull Node node, @Nonnull State state) {
 
         }
+
+        public void workflowRemoved() {
+            //Send a message to tell all clients that this workflow has been removed
+        }
     }
 
     @OnOpen
     public void onOpen(Session session) {
         sessions.put(session, null);
+        //TODO: Send all the currently available workflows
     }
 
     @OnClose
@@ -88,32 +86,43 @@ public class WorkflowSocket {
 
     @OnMessage
     public void onMessage(String message, Session session) {
-        var reader = Utils.getJsonReader(message);
+        var g = new Gson();
         try {
-            Utils.readJsonObject(reader, name ->
-                Utils.readJsonArray(reader, r -> {
-                    ResultOrStringError<Void> res = switch (name) {
-                        case "createWorkflow" -> {
-                            var wName = r.nextString();
-                            var we = service.createWorkflowExecutor(wName, null);
-                            we.getWorkflow().addNodeModifiedListener(null);
-                            yield ResultOrStringError.result(null);
-                        }
-                        case "executeWorkflow" -> {
-                            var wUUID = r.nextString();
-                            yield service.executeWorkflow(wUUID);
-                        }
-                        case "removeWorkflow" -> {
-                            var wUUID = r.nextString();
-                            yield service.removeWorkflowExecutor(wUUID);
-                        }
-                        default -> ResultOrStringError.error("Action '" + name + "' not supported");
-                    };
-                    if (res.getErrorMessage().isPresent()) {
-                        throw new RuntimeException(res.getErrorMessage().get());
-                    }
-                })
-            );
+            var obj = g.fromJson(message, JsonElement.class).getAsJsonObject();
+            var name = obj.get("action").getAsString();
+            ResultOrStringError<Void> res = switch (name) {
+                case "createWorkflow" -> {
+                    var w = service.createWorkflow(obj.get("name"));
+                    var listener = new Listener(w.getUUID());
+                    var we = service.createWorkflowExecutor(w, listener);
+                    we.getWorkflow().addNodeModifiedListener(listener);
+                    //TODO: Broadcast that a new workflow is available
+                    yield ResultOrStringError.result(null);
+                }
+                case "executeWorkflow" ->
+                    service.getWorkflowExecutor(obj.get("uuid")).continueWith(we ->
+                        service.executeWorkflow(we)
+                    );
+                case "removeWorkflow" ->
+                    service.getWorkflowExecutor(obj.get("uuid")).continueWith(we -> {
+                        var listenerToRemove = listeners.remove(we.getWorkflow().getUUID());
+                        we.getWorkflow().removeNodeModifiedListener(listenerToRemove);
+                        listenerToRemove.workflowRemoved();
+                        return service.removeWorkflowExecutor(we);
+                        //TODO: Broadcast that the workflow is no longer available
+                    });
+                case "switchTo" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w -> {
+                        sessions.put(session, null);
+                        //TODO: Here send the current state of the new workflow (all nodes, connectors, state, ...)
+                        sessions.put(session, w.getUUID());
+                        return ResultOrStringError.result(null);
+                    });
+                default -> ResultOrStringError.error("Action '" + name + "' not supported");
+            };
+            if (res.getErrorMessage().isPresent()) {
+                throw new RuntimeException(res.getErrorMessage().get());
+            }
         } catch (Exception e) {
             sendTo(session, "Failed to parse instruction: " + e.getMessage());
         }

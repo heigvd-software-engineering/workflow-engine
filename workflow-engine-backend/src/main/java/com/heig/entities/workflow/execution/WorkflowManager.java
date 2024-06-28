@@ -1,7 +1,6 @@
 package com.heig.entities.workflow.execution;
 
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.cache.Cache;
 import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
@@ -20,7 +19,7 @@ public class WorkflowManager {
         Objects.requireNonNull(workflowExecutionListener);
 
         var we = new WorkflowExecutor(workflow, workflowExecutionListener);
-        workflowExecutors.put(workflow.getUuid(), we);
+        workflowExecutors.put(workflow.getUUID(), we);
         return we;
     }
 
@@ -32,6 +31,6 @@ public class WorkflowManager {
     public static boolean removeWorkflowExecutor(@Nonnull WorkflowExecutor w) {
         Objects.requireNonNull(w);
         w.clearCache();
-        return workflowExecutors.remove(w.getWorkflow().getUuid()) != null;
+        return workflowExecutors.remove(w.getWorkflow().getUUID()) != null;
     }
 }

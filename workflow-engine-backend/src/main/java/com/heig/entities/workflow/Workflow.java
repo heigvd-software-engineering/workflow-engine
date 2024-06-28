@@ -1,10 +1,8 @@
 package com.heig.entities.workflow;
 
-import com.heig.entities.workflow.cache.Cache;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.errors.*;
-import com.heig.entities.workflow.execution.WorkflowExecutor;
 import com.heig.entities.workflow.nodes.Node;
 import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
@@ -17,9 +15,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class Workflow {
     private final AtomicInteger currentId = new AtomicInteger(0);
@@ -60,7 +56,7 @@ public class Workflow {
         return Optional.ofNullable(nodes.get(id));
     }
 
-    public UUID getUuid() {
+    public UUID getUUID() {
         return uuid;
     }
 
