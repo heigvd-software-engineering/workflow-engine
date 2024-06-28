@@ -28,7 +28,9 @@ public class OutputConnector extends Connector {
         if (connectedTo.contains(connector)) {
             return false;
         }
-        return connectedTo.add(connector);
+        connectedTo.add(connector);
+        getParent().connectorModified(this);
+        return true;
     }
 
     public boolean removeConnectedTo(@Nonnull InputConnector connector) {
@@ -36,7 +38,9 @@ public class OutputConnector extends Connector {
         if (!connectedTo.contains(connector)) {
             return false;
         }
-        return connectedTo.remove(connector);
+        var removeSuccess = connectedTo.remove(connector);
+        getParent().connectorModified(this);
+        return removeSuccess;
     }
 
     @Override

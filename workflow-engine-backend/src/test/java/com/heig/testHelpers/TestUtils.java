@@ -1,6 +1,6 @@
 package com.heig.testHelpers;
 
-import com.heig.entities.workflow.WorkflowManager;
+import com.heig.entities.workflow.execution.WorkflowManager;
 import com.heig.entities.workflow.cache.Cache;
 import com.heig.entities.workflow.connectors.InputFlowConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
@@ -11,12 +11,9 @@ import com.heig.entities.workflow.nodes.PrimitiveNode;
 import com.heig.entities.workflow.types.WFlow;
 import com.heig.entities.workflow.types.WPrimitive;
 import com.heig.entities.workflow.types.WType;
-import com.heig.entities.workflow.types.WorkflowTypes;
 import groovy.lang.Tuple;
 import groovy.lang.Tuple2;
-import groovy.lang.Tuple3;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -28,7 +25,7 @@ public class TestUtils {
     }
 
     public static boolean isCacheValid(Map<Tuple2<String, WType>, Tuple2<Object, Object>> inputs) {
-        var w = WorkflowManager.createWorkflow("test-cache");
+        var w = new Workflow("test-cache");
 
         var n = w.getNodeBuilder().buildCodeNode();
 

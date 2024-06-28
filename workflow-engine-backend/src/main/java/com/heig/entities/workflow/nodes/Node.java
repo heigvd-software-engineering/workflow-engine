@@ -97,6 +97,7 @@ public abstract class Node {
     public void disconnectEverything() {
         inputs.values().forEach(workflow::disconnect);
         outputs.values().forEach(output -> output.getConnectedTo().forEach(workflow::disconnect));
+        workflow.nodeModified(this);
     }
 
     protected boolean removeInput(@Nonnull InputConnector input) {
@@ -108,7 +109,11 @@ public abstract class Node {
         //When removing an input, the output connected to it should be disconnected
         workflow.disconnect(input);
 
-        return inputs.remove(input.getId()) != null;
+        var removeSuccess = inputs.remove(input.getId()) != null;
+        if (removeSuccess) {
+            workflow.nodeModified(this);
+        }
+        return removeSuccess;
     }
 
     protected boolean removeOutput(@Nonnull OutputConnector output) {
@@ -120,13 +125,18 @@ public abstract class Node {
         //When removing an output, all the inputs connected to it should be disconnected
         output.getConnectedTo().forEach(workflow::disconnect);
 
-        return outputs.remove(output.getId()) != null;
+        var removeSuccess = outputs.remove(output.getId()) != null;
+        if (removeSuccess) {
+            workflow.nodeModified(this);
+        }
+        return removeSuccess;
     }
 
     public <T extends InputConnector> T addInputConnector(@Nonnull Function<Integer, T> connectorSupplier) {
         Objects.requireNonNull(connectorSupplier);
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
         inputs.put(connector.getId(), connector);
+        workflow.nodeModified(this);
         return connector;
     }
 
@@ -134,6 +144,7 @@ public abstract class Node {
         Objects.requireNonNull(connectorSupplier);
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
         outputs.put(connector.getId(), connector);
+        workflow.nodeModified(this);
         return connector;
     }
 
@@ -141,6 +152,14 @@ public abstract class Node {
 
     protected Connector.Builder getConnectorBuilder() {
         return connectorBuilder;
+    }
+
+    public void connectorModified(@Nonnull Connector connector) {
+        workflow.nodeModified(connector.getParent());
+    }
+
+    public Workflow getWorkflow() {
+        return workflow;
     }
 
     @Override

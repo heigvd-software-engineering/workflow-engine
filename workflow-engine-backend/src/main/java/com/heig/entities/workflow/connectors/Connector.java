@@ -76,7 +76,11 @@ public abstract class Connector {
         if (Objects.equals(name, this.getName())) {
             return Optional.empty();
         }
-        return data.setName(name);
+        var optSetName = data.setName(name);
+        if (optSetName.isEmpty()) {
+            parent.connectorModified(this);
+        }
+        return optSetName;
     }
 
     public WType getType() {
@@ -85,7 +89,11 @@ public abstract class Connector {
 
     @CheckReturnValue
     public Optional<WorkflowError> setType(@Nonnull WType type) {
-        return data.setType(type);
+        var optSetType = data.setType(type);
+        if (optSetType.isEmpty()) {
+            parent.connectorModified(this);
+        }
+        return optSetType;
     }
 
     public boolean isOptional() {

@@ -1,7 +1,10 @@
 package com.heig.services;
 
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.WorkflowManager;
+import com.heig.entities.workflow.execution.State;
+import com.heig.entities.workflow.execution.WorkflowExecutionListener;
+import com.heig.entities.workflow.execution.WorkflowExecutor;
+import com.heig.entities.workflow.execution.WorkflowManager;
 import com.heig.entities.workflow.connectors.Connector;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
@@ -13,15 +16,11 @@ import com.heig.entities.workflow.types.WPrimitive;
 import com.heig.entities.workflow.types.WType;
 import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.ResultOrStringError;
-import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
 import jakarta.enterprise.context.ApplicationScoped;
 
-import java.util.HashMap;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 @ApplicationScoped
@@ -39,17 +38,27 @@ public class WorkflowService {
     private ResultOrStringError<Workflow> getWorkflow(@Nonnull String workflowUUID) {
         Objects.requireNonNull(workflowUUID);
 
-        var wOpt = WorkflowManager.getWorkflow(UUID.fromString(workflowUUID));
-        return wOpt.map(ResultOrStringError::result).orElseGet(() -> ResultOrStringError.error("Workflow not found"));
+        return getWorkflowExecutor(workflowUUID).continueWith(we -> {
+            if (we.getState() == State.RUNNING) {
+                return ResultOrStringError.error("The workflow is currently running !");
+            }
+            return ResultOrStringError.result(we.getWorkflow());
+        });
     }
 
-    private <T extends Node> ResultOrStringError<T> getNode(@Nonnull String workflowUUID, int nodeId, Class<T> clazz) {
+    private ResultOrStringError<WorkflowExecutor> getWorkflowExecutor(@Nonnull String workflowUUID) {
         Objects.requireNonNull(workflowUUID);
 
+        var weOpt = WorkflowManager.getWorkflowExecutor(UUID.fromString(workflowUUID));
+        return weOpt.map(ResultOrStringError::result).orElseGet(() -> ResultOrStringError.error("Workflow executor not found"));
+    }
+
+    private <T extends Node> ResultOrStringError<T> getNode(@Nonnull String workflowUUID, int nodeId, @Nonnull Class<T> clazz) {
+        Objects.requireNonNull(workflowUUID);
+        Objects.requireNonNull(clazz);
+
         var wOpt = getWorkflow(workflowUUID);
-        return wOpt.continueWith(w -> {
-            return getNode(w, nodeId, clazz);
-        });
+        return wOpt.continueWith(w -> getNode(w, nodeId, clazz));
     }
 
     private ResultOrStringError<Node> getNode(@Nonnull String workflowUUID, int nodeId) {
@@ -127,16 +136,26 @@ public class WorkflowService {
         return getNode(workflowUUID, nodeId, ModifiableNode.class).continueWith(modifier);
     }
 
-    public synchronized Workflow createWorkflow(@Nonnull String name) {
+    public synchronized WorkflowExecutor createWorkflowExecutor(@Nonnull String name, @Nonnull WorkflowExecutionListener listener) {
         Objects.requireNonNull(name);
-        return WorkflowManager.createWorkflow(name);
+        return WorkflowManager.createWorkflowExecutor(new Workflow(name), listener);
     }
 
-    public synchronized ResultOrStringError<Void> removeWorkflow(@Nonnull String workflowUUID) {
+    public synchronized ResultOrStringError<Void> executeWorkflow(@Nonnull String workflowUUID) {
         Objects.requireNonNull(workflowUUID);
-        return getWorkflow(workflowUUID).continueWith(w -> {
-            if (!WorkflowManager.removeWorkflow(w)) {
-                return ResultOrStringError.error("Failed to remove the workflow");
+        return WorkflowManager.getWorkflowExecutor(UUID.fromString(workflowUUID)).map(we -> {
+            if (!we.executeWorkflow()) {
+                return ResultOrStringError.<Void>error("Failed to execute workflow");
+            }
+            return ResultOrStringError.<Void>result(null);
+        }).orElse(ResultOrStringError.error(""));
+    }
+
+    public synchronized ResultOrStringError<Void> removeWorkflowExecutor(@Nonnull String workflowUUID) {
+        Objects.requireNonNull(workflowUUID);
+        return getWorkflowExecutor(workflowUUID).continueWith(we -> {
+            if (!WorkflowManager.removeWorkflowExecutor(we)) {
+                return ResultOrStringError.error("Failed to remove the workflow executor");
             }
             return ResultOrStringError.result(null);
         });

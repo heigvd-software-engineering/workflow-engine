@@ -1,13 +1,12 @@
 package com.heig.cache;
 
 import com.google.common.collect.Sets;
-import com.heig.entities.workflow.WorkflowManager;
+import com.heig.entities.workflow.Workflow;
+import com.heig.entities.workflow.execution.WorkflowManager;
 import com.heig.entities.workflow.cache.Cache;
 import com.heig.entities.workflow.connectors.InputFlowConnector;
 import com.heig.entities.workflow.connectors.OutputFlowConnector;
 import com.heig.entities.workflow.execution.NodeArguments;
-import com.heig.entities.workflow.execution.WorkflowExecutor;
-import com.heig.entities.workflow.nodes.PrimitiveNode;
 import com.heig.entities.workflow.types.*;
 import com.heig.testHelpers.TestUtils;
 import groovy.lang.Tuple2;
@@ -28,13 +27,13 @@ public class CacheTest {
 
     @Test
     public void onlyOneInstance() {
-        var w = WorkflowManager.createWorkflow("test-w");
+        var w = new Workflow("test-w");
         assert Cache.get(w) == Cache.get(w);
     }
 
     @Test
     public void test() {
-        var w = WorkflowManager.createWorkflow("test-w");
+        var w = new Workflow("test-w");
         var node = w.getNodeBuilder().buildCodeNode();
         node.getConnectorBuilder().buildOutputConnector("out", WCollection.of(WObject.of()));
 
@@ -63,7 +62,7 @@ public class CacheTest {
 
     @Test
     public void testCodeNode() {
-        var w = WorkflowManager.createWorkflow("test-w");
+        var w = new Workflow("test-w");
         var node = w.getNodeBuilder().buildCodeNode();
         var cache = Cache.get(w);
         var arguments = new NodeArguments();
@@ -113,7 +112,7 @@ public class CacheTest {
 
     @Test
     public void testSpecific() {
-        var w = WorkflowManager.createWorkflow("test-w");
+        var w = new Workflow("test-w");
         var node = w.getNodeBuilder().buildCodeNode();
         node.getConnectorBuilder().buildOutputConnector("out", WCollection.of(WPrimitive.String));
 

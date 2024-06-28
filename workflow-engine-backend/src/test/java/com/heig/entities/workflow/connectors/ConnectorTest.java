@@ -1,7 +1,7 @@
 package com.heig.entities.workflow.connectors;
 
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.WorkflowManager;
+import com.heig.entities.workflow.execution.WorkflowManager;
 import com.heig.entities.workflow.errors.UnmodifiableConnector;
 import com.heig.entities.workflow.nodes.CodeNode;
 import com.heig.entities.workflow.nodes.PrimitiveNode;
@@ -21,7 +21,7 @@ public class ConnectorTest {
 
     @Test
     public void create() {
-        var w = WorkflowManager.createWorkflow("ct-create");
+        var w = new Workflow("ct-create");
         var n = createCodeNode(w);
 
         var connector = n.getConnectorBuilder().buildInputConnector("connector", WObject.of());
@@ -55,7 +55,7 @@ public class ConnectorTest {
 
     @Test
     public void input() {
-        var w = WorkflowManager.createWorkflow("ct-input");
+        var w = new Workflow("ct-input");
         var n = createCodeNode(w);
 
         var connector = n.getConnectorBuilder().buildInputConnector("input", WObject.of());
@@ -76,7 +76,7 @@ public class ConnectorTest {
 
     @Test
     public void output() {
-        var w = WorkflowManager.createWorkflow("ct-output");
+        var w = new Workflow("ct-output");
         var n = createCodeNode(w);
 
         var connector = n.getConnectorBuilder().buildOutputConnector("conn", WObject.of());

@@ -1,6 +1,5 @@
 package com.heig.entities.workflow.execution;
 
-import com.heig.entities.workflow.WorkflowManager;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.testHelpers.TestScenario;
 import io.quarkus.test.junit.QuarkusTest;

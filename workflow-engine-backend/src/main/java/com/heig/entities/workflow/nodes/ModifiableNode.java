@@ -16,18 +16,18 @@ public abstract class ModifiableNode extends Node {
 
     @Override
     public void setTimeout(int timeout) {
-        super.setTimeout(timeout);
+        if (this.getTimeout() != timeout) {
+            super.setTimeout(timeout);
+            getWorkflow().nodeModified(this);
+        }
     }
 
     @Override
     public void setIsDeterministic(boolean deterministic) {
-        super.setIsDeterministic(deterministic);
-    }
-
-    @Override
-    public <T extends InputConnector> T addInputConnector(@Nonnull Function<Integer, T> connectorSupplier) {
-        Objects.requireNonNull(connectorSupplier);
-        return super.addInputConnector(connectorSupplier);
+        if (isDeterministic() != deterministic) {
+            super.setIsDeterministic(deterministic);
+            getWorkflow().nodeModified(this);
+        }
     }
 
     @Override
@@ -37,12 +37,6 @@ public abstract class ModifiableNode extends Node {
             return false;
         }
         return super.removeInput(input);
-    }
-
-    @Override
-    public <T extends OutputConnector> T addOutputConnector(@Nonnull Function<Integer, T> connectorSupplier) {
-        Objects.requireNonNull(connectorSupplier);
-        return super.addOutputConnector(connectorSupplier);
     }
 
     @Override

@@ -1,7 +1,6 @@
 package com.heig.entities.workflow.execution;
 
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.WorkflowManager;
 import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WPrimitive;
 import com.heig.testHelpers.TestScenario;
@@ -14,7 +13,7 @@ import java.util.Objects;
 public class WorkflowTest {
     @Test
     public void create() {
-        var w = WorkflowManager.createWorkflow("exe-create");
+        var w = new Workflow("exe-create");
         var node1 = w.getNodeBuilder().buildCodeNode();
         Objects.requireNonNull(node1);
         assert node1.getId() >= 0;
@@ -30,7 +29,7 @@ public class WorkflowTest {
 
     @Test
     public void remove() {
-        var w = WorkflowManager.createWorkflow("exe-remove");
+        var w = new Workflow("exe-remove");
         var node1 = w.getNodeBuilder().buildCodeNode();
 
         w.removeNode(node1);
@@ -42,7 +41,7 @@ public class WorkflowTest {
 
     @Test
     public void valid() {
-        var w = WorkflowManager.createWorkflow("exe-valid");
+        var w = new Workflow("exe-valid");
         //An empty workflow is not valid
         assert w.isValid().isPresent();
 

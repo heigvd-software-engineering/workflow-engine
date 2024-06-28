@@ -20,7 +20,10 @@ public class InputConnector extends Connector {
     }
 
     public void setConnectedTo(OutputConnector connectedTo) {
-        this.connectedTo = connectedTo;
+        if (this.connectedTo != connectedTo) {
+            this.connectedTo = connectedTo;
+            getParent().connectorModified(this);
+        }
     }
 
     @Override

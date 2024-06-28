@@ -39,7 +39,10 @@ public class PrimitiveNode extends Node {
         if (!outputType.canBeConvertedFrom(valueType)) {
             throw new RuntimeException("The value (of type %s) cannot be converted to %s".formatted(valueType, outputType));
         }
-        this.value = value;
+        if (this.value != value) {
+            this.value = value;
+            getWorkflow().nodeModified(this);
+        }
     }
 
     public OutputConnector getOutputConnector() {

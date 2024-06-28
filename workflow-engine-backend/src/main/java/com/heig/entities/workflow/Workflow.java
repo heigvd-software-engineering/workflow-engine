@@ -6,6 +6,7 @@ import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.errors.*;
 import com.heig.entities.workflow.execution.WorkflowExecutor;
 import com.heig.entities.workflow.nodes.Node;
+import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.cycle.CycleDetector;
@@ -16,7 +17,9 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class Workflow {
     private final AtomicInteger currentId = new AtomicInteger(0);
@@ -25,8 +28,8 @@ public class Workflow {
     private final UUID uuid;
     private final String name;
 
-    Workflow(@Nonnull UUID uuid, @Nonnull String name) {
-        this.uuid = Objects.requireNonNull(uuid);
+    public Workflow(@Nonnull String name) {
+        this.uuid = UUID.randomUUID();
         this.name = Objects.requireNonNull(name);
     }
 
@@ -177,5 +180,23 @@ public class Workflow {
         }
         
         return Optional.empty();
+    }
+
+    private final ConcurrentHashSet<NodeModifiedListener> listeners = new ConcurrentHashSet<>();
+    public void addNodeModifiedListener(@Nonnull NodeModifiedListener consumer) {
+        Objects.requireNonNull(consumer);
+        listeners.add(consumer);
+    }
+
+    public void removeNodeModifiedListener(@Nonnull NodeModifiedListener consumer) {
+        Objects.requireNonNull(consumer);
+        listeners.remove(consumer);
+    }
+
+    public void nodeModified(@Nonnull Node node) {
+        Objects.requireNonNull(node);
+        for (var listener : listeners) {
+            listener.nodeModified(node);
+        }
     }
 }

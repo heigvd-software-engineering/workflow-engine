@@ -23,7 +23,7 @@ public class WorkflowExecutor {
     private final WorkflowErrors workflowErrors = new WorkflowErrors();
     private final Cache cache;
 
-    public WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener) {
+    WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener) {
         this.workflow = Objects.requireNonNull(workflow);
         this.listener = Objects.requireNonNull(listener);
         this.cache = Cache.get(workflow);
@@ -211,6 +211,14 @@ public class WorkflowExecutor {
             }
         });
         return true;
+    }
+
+    public Workflow getWorkflow() {
+        return workflow;
+    }
+
+    public State getState() {
+        return state;
     }
 
     public WorkflowErrors getWorkflowErrors() {

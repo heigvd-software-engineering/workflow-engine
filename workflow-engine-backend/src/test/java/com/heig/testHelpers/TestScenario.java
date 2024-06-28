@@ -1,6 +1,6 @@
 package com.heig.testHelpers;
 
-import com.heig.entities.workflow.WorkflowManager;
+import com.heig.entities.workflow.execution.WorkflowManager;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.nodes.CodeNode;
 import com.heig.entities.workflow.connectors.OutputConnector;
@@ -19,7 +19,7 @@ public class TestScenario {
     public OutputConnector num1Output, num2Output, strOutput, resultOutput, stringOutput;
 
     public TestScenario() {
-        w = WorkflowManager.createWorkflow("scenario-test");
+        w = new Workflow("scenario-test");
 
         //Primitives nodes
         var tnum1 = createPrimitiveNode(w, WPrimitive.Integer);

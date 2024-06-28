@@ -1,8 +1,8 @@
 package com.heig.entities.workflow.nodes;
 
-import com.heig.entities.workflow.WorkflowManager;
+import com.heig.entities.workflow.Workflow;
+import com.heig.entities.workflow.execution.WorkflowManager;
 import com.heig.entities.workflow.connectors.InputFlowConnector;
-import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.connectors.OutputFlowConnector;
 import com.heig.testHelpers.TestScenario;
 import io.quarkus.test.junit.QuarkusTest;
@@ -130,7 +130,7 @@ public class NodeTest {
 
     @Test
     public void removeReadOnlyConnector() {
-        var w = WorkflowManager.createWorkflow("ro-connector");
+        var w = new Workflow("ro-connector");
         var n = w.getNodeBuilder().buildCodeNode();
 
         //We should not be able to remove the input flow connector

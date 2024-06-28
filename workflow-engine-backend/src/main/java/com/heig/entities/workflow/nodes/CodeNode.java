@@ -21,10 +21,6 @@ public class CodeNode extends ModifiableNode {
             this.mainCodeTemplate = Objects.requireNonNull(mainCodeTemplate);
         }
 
-        public String getGraalLanguageCode() {
-            return graalLanguageCode;
-        }
-
         public String completeMain(@NotNull String code) {
             return mainCodeTemplate.formatted(Objects.requireNonNull(code));
         }
@@ -65,7 +61,10 @@ public class CodeNode extends ModifiableNode {
     }
 
     public void setCode(@Nonnull String code) {
-        this.code = Objects.requireNonNull(code);
+        if (!Objects.equals(this.code, code)) {
+            this.code = Objects.requireNonNull(code);
+            getWorkflow().nodeModified(this);
+        }
     }
 
     public Language getLanguage() {
@@ -73,7 +72,10 @@ public class CodeNode extends ModifiableNode {
     }
 
     public void setLanguage(@Nonnull Language language) {
-        this.language = Objects.requireNonNull(language);;
+        if (this.language != language) {
+            this.language = Objects.requireNonNull(language);;
+            getWorkflow().nodeModified(this);
+        }
     }
 
     @Override
