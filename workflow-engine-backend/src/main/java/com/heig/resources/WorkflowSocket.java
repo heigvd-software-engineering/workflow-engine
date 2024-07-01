@@ -5,7 +5,10 @@ import com.google.gson.JsonElement;
 import com.heig.entities.workflow.NodeModifiedListener;
 import com.heig.entities.workflow.execution.State;
 import com.heig.entities.workflow.execution.WorkflowExecutionListener;
+import com.heig.entities.workflow.nodes.CodeNode;
+import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.nodes.Node;
+import com.heig.entities.workflow.nodes.PrimitiveNode;
 import com.heig.helpers.ResultOrStringError;
 import com.heig.services.WorkflowService;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -61,10 +64,6 @@ public class WorkflowSocket {
         public void nodeStateChanged(@Nonnull Node node, @Nonnull State state) {
 
         }
-
-        public void workflowRemoved() {
-            //Send a message to tell all clients that this workflow has been removed
-        }
     }
 
     @OnOpen
@@ -107,10 +106,15 @@ public class WorkflowSocket {
                     service.getWorkflowExecutor(obj.get("uuid")).continueWith(we -> {
                         var listenerToRemove = listeners.remove(we.getWorkflow().getUUID());
                         we.getWorkflow().removeNodeModifiedListener(listenerToRemove);
-                        listenerToRemove.workflowRemoved();
-                        return service.removeWorkflowExecutor(we);
-                        //TODO: Broadcast that the workflow is no longer available
+                        return service.removeWorkflowExecutor(we).continueWith(v -> {
+                            //TODO: Broadcast that the workflow is no longer available
+                            return ResultOrStringError.result(null);
+                        });
                     });
+                case "stopWorkflow" ->
+                    service.getWorkflowExecutor(obj.get("uuid")).continueWith(we ->
+                       service.stopWorkflow(we)
+                    );
                 case "switchTo" ->
                     service.getWorkflow(obj.get("uuid")).continueWith(w -> {
                         sessions.put(session, null);
@@ -118,13 +122,106 @@ public class WorkflowSocket {
                         sessions.put(session, w.getUUID());
                         return ResultOrStringError.result(null);
                     });
+                case "createNode" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.createNode(w, obj.get("type"), obj.has("primitive") ? obj.get("primitive") : null).continueWith(n -> {
+                            //TODO: Notify node created
+                            return ResultOrStringError.result(null);
+                        })
+                    );
+                case "removeNode" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("nodeId"), Node.class).continueWith(n ->
+                            service.removeNode(w, n).continueWith(v -> {
+                                //TODO: Notify node removed
+                                return ResultOrStringError.result(null);
+                            })
+                        )
+                    );
+                case "createConnector" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("nodeId"), ModifiableNode.class).continueWith(n ->
+                            service.createConnector(n, obj.get("isInput"), obj.get("name"), obj.get("type")).continueWith(c ->
+                                ResultOrStringError.result(null)
+                            )
+                        )
+                    );
+                case "removeConnector" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("nodeId"), ModifiableNode.class).continueWith(n ->
+                            service.getConnector(n, obj.get("connectorId"), obj.get("isInput")).continueWith(c ->
+                                service.removeConnector(n, c)
+                            )
+                        )
+                    );
+                case "changeConnector" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("nodeId"), Node.class).continueWith(n ->
+                            service.getConnector(n, obj.get("connectorId"), obj.get("isInput")).continueWith(c ->
+                                switch (obj.get("subAction").getAsString()) {
+                                    case "type" -> service.changeConnectorType(c, obj.get("newType"));
+                                    case "name" -> service.changeConnectorName(c, obj.get("newName"));
+                                    default -> ResultOrStringError.error("subAction not recognized");
+                                }
+                            )
+                        )
+                    );
+                case "changeModifiableNode" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("nodeId"), ModifiableNode.class).continueWith(n ->
+                            switch (obj.get("subAction").getAsString()) {
+                                case "isDeterministic" -> service.changeModifiableNodeIsDeterministic(n, obj.get("isDeterministic"));
+                                case "timeout" -> service.changeModifiableNodeTimeout(n, obj.get("timeout"));
+                                default -> ResultOrStringError.error("subAction not recognized");
+                            }
+                        )
+                    );
+                case "changePrimitiveNode" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("nodeId"), PrimitiveNode.class).continueWith(n ->
+                            switch (obj.get("subAction").getAsString()) {
+                                case "value" -> service.changePrimitiveNodeValue(n, obj.get("value"));
+                                default -> ResultOrStringError.error("subAction not recognized");
+                            }
+                        )
+                    );
+                case "changeCodeNode" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("nodeId"), CodeNode.class).continueWith(n ->
+                            switch (obj.get("subAction").getAsString()) {
+                                case "code" -> service.changeCodeNodeCode(n, obj.get("code"));
+                                case "language" -> service.changeCodeNodeLanguage(n, obj.get("language"));
+                                default -> ResultOrStringError.error("subAction not recognized");
+                            }
+                        )
+                    );
+                case "connect" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("fromNodeId"), Node.class).continueWith(fromNode ->
+                            service.getNode(w, obj.get("toNodeId"), Node.class).continueWith(toNode ->
+                                service.getOutputConnector(fromNode, obj.get("fromConnectorId")).continueWith(fromConnector ->
+                                    service.getInputConnector(toNode, obj.get("toConnectorId")).continueWith(toConnector ->
+                                        service.connect(fromConnector, toConnector)
+                                    )
+                                )
+                            )
+                        )
+                    );
+                case "disconnect" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("nodeId"), Node.class).continueWith(node ->
+                            service.getInputConnector(node, obj.get("connectorId")).continueWith(connector ->
+                                service.disconnect(connector)
+                            )
+                        )
+                    );
                 default -> ResultOrStringError.error("Action '" + name + "' not supported");
             };
             if (res.getErrorMessage().isPresent()) {
                 throw new RuntimeException(res.getErrorMessage().get());
             }
         } catch (Exception e) {
-            sendTo(session, "Failed to parse instruction: " + e.getMessage());
+            sendTo(session, "Error while executing instruction: " + e.getMessage());
         }
     }
 

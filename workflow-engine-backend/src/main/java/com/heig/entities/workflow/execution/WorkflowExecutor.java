@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.execution;
 
+import com.heig.entities.workflow.NodeModifiedListener;
 import com.heig.entities.workflow.cache.Cache;
 import com.heig.entities.workflow.errors.*;
 import com.heig.entities.workflow.nodes.Node;
@@ -22,11 +23,21 @@ public class WorkflowExecutor {
     private final WorkflowExecutionListener listener;
     private final WorkflowErrors workflowErrors = new WorkflowErrors();
     private final Cache cache;
+    private CompletableFuture<Void> toWaitFor = null;
+    private final NodeModifiedListener nodeModifiedListener;
 
     WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener) {
         this.workflow = Objects.requireNonNull(workflow);
         this.listener = Objects.requireNonNull(listener);
         this.cache = Cache.get(workflow);
+
+        this.nodeModifiedListener = node -> {
+            var state = getStateFor(node);
+            synchronized (state) {
+                state.setHasBeenModified(true);
+            }
+        };
+        this.workflow.addNodeModifiedListener(nodeModifiedListener);
     }
 
     private NodeState getStateFor(@Nonnull Node node) {
@@ -163,7 +174,6 @@ public class WorkflowExecutor {
     }
 
     public boolean executeWorkflow() {
-        workflowErrors.clear();
         synchronized (stateLock) {
             if (state == State.RUNNING) {
                 return false;
@@ -171,6 +181,8 @@ public class WorkflowExecutor {
             state = State.RUNNING;
             listener.workflowStateChanged(state);
         }
+        workflowErrors.clear();
+        toWaitFor = null;
 
         var errors = workflow.isValid();
         if (errors.isPresent()) {
@@ -195,8 +207,8 @@ public class WorkflowExecutor {
         for (var node : notConnectedNodes) {
             toWait.add(executeNode(node));
         }
-        var waitAll = CompletableFuture.allOf(toWait.toArray(CompletableFuture[]::new));
-        waitAll.thenAcceptAsync(v -> {
+        toWaitFor = CompletableFuture.allOf(toWait.toArray(CompletableFuture[]::new));
+        toWaitFor.thenAcceptAsync(v -> {
             var failed = states.values().stream().anyMatch(ns -> ns.getState() == State.FAILED);
             if (failed) {
                 synchronized (stateLock) {
@@ -210,6 +222,37 @@ public class WorkflowExecutor {
                 }
             }
         });
+        return true;
+    }
+
+    public boolean stopWorkflow() {
+        if (state != State.RUNNING) {
+            return false;
+        }
+        if (!toWaitFor.cancel(true)) {
+            return false;
+        }
+        for (var node : workflow.getNodes().values()) {
+            var ns = getStateFor(node);
+            //For all node that have not been yet finished, we set their state to failed and set the error for each input
+            if (ns.getState() != State.FINISHED || ns.getState() != State.FAILED) {
+                var errors = new WorkflowErrors();
+                errors.addError(new WorkflowCancelled());
+                var res = ResultOrWorkflowError.error(errors);
+
+                for (var input : node.getInputs().values()) {
+                    synchronized (ns) {
+                        ns.setInputValue(input.getId(), res);
+                    }
+                }
+                changeNodeState(node, State.FAILED);
+            }
+        }
+        synchronized (stateLock) {
+            workflowErrors.addError(new WorkflowCancelled());
+            state = State.FAILED;
+            listener.workflowStateChanged(state);
+        }
         return true;
     }
 
@@ -227,5 +270,10 @@ public class WorkflowExecutor {
 
     public void clearCache() {
         cache.clear();
+    }
+
+    public void delete() {
+        clearCache();
+        workflow.removeNodeModifiedListener(nodeModifiedListener);
     }
 }

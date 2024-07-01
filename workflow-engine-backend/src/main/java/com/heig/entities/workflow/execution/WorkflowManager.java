@@ -28,9 +28,9 @@ public class WorkflowManager {
         return Optional.ofNullable(workflowExecutors.get(uuid));
     }
 
-    public static boolean removeWorkflowExecutor(@Nonnull WorkflowExecutor w) {
-        Objects.requireNonNull(w);
-        w.clearCache();
-        return workflowExecutors.remove(w.getWorkflow().getUUID()) != null;
+    public static boolean removeWorkflowExecutor(@Nonnull WorkflowExecutor we) {
+        Objects.requireNonNull(we);
+        we.delete();
+        return workflowExecutors.remove(we.getWorkflow().getUUID()) != null;
     }
 }

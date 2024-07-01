@@ -101,6 +101,18 @@ public class WorkflowService {
         });
     }
 
+    public synchronized ResultOrStringError<Void> stopWorkflow(@Nonnull WorkflowExecutor workflowExecutor) {
+        Objects.requireNonNull(workflowExecutor);
+
+        if (workflowExecutor.getState() != State.RUNNING) {
+            return ResultOrStringError.error("Workflow executor is not running");
+        }
+        if (!workflowExecutor.stopWorkflow()) {
+            return ResultOrStringError.error("Could not stop the workflow");
+        }
+        return ResultOrStringError.result(null);
+    }
+
     public synchronized ResultOrStringError<Void> removeWorkflowExecutor(@Nonnull WorkflowExecutor workflowExecutor) {
         Objects.requireNonNull(workflowExecutor);
         if (!WorkflowManager.removeWorkflowExecutor(workflowExecutor)) {
@@ -160,20 +172,23 @@ public class WorkflowService {
         );
     }
 
-    public synchronized ResultOrStringError<Void> removeConnector(@Nonnull ModifiableNode mNode, int connectorId, boolean isInput) {
+    public synchronized ResultOrStringError<Void> removeConnector(@Nonnull ModifiableNode mNode, @Nonnull Connector connector) {
         Objects.requireNonNull(mNode);
 
-        return ensureNotRunning(mNode.getWorkflow()).continueWith(v ->
-            isInput ?
-                getInputConnector(mNode, connectorId).continueWith(input ->
-                    mNode.removeInput(input) ?
-                        ResultOrStringError.result(null) :
-                        ResultOrStringError.error("Could not remove input")
-                ) :
-                getOutputConnector(mNode, connectorId).continueWith(output ->
-                    mNode.removeOutput(output) ? ResultOrStringError.result(null) : ResultOrStringError.error("Could not remove output")
-                )
-        );
+        return ensureNotRunning(mNode.getWorkflow()).continueWith(v -> {
+            boolean isRemoveOk;
+            if (connector instanceof InputConnector ic) {
+                isRemoveOk = mNode.removeInput(ic);
+            } else if (connector instanceof OutputConnector oc) {
+                isRemoveOk = mNode.removeOutput(oc);
+            } else {
+                return ResultOrStringError.error("Invalid connector type");
+            }
+            if (!isRemoveOk) {
+                return ResultOrStringError.error("Failed to remove connector");
+            }
+            return ResultOrStringError.result(null);
+        });
     }
 
     public synchronized ResultOrStringError<Void> changeConnectorType(@Nonnull Connector connector, @Nonnull String newType) {
@@ -324,6 +339,13 @@ public class WorkflowService {
         return getUUID(workflowUUIDJson).continueWith(this::getWorkflowExecutor);
     }
 
+    public synchronized ResultOrStringError<Node> createNode(@Nonnull Workflow workflow, @Nonnull JsonElement nodeType, JsonElement primitiveType) {
+        Objects.requireNonNull(workflow);
+        Objects.requireNonNull(nodeType);
+
+        return createNode(workflow, nodeType.getAsString(), primitiveType == null ? null : primitiveType.getAsString());
+    }
+
     public synchronized <T extends Node> ResultOrStringError<T> getNode(@Nonnull Workflow workflow, @Nonnull JsonElement nodeIdJson, @Nonnull Class<T> clazz) {
         Objects.requireNonNull(workflow);
         Objects.requireNonNull(nodeIdJson);
@@ -357,5 +379,78 @@ public class WorkflowService {
         } catch (Exception e) {
             return ResultOrStringError.error("Error in the UUID : " + e.getMessage());
         }
+    }
+
+    public synchronized ResultOrStringError<? extends Connector> getConnector(@Nonnull Node node, @Nonnull JsonElement connectorId, @Nonnull JsonElement isInput) {
+        Objects.requireNonNull(node);
+        Objects.requireNonNull(connectorId);
+        Objects.requireNonNull(isInput);
+
+        return isInput.getAsBoolean() ?
+            getInputConnector(node, connectorId) :
+            getOutputConnector(node, connectorId);
+    }
+
+    public synchronized ResultOrStringError<Connector> createConnector(@Nonnull ModifiableNode mNode, @Nonnull JsonElement isInput, @Nonnull JsonElement name, @Nonnull JsonElement connectorType) {
+        Objects.requireNonNull(mNode);
+        Objects.requireNonNull(isInput);
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(connectorType);
+
+        return createConnector(mNode, isInput.getAsBoolean(), name.getAsString(), connectorType.getAsString());
+    }
+
+    public synchronized ResultOrStringError<Void> changeConnectorType(@Nonnull Connector connector, @Nonnull JsonElement newType) {
+        Objects.requireNonNull(connector);
+        Objects.requireNonNull(newType);
+
+        return changeConnectorType(connector, newType.getAsString());
+    }
+
+    public synchronized ResultOrStringError<Void> changeConnectorName(@Nonnull Connector connector, @Nonnull JsonElement newName) {
+        Objects.requireNonNull(connector);
+        Objects.requireNonNull(newName);
+
+        return changeConnectorName(connector, newName.getAsString());
+    }
+
+    public synchronized ResultOrStringError<Void> changeModifiableNodeTimeout(@Nonnull ModifiableNode mNode, @Nonnull JsonElement newNodeTimeout) {
+        Objects.requireNonNull(mNode);
+        Objects.requireNonNull(newNodeTimeout);
+
+        return changeModifiableNodeTimeout(mNode, newNodeTimeout.getAsInt());
+    }
+
+    public synchronized ResultOrStringError<Void> changeModifiableNodeIsDeterministic(@Nonnull ModifiableNode mNode, @Nonnull JsonElement isDeterministic) {
+        Objects.requireNonNull(mNode);
+        Objects.requireNonNull(isDeterministic);
+
+        return changeModifiableNodeIsDeterministic(mNode, isDeterministic.getAsBoolean());
+    }
+
+    public synchronized ResultOrStringError<Void> changePrimitiveNodeValue(@Nonnull PrimitiveNode node, @Nonnull JsonElement newValue) {
+        Objects.requireNonNull(node);
+        Objects.requireNonNull(newValue);
+
+        var wType = node.getOutputConnector().getType();
+        if (wType instanceof WPrimitive wPrimitive) {
+            return changePrimitiveNodeValue(node, wPrimitive.fromJsonElement(newValue));
+        }
+
+        throw new RuntimeException("Should never happen ! The wType of a primitive node is always a WPrimitive");
+    }
+
+    public synchronized ResultOrStringError<Void> changeCodeNodeCode(@Nonnull CodeNode node, @Nonnull JsonElement newCode) {
+        Objects.requireNonNull(node);
+        Objects.requireNonNull(newCode);
+
+        return changeCodeNodeCode(node, newCode.getAsString());
+    }
+
+    public synchronized ResultOrStringError<Void> changeCodeNodeLanguage(@Nonnull CodeNode node, @Nonnull JsonElement newLanguage) {
+        Objects.requireNonNull(node);
+        Objects.requireNonNull(newLanguage);
+
+        return changeCodeNodeLanguage(node, newLanguage.getAsString());
     }
 }
