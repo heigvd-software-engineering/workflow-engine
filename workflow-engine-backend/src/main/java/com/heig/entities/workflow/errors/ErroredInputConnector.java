@@ -2,10 +2,7 @@ package com.heig.entities.workflow.errors;
 
 import com.google.gson.JsonObject;
 import com.heig.entities.workflow.connectors.InputConnector;
-import com.heig.entities.workflow.nodes.Node;
 import jakarta.annotation.Nonnull;
-
-import java.lang.invoke.DelegatingMethodHandle$Holder;
 
 public class ErroredInputConnector extends WorkflowNodeError {
     private final InputConnector inputConnector;
