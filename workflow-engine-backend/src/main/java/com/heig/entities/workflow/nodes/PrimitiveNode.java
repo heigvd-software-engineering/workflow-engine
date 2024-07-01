@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.nodes;
 
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.execution.NodeArguments;
@@ -52,5 +53,12 @@ public class PrimitiveNode extends Node {
     @Override
     public String toString() {
         return "Primitive" + super.toString();
+    }
+
+    @Override
+    public JsonObject toJson() {
+        var obj = super.toJson();
+        obj.add("value", ((WPrimitive) output.getType()).toJsonElement(value));
+        return obj;
     }
 }

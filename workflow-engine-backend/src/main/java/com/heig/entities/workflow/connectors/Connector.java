@@ -1,8 +1,11 @@
 package com.heig.entities.workflow.connectors;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.errors.WorkflowError;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.types.WType;
+import com.heig.entities.workflow.types.WorkflowTypes;
 import io.smallrye.common.annotation.CheckReturnValue;
 import jakarta.annotation.Nonnull;
 
@@ -105,5 +108,15 @@ public abstract class Connector {
     @Override
     public String toString() {
         return getParent() + ": " + getName();
+    }
+
+    public JsonObject toJson() {
+        var obj = new JsonObject();
+        obj.addProperty("id", id);
+        obj.addProperty("name", data.getName());
+        obj.addProperty("type", WorkflowTypes.typeToString(data.getType()));
+        obj.addProperty("isReadOnly", isReadOnly);
+        obj.addProperty("isOptional", isOptional());
+        return obj;
     }
 }

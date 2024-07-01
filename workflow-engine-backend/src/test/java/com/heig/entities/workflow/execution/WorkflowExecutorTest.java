@@ -17,14 +17,14 @@ public class WorkflowExecutorTest {
         var executor = new WorkflowExecutor(scenario.w,
             new WorkflowExecutionListener() {
                 @Override
-                public void workflowStateChanged(@Nonnull State state) {
-                    System.out.println("Workflow -> " + state);
-                    currentState.set(state);
+                public void workflowStateChanged(@Nonnull WorkflowExecutor we) {
+                    System.out.println("Workflow -> " + we.getState());
+                    currentState.set(we.getState());
                 }
 
                 @Override
-                public void nodeStateChanged(@Nonnull Node node, @Nonnull State state) {
-                    System.out.println(node.getId() + " -> " + state);
+                public void nodeStateChanged(@Nonnull NodeState state) {
+                    System.out.println(state.getNode().getId() + " -> " + state.getState());
                 }
             }
         );

@@ -1,6 +1,7 @@
 package com.heig.entities.workflow.types;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 import jakarta.annotation.Nonnull;
 
 import javax.swing.*;
@@ -52,6 +53,24 @@ public enum WPrimitive implements WIterableType {
     }
 
     public Object fromJsonElement(@Nonnull JsonElement value) {
+        Objects.requireNonNull(value);
         return converter.apply(value);
+    }
+
+    public JsonElement toJsonElement(@Nonnull Object value) {
+        Objects.requireNonNull(value);
+        if (value instanceof Number n) {
+            return new JsonPrimitive(n);
+        }
+        if (value instanceof String s) {
+            return new JsonPrimitive(s);
+        }
+        if (value instanceof Character c) {
+            return new JsonPrimitive(c);
+        }
+        if (value instanceof Boolean b) {
+            return new JsonPrimitive(b);
+        }
+        throw new RuntimeException("Cannot convert " + value + " to Number, String, Character or Boolean");
     }
 }

@@ -3,9 +3,7 @@ package com.heig.entities.workflow.execution;
 import com.heig.entities.workflow.Workflow;
 import jakarta.annotation.Nonnull;
 
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -32,5 +30,9 @@ public class WorkflowManager {
         Objects.requireNonNull(we);
         we.delete();
         return workflowExecutors.remove(we.getWorkflow().getUUID()) != null;
+    }
+
+    public static List<WorkflowExecutor> getWorkflowExecutors() {
+        return workflowExecutors.values().stream().toList();
     }
 }

@@ -1,3 +1,12 @@
 package com.heig.entities.workflow.errors;
 
-public class EmptyGraph extends WorkflowError { }
+import com.google.gson.JsonObject;
+
+public class EmptyGraph extends WorkflowError {
+    @Override
+    public JsonObject toJson() {
+        var obj = super.toJson();
+        addErrorMessage(obj, "The graph is empty (no nodes)");
+        return obj;
+    }
+}

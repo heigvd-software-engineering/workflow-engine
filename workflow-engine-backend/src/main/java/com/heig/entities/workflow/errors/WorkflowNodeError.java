@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.errors;
 
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.nodes.Node;
 import jakarta.annotation.Nonnull;
 
@@ -13,5 +14,12 @@ public abstract class WorkflowNodeError extends WorkflowError {
 
     public Node getNode() {
         return node;
+    }
+
+    @Override
+    public JsonObject toJson() {
+        var obj = super.toJson();
+        obj.addProperty("nodeId", node.getId());
+        return obj;
     }
 }

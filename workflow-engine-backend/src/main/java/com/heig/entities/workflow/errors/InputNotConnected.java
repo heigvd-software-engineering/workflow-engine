@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.errors;
 
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.connectors.InputConnector;
 import jakarta.annotation.Nonnull;
 
@@ -14,5 +15,13 @@ public class InputNotConnected extends WorkflowNodeError {
 
     public InputConnector getInputConnector() {
         return inputConnector;
+    }
+
+    @Override
+    public JsonObject toJson() {
+        var obj = super.toJson();
+        addErrorMessage(obj, "The input is not connected to an output");
+        addInputConnector(obj, inputConnector);
+        return obj;
     }
 }

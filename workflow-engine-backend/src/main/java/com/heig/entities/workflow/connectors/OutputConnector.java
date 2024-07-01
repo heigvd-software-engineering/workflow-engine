@@ -1,5 +1,7 @@
 package com.heig.entities.workflow.connectors;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WType;
@@ -51,5 +53,18 @@ public class OutputConnector extends Connector {
     @Override
     public String toString() {
         return super.toString() + " (O)";
+    }
+
+    @Override
+    public JsonObject toJson() {
+        var obj = super.toJson();
+
+        var connectedTo = new JsonArray();
+        for (var connector : getConnectedTo()) {
+            connectedTo.add(connector.getId());
+        }
+
+        obj.add("connectedTo", connectedTo);
+        return obj;
     }
 }

@@ -40,7 +40,7 @@ public class WorkflowExecutor {
         this.workflow.addNodeModifiedListener(nodeModifiedListener);
     }
 
-    private NodeState getStateFor(@Nonnull Node node) {
+    public NodeState getStateFor(@Nonnull Node node) {
         Objects.requireNonNull(node);
         return states.computeIfAbsent(node.getId(), id -> new NodeState(node));
     }
@@ -50,7 +50,7 @@ public class WorkflowExecutor {
         Objects.requireNonNull(state);
         var ns = getStateFor(node);
         ns.setState(state);
-        listener.nodeStateChanged(node, state);
+        listener.nodeStateChanged(ns);
     }
 
     private CompletableFuture<Void> executeNode(@Nonnull Node node) {
@@ -179,7 +179,7 @@ public class WorkflowExecutor {
                 return false;
             }
             state = State.RUNNING;
-            listener.workflowStateChanged(state);
+            listener.workflowStateChanged(this);
         }
         workflowErrors.clear();
         toWaitFor = null;
@@ -189,7 +189,7 @@ public class WorkflowExecutor {
             workflowErrors.merge(errors.get());
             synchronized (stateLock) {
                 state = State.FAILED;
-                listener.workflowStateChanged(state);
+                listener.workflowStateChanged(this);
             }
             return false;
         }
@@ -213,12 +213,12 @@ public class WorkflowExecutor {
             if (failed) {
                 synchronized (stateLock) {
                     state = State.FAILED;
-                    listener.workflowStateChanged(state);
+                    listener.workflowStateChanged(this);
                 }
             } else {
                 synchronized (stateLock) {
                     state = State.FINISHED;
-                    listener.workflowStateChanged(state);
+                    listener.workflowStateChanged(this);
                 }
             }
         });
@@ -251,7 +251,7 @@ public class WorkflowExecutor {
         synchronized (stateLock) {
             workflowErrors.addError(new WorkflowCancelled());
             state = State.FAILED;
-            listener.workflowStateChanged(state);
+            listener.workflowStateChanged(this);
         }
         return true;
     }

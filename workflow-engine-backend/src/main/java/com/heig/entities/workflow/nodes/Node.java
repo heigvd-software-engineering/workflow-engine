@@ -1,5 +1,8 @@
 package com.heig.entities.workflow.nodes;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.connectors.Connector;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.Workflow;
@@ -165,5 +168,25 @@ public abstract class Node {
     @Override
     public String toString() {
         return "Node (" + getId() + ")";
+    }
+
+    public JsonObject toJson() {
+        var obj = new JsonObject();
+        obj.addProperty("id", id);
+        obj.addProperty("isDeterministic", isDeterministic);
+        obj.addProperty("timeout", timeout);
+
+        var inputsArr = new JsonArray();
+        for (var inputConnector : inputs.values()) {
+            inputsArr.add(inputConnector.toJson());
+        }
+        obj.add("inputs", inputsArr);
+
+        var outputsArr = new JsonArray();
+        for (var outputConnector : outputs.values()) {
+            outputsArr.add(outputConnector.toJson());
+        }
+        obj.add("outputs", outputsArr);
+        return obj;
     }
 }

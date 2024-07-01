@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.errors;
 
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.connectors.Connector;
 import jakarta.annotation.Nonnull;
 
@@ -14,5 +15,13 @@ public class UnmodifiableConnector extends WorkflowNodeError {
 
     public Connector getConnector() {
         return connector;
+    }
+
+    @Override
+    public JsonObject toJson() {
+        var obj = super.toJson();
+        addErrorMessage(obj, "The connector is not modifiable but you tried to modify it");
+        addConnector(obj, connector);
+        return obj;
     }
 }

@@ -1,14 +1,18 @@
 package com.heig.resources;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.NodeModifiedListener;
-import com.heig.entities.workflow.execution.State;
-import com.heig.entities.workflow.execution.WorkflowExecutionListener;
+import com.heig.entities.workflow.Workflow;
+import com.heig.entities.workflow.connectors.Connector;
+import com.heig.entities.workflow.execution.*;
 import com.heig.entities.workflow.nodes.CodeNode;
 import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.nodes.PrimitiveNode;
+import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.ResultOrStringError;
 import com.heig.services.WorkflowService;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -50,19 +54,31 @@ public class WorkflowSocket {
                 .map(Map.Entry::getKey);
         }
 
+        private void notifyConcerned(String message) {
+            toNotify().forEach(s -> sendTo(s, message));
+        }
+
         @Override
         public void nodeModified(@Nonnull Node node) {
-
+            notifyConcerned(nodeModifiedJson(node));
         }
 
         @Override
-        public void workflowStateChanged(@Nonnull State state) {
-
+        public void workflowStateChanged(@Nonnull WorkflowExecutor we) {
+            notifyConcerned(workflowStateJson(we));
         }
 
         @Override
-        public void nodeStateChanged(@Nonnull Node node, @Nonnull State state) {
+        public void nodeStateChanged(@Nonnull NodeState state) {
+            notifyConcerned(nodeStateJson(state));
+        }
 
+        public void notifyNodeCreated(@Nonnull Node node) {
+            notifyConcerned(nodeModifiedJson(node));
+        }
+
+        public void notifyNodeRemoved(@Nonnull Node node) {
+            notifyConcerned(nodeRemovedJson(node));
         }
     }
 
@@ -70,6 +86,7 @@ public class WorkflowSocket {
     public void onOpen(Session session) {
         sessions.put(session, null);
         //TODO: Send all the currently available workflows
+        sendTo(session, allWorkflowsJson());
     }
 
     @OnClose
@@ -96,6 +113,7 @@ public class WorkflowSocket {
                     var we = service.createWorkflowExecutor(w, listener);
                     we.getWorkflow().addNodeModifiedListener(listener);
                     //TODO: Broadcast that a new workflow is available
+                    broadcast(newWorkflowJson(w));
                     yield ResultOrStringError.result(null);
                 }
                 case "executeWorkflow" ->
@@ -108,6 +126,7 @@ public class WorkflowSocket {
                         we.getWorkflow().removeNodeModifiedListener(listenerToRemove);
                         return service.removeWorkflowExecutor(we).continueWith(v -> {
                             //TODO: Broadcast that the workflow is no longer available
+                            broadcast(deletedWorkflowJson(we.getWorkflow()));
                             return ResultOrStringError.result(null);
                         });
                     });
@@ -116,16 +135,22 @@ public class WorkflowSocket {
                        service.stopWorkflow(we)
                     );
                 case "switchTo" ->
-                    service.getWorkflow(obj.get("uuid")).continueWith(w -> {
+                    service.getWorkflowExecutor(obj.get("uuid")).continueWith(we -> {
                         sessions.put(session, null);
                         //TODO: Here send the current state of the new workflow (all nodes, connectors, state, ...)
-                        sessions.put(session, w.getUUID());
+                        we.getWorkflow().getNodes().values().forEach(n -> {
+                            sendTo(session, workflowStateJson(we));
+                            sendTo(session, nodeModifiedJson(n));
+                            sendTo(session, nodeStateJson(we.getStateFor(n)));
+                        });
+                        sessions.put(session, we.getWorkflow().getUUID());
                         return ResultOrStringError.result(null);
                     });
                 case "createNode" ->
                     service.getWorkflow(obj.get("uuid")).continueWith(w ->
                         service.createNode(w, obj.get("type"), obj.has("primitive") ? obj.get("primitive") : null).continueWith(n -> {
                             //TODO: Notify node created
+                            listeners.get(w.getUUID()).notifyNodeCreated(n);
                             return ResultOrStringError.result(null);
                         })
                     );
@@ -134,6 +159,7 @@ public class WorkflowSocket {
                         service.getNode(w, obj.get("nodeId"), Node.class).continueWith(n ->
                             service.removeNode(w, n).continueWith(v -> {
                                 //TODO: Notify node removed
+                                listeners.get(w.getUUID()).notifyNodeRemoved(n);
                                 return ResultOrStringError.result(null);
                             })
                         )
@@ -221,19 +247,132 @@ public class WorkflowSocket {
                 throw new RuntimeException(res.getErrorMessage().get());
             }
         } catch (Exception e) {
-            sendTo(session, "Error while executing instruction: " + e.getMessage());
+            sendTo(session, errorJson("Error while executing action : " + e.getMessage()));
         }
     }
 
-    private void broadcast(String message) {
+    private void broadcast(@Nonnull String message) {
+        Objects.requireNonNull(message);
         sessions.keySet().forEach(s -> sendTo(s, message));
     }
 
-    private void sendTo(Session session, String message) {
+    private void sendTo(@Nonnull Session session, @Nonnull String message) {
+        Objects.requireNonNull(session);
+        Objects.requireNonNull(message);
+
         session.getAsyncRemote().sendObject(message, result ->  {
             if (result.getException() != null) {
                 System.out.println("Unable to send message: " + result.getException());
             }
         });
+    }
+
+    private JsonObject workflowJson(@Nonnull Workflow workflow) {
+        Objects.requireNonNull(workflow);
+
+        var obj = new JsonObject();
+        obj.addProperty("uuid", workflow.getUUID().toString());
+        obj.addProperty("name", workflow.getName());
+        return obj;
+    }
+
+    private JsonObject returnJsonObjectBase(@Nonnull String notificationType) {
+        Objects.requireNonNull(notificationType);
+
+        var obj = new JsonObject();
+        obj.addProperty("notificationType", notificationType);
+        return obj;
+    }
+
+    private String errorJson(@Nonnull String error) {
+        Objects.requireNonNull(error);
+
+        var toReturn = returnJsonObjectBase("error");
+        toReturn.addProperty("error", error);
+        return toReturn.toString();
+    }
+
+    private String allWorkflowsJson() {
+        var workflows = WorkflowManager.getWorkflowExecutors().stream().map(WorkflowExecutor::getWorkflow).toList();
+        var arr = new JsonArray();
+        for (var workflow : workflows) {
+            arr.add(workflowJson(workflow));
+        }
+
+        var toReturn = returnJsonObjectBase("workflows");
+        toReturn.add("workflows", arr);
+
+        return toReturn.toString();
+    }
+
+    private String nodeModifiedJson(@Nonnull Node node) {
+        Objects.requireNonNull(node);
+
+        var toReturn = returnJsonObjectBase("node");
+        toReturn.add("node", node.toJson());
+
+        return toReturn.toString();
+    }
+
+    private String nodeRemovedJson(@Nonnull Node node) {
+        Objects.requireNonNull(node);
+
+        var toReturn = returnJsonObjectBase("nodeRemoved");
+        toReturn.addProperty("nodeId", node.getId());
+        return toReturn.toString();
+    }
+
+    private String newWorkflowJson(@Nonnull Workflow workflow) {
+        Objects.requireNonNull(workflow);
+
+        var toReturn = returnJsonObjectBase("newWorkflow");
+        toReturn.add("workflow", workflowJson(workflow));
+        return toReturn.toString();
+    }
+
+    private String deletedWorkflowJson(@Nonnull Workflow workflow) {
+        Objects.requireNonNull(workflow);
+
+        var toReturn = returnJsonObjectBase("deletedWorkflow");
+        toReturn.addProperty("workflowId", workflow.getUUID().toString());
+        return toReturn.toString();
+    }
+
+    private String nodeStateJson(@Nonnull NodeState state) {
+        Objects.requireNonNull(state);
+
+        var toReturn = returnJsonObjectBase("nodeState");
+        toReturn.addProperty("state", state.getState().toString());
+        toReturn.addProperty("hasBeenModified", state.hasBeenModified());
+        if (state.getState() == State.FAILED) {
+            var errors = new JsonArray();
+            for (var entry : state.getValues().entrySet()) {
+                var optError = entry.getValue().getErrorMessage();
+                if (optError.isPresent()) {
+                    var error = new JsonObject();
+                    error.addProperty("inputId", entry.getKey());
+                    error.addProperty("message", optError.get().toString());
+                    errors.add(error);
+                }
+            }
+            toReturn.add("errors", errors);
+        }
+        return toReturn.toString();
+    }
+
+    private String workflowStateJson(@Nonnull WorkflowExecutor we) {
+        Objects.requireNonNull(we);
+
+        var toReturn = returnJsonObjectBase("workflowState");
+        toReturn.addProperty("state", we.getState().toString());
+        if (we.getState() == State.FAILED) {
+            var errors = new JsonArray();
+            for (var error : we.getWorkflowErrors().getErrors()) {
+                errors.add(error.toString());
+            }
+            toReturn.add("errors", errors);
+        }
+
+        return toReturn.toString();
     }
 }

@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.connectors;
 
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.types.WType;
 import jakarta.annotation.Nonnull;
@@ -34,5 +35,12 @@ public class InputConnector extends Connector {
     @Override
     public String toString() {
         return super.toString() + " (I)";
+    }
+
+    @Override
+    public JsonObject toJson() {
+        var obj = super.toJson();
+        obj.addProperty("connectedTo", connectedTo == null ? null : connectedTo.toString());
+        return obj;
     }
 }

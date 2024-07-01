@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.nodes;
 
+import com.google.gson.JsonObject;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.Workflow;
 import jakarta.annotation.Nonnull;
@@ -81,5 +82,13 @@ public class CodeNode extends ModifiableNode {
     @Override
     public String toString() {
         return "Code" + super.toString();
+    }
+
+    @Override
+    public JsonObject toJson() {
+        var obj = super.toJson();
+        obj.addProperty("code", code);
+        obj.addProperty("language", language.name());
+        return obj;
     }
 }
