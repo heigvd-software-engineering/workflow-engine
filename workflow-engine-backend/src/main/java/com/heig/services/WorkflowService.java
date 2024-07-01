@@ -20,6 +20,7 @@ import com.heig.helpers.ResultOrStringError;
 import jakarta.annotation.Nonnull;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.awt.*;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -316,6 +317,16 @@ public class WorkflowService {
         });
     }
 
+    public synchronized ResultOrStringError<Void> setNodePosition(@Nonnull Node node, @Nonnull Point pos) {
+        Objects.requireNonNull(node);
+        Objects.requireNonNull(pos);
+
+        return getWorkflowExecutor(node.getWorkflow().getUUID()).continueWith(we -> {
+            we.setNodePosition(node, pos);
+            return ResultOrStringError.result(null);
+        });
+    }
+
     public synchronized Workflow createWorkflow(@Nonnull JsonElement nameJson) {
         Objects.requireNonNull(nameJson);
         return new Workflow(nameJson.getAsString());
@@ -452,5 +463,13 @@ public class WorkflowService {
         Objects.requireNonNull(newLanguage);
 
         return changeCodeNodeLanguage(node, newLanguage.getAsString());
+    }
+
+    public synchronized ResultOrStringError<Void> setNodePosition(@Nonnull Node node, @Nonnull JsonElement posX, @Nonnull JsonElement posY) {
+        Objects.requireNonNull(node);
+        Objects.requireNonNull(posX);
+        Objects.requireNonNull(posY);
+
+        return setNodePosition(node, new Point(posX.getAsInt(), posY.getAsInt()));
     }
 }

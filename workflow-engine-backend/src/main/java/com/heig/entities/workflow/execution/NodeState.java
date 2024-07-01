@@ -4,6 +4,7 @@ import com.heig.entities.workflow.nodes.Node;
 import com.heig.helpers.ResultOrWorkflowError;
 import jakarta.annotation.Nonnull;
 
+import java.awt.*;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -16,6 +17,7 @@ public class NodeState {
     private final ConcurrentMap<Integer, ResultOrWorkflowError<Object>> valuesMap = new ConcurrentHashMap<>();
     private final Node node;
     private boolean hasBeenModified = false;
+    private final Point pos = new Point(0, 0);
 
     public NodeState(@Nonnull Node node) {
         this.node = Objects.requireNonNull(node);
@@ -64,5 +66,15 @@ public class NodeState {
 
     public synchronized void clearInputs() {
         valuesMap.clear();
+    }
+
+    public void setPosition(@Nonnull Point pos) {
+        Objects.requireNonNull(pos);
+
+        this.pos.setLocation(pos);
+    }
+
+    public Point getPos() {
+        return pos;
     }
 }

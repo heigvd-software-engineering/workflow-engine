@@ -139,6 +139,8 @@ public class WorkflowSocket {
                         sessions.put(session, null);
                         //TODO: Here send the current state of the new workflow (all nodes, connectors, state, ...)
                         we.getWorkflow().getNodes().values().forEach(n -> {
+                            //clear is used to remove everything currently used in the frontend (all nodes, states, ...)
+                            sendTo(session, returnJsonObjectBase("clear").toString());
                             sendTo(session, workflowStateJson(we));
                             sendTo(session, nodeModifiedJson(n));
                             sendTo(session, nodeStateJson(we.getStateFor(n)));
@@ -162,6 +164,12 @@ public class WorkflowSocket {
                                 listeners.get(w.getUUID()).notifyNodeRemoved(n);
                                 return ResultOrStringError.result(null);
                             })
+                        )
+                    );
+                case "moveNode" ->
+                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
+                        service.getNode(w, obj.get("nodeId"), Node.class).continueWith(n ->
+                            service.setNodePosition(n, obj.get("posX"), obj.get("posY"))
                         )
                     );
                 case "createConnector" ->
@@ -344,6 +352,8 @@ public class WorkflowSocket {
         var toReturn = returnJsonObjectBase("nodeState");
         toReturn.addProperty("state", state.getState().toString());
         toReturn.addProperty("hasBeenModified", state.hasBeenModified());
+        toReturn.addProperty("posX", state.getPos().x);
+        toReturn.addProperty("posY", state.getPos().y);
         if (state.getState() == State.FAILED) {
             var errors = new JsonArray();
             for (var entry : state.getValues().entrySet()) {

@@ -9,6 +9,7 @@ import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.ResultOrWorkflowError;
 import jakarta.annotation.Nonnull;
 
+import java.awt.*;
 import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Optional;
@@ -254,6 +255,17 @@ public class WorkflowExecutor {
             listener.workflowStateChanged(this);
         }
         return true;
+    }
+
+    public void setNodePosition(@Nonnull Node node, @Nonnull Point pos) {
+        Objects.requireNonNull(node);
+        Objects.requireNonNull(pos);
+
+        var ns = getStateFor(node);
+        synchronized (ns) {
+            ns.setPosition(pos);
+            listener.nodeStateChanged(ns);
+        }
     }
 
     public Workflow getWorkflow() {
