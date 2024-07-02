@@ -1,0 +1,16 @@
+.primitive-node {
+  border: 1px solid #eee;
+  padding: 5px;
+  border-radius: 5px;
+  background: white;
+  color: black;
+}
+
+.primitive-node label {
+  font-size: 14px;
+  margin-right: 5px;
+}
+
+.primitive-node input {
+  min-width: 100px;
+}

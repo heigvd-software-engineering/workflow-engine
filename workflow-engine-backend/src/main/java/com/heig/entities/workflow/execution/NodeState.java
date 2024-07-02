@@ -17,7 +17,7 @@ public class NodeState {
     private final ConcurrentMap<Integer, ResultOrWorkflowError<Object>> valuesMap = new ConcurrentHashMap<>();
     private final Node node;
     private boolean hasBeenModified = false;
-    private final Point pos = new Point(0, 0);
+    private final Point.Double pos = new Point.Double(0, 0);
 
     public NodeState(@Nonnull Node node) {
         this.node = Objects.requireNonNull(node);
@@ -68,13 +68,13 @@ public class NodeState {
         valuesMap.clear();
     }
 
-    public void setPosition(@Nonnull Point pos) {
+    public void setPosition(@Nonnull Point.Double pos) {
         Objects.requireNonNull(pos);
 
         this.pos.setLocation(pos);
     }
 
-    public Point getPos() {
+    public Point.Double getPos() {
         return pos;
     }
 }

@@ -317,7 +317,7 @@ public class WorkflowService {
         });
     }
 
-    public synchronized ResultOrStringError<Void> setNodePosition(@Nonnull Node node, @Nonnull Point pos) {
+    public synchronized ResultOrStringError<Void> setNodePosition(@Nonnull Node node, @Nonnull Point.Double pos) {
         Objects.requireNonNull(node);
         Objects.requireNonNull(pos);
 
@@ -470,6 +470,6 @@ public class WorkflowService {
         Objects.requireNonNull(posX);
         Objects.requireNonNull(posY);
 
-        return setNodePosition(node, new Point(posX.getAsInt(), posY.getAsInt()));
+        return setNodePosition(node, new Point.Double(posX.getAsDouble(), posY.getAsDouble()));
     }
 }

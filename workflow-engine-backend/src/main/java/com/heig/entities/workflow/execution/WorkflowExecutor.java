@@ -257,7 +257,7 @@ public class WorkflowExecutor {
         return true;
     }
 
-    public void setNodePosition(@Nonnull Node node, @Nonnull Point pos) {
+    public void setNodePosition(@Nonnull Node node, @Nonnull Point.Double pos) {
         Objects.requireNonNull(node);
         Objects.requireNonNull(pos);
 
