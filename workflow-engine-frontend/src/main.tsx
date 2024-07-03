@@ -11,6 +11,8 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import NotFoundPage from "./NotFoundPage.tsx";
 import WorkflowsPage from "./WorkflowsPage.tsx";
+import { SnackbarProvider } from "notistack";
+import AlertProvider from "./utils/alert/AlertProvider.tsx";
 
 const router = createBrowserRouter([
   {
@@ -35,9 +37,13 @@ const theme = createTheme({
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <RouterProvider router={router} />
-    </ThemeProvider>
+    <SnackbarProvider maxSnack={5} anchorOrigin={{horizontal: "right", vertical: "bottom"}}>
+      <AlertProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <RouterProvider router={router} />
+        </ThemeProvider>
+      </AlertProvider>
+    </SnackbarProvider>
   </React.StrictMode>
 );

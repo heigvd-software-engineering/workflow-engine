@@ -172,6 +172,7 @@ public abstract class Node {
 
     public JsonObject toJson() {
         var obj = new JsonObject();
+        obj.addProperty("nodeType", getClass().getSimpleName());
         obj.addProperty("id", id);
         obj.addProperty("isDeterministic", isDeterministic);
         obj.addProperty("timeout", timeout);

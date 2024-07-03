@@ -40,7 +40,12 @@ public class InputConnector extends Connector {
     @Override
     public JsonObject toJson() {
         var obj = super.toJson();
-        obj.addProperty("connectedTo", connectedTo == null ? null : connectedTo.toString());
+        if (connectedTo != null) {
+            var cto = new JsonObject();
+            cto.addProperty("nodeId", connectedTo.getParent().getId());
+            cto.addProperty("connectorId", connectedTo.getId());
+            obj.add("connectedTo", cto);
+        }
         return obj;
     }
 }

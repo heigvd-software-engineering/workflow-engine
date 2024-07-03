@@ -84,7 +84,6 @@ public class WorkflowSocket {
 
     @OnOpen
     public void onOpen(Session session) {
-        sessions.put(session, null);
         //TODO: Send all the currently available workflows
         sendTo(session, allWorkflowsJson());
     }
@@ -136,7 +135,7 @@ public class WorkflowSocket {
                     );
                 case "switchTo" ->
                     service.getWorkflowExecutor(obj.get("uuid")).continueWith(we -> {
-                        sessions.put(session, null);
+                        sessions.remove(session);
                         //TODO: Here send the current state of the new workflow (all nodes, connectors, state, ...)
                         we.getWorkflow().getNodes().values().forEach(n -> {
                             //clear is used to remove everything currently used in the frontend (all nodes, states, ...)
@@ -342,7 +341,7 @@ public class WorkflowSocket {
         Objects.requireNonNull(workflow);
 
         var toReturn = returnJsonObjectBase("deletedWorkflow");
-        toReturn.addProperty("workflowId", workflow.getUUID().toString());
+        toReturn.addProperty("workflowUUID", workflow.getUUID().toString());
         return toReturn.toString();
     }
 
@@ -350,10 +349,12 @@ public class WorkflowSocket {
         Objects.requireNonNull(state);
 
         var toReturn = returnJsonObjectBase("nodeState");
-        toReturn.addProperty("state", state.getState().toString());
-        toReturn.addProperty("hasBeenModified", state.hasBeenModified());
-        toReturn.addProperty("posX", state.getPos().x);
-        toReturn.addProperty("posY", state.getPos().y);
+        var ns = new JsonObject();
+        ns.addProperty("nodeId", state.getNode().getId());
+        ns.addProperty("state", state.getState().toString());
+        ns.addProperty("hasBeenModified", state.hasBeenModified());
+        ns.addProperty("posX", state.getPos().x);
+        ns.addProperty("posY", state.getPos().y);
         if (state.getState() == State.FAILED) {
             var errors = new JsonArray();
             for (var entry : state.getValues().entrySet()) {
@@ -365,8 +366,9 @@ public class WorkflowSocket {
                     errors.add(error);
                 }
             }
-            toReturn.add("errors", errors);
+            ns.add("errors", errors);
         }
+        toReturn.add("nodeState", ns);
         return toReturn.toString();
     }
 
@@ -374,14 +376,16 @@ public class WorkflowSocket {
         Objects.requireNonNull(we);
 
         var toReturn = returnJsonObjectBase("workflowState");
-        toReturn.addProperty("state", we.getState().toString());
+        var ws = new JsonObject();
+        ws.addProperty("state", we.getState().toString());
         if (we.getState() == State.FAILED) {
             var errors = new JsonArray();
             for (var error : we.getWorkflowErrors().getErrors()) {
-                errors.add(error.toString());
+                errors.add(error.toJson());
             }
-            toReturn.add("errors", errors);
+            ws.add("errors", errors);
         }
+        toReturn.add("workflowState", ws);
 
         return toReturn.toString();
     }

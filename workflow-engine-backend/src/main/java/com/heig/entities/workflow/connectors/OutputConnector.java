@@ -61,7 +61,10 @@ public class OutputConnector extends Connector {
 
         var connectedTo = new JsonArray();
         for (var connector : getConnectedTo()) {
-            connectedTo.add(connector.getId());
+            var cto = new JsonObject();
+            cto.addProperty("nodeId", connector.getParent().getId());
+            cto.addProperty("connectorId", connector.getId());
+            connectedTo.add(cto);
         }
 
         obj.add("connectedTo", connectedTo);

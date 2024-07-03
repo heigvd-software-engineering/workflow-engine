@@ -7,7 +7,9 @@ import com.heig.entities.workflow.connectors.OutputConnector;
 
 public abstract class WorkflowError {
     public JsonObject toJson() {
-        return new JsonObject();
+        var obj = new JsonObject();
+        obj.addProperty("errorType", getClass().getSimpleName());
+        return obj;
     }
 
     protected void addErrorMessage(JsonObject obj, String message) {
@@ -24,8 +26,10 @@ public abstract class WorkflowError {
 
     protected void addConnector(JsonObject obj, Connector connector) {
         if (connector instanceof InputConnector ic) {
+            obj.addProperty("connectorType", "input");
             addInputConnector(obj, ic);
         } else if (connector instanceof OutputConnector oc) {
+            obj.addProperty("connectorType", "output");
             addOutputConnector(obj, oc);
         }
     }
