@@ -13,6 +13,7 @@ import NotFoundPage from "./NotFoundPage.tsx";
 import WorkflowsPage from "./WorkflowsPage.tsx";
 import { SnackbarProvider } from "notistack";
 import AlertProvider from "./utils/alert/AlertProvider.tsx";
+import { ReactFlowProvider } from "reactflow";
 
 const router = createBrowserRouter([
   {
@@ -21,7 +22,10 @@ const router = createBrowserRouter([
   },
   {
     path: "/workflows",
-    element: <WorkflowsPage />
+    element: 
+    <ReactFlowProvider>
+      <WorkflowsPage />
+    </ReactFlowProvider>
   }, 
   {
     path: "*",

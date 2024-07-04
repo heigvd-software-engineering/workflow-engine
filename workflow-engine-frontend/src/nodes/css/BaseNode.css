@@ -1,0 +1,28 @@
+.base-node {
+  border: 1px solid #eee;
+  padding: 5px;
+  border-radius: 5px;
+  background: white;
+  color: black;
+}
+
+.base-node label {
+  font-size: 14px;
+  margin-right: 5px;
+}
+
+.base-node input {
+  min-width: 100px;
+}
+
+.react-flow__handle-right,
+.react-flow__handle-left {
+  top: auto;
+  left: auto;
+  transform: none;
+}
+
+.react-flow__handle {
+  position: static;
+  align-self: center;
+}

@@ -21,6 +21,7 @@ import jakarta.annotation.Nonnull;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -122,27 +123,34 @@ public class WorkflowService {
         return ResultOrStringError.result(null);
     }
 
-    public synchronized ResultOrStringError<Node> createNode(@Nonnull Workflow workflow, @Nonnull String nodeType, String primitiveType) {
-        Objects.requireNonNull(workflow);
+    public synchronized ResultOrStringError<Node> createNode(@Nonnull WorkflowExecutor workflowExecutor, @Nonnull String nodeType, String primitiveType, double posX, double posY) {
+        Objects.requireNonNull(workflowExecutor);
         Objects.requireNonNull(nodeType);
 
-        return ensureNotRunning(workflow).continueWith(v -> {
-            switch (nodeType) {
-                case "primitive":
+        return ensureNotRunning(workflowExecutor).continueWith(v -> {
+            var nodeBuilder = workflowExecutor.getWorkflow().getNodeBuilder();
+            ResultOrStringError<Node> ret = switch (nodeType) {
+                case "primitive" -> {
                     if (primitiveType == null) {
-                        return ResultOrStringError.error("primitiveType not found");
+                        yield ResultOrStringError.error("primitiveType not found");
                     }
-                    return getWType(primitiveType).continueWith(wType -> {
+                    yield getWType(primitiveType).continueWith(wType -> {
                         if (wType instanceof WPrimitive wPrimitive) {
-                            return ResultOrStringError.result(workflow.getNodeBuilder().buildPrimitiveNode(wPrimitive));
+                            return ResultOrStringError.result(nodeBuilder.buildPrimitiveNode(wPrimitive));
                         }
                         return ResultOrStringError.error("primitiveType should be an instance of WPrimitive");
                     });
-                case "code":
-                    return ResultOrStringError.result(workflow.getNodeBuilder().buildCodeNode());
-                default:
-                    return ResultOrStringError.error("Invalid node type");
-            }
+                }
+                case "code" -> ResultOrStringError.result(nodeBuilder.buildCodeNode());
+                default -> ResultOrStringError.error("Invalid node type");
+            };
+            return ret.continueWith(n -> {
+                var ns = workflowExecutor.getStateFor(n);
+                synchronized (ns) {
+                    ns.setPosition(new Point2D.Double(posX, posY));
+                }
+                return ResultOrStringError.result(n);
+            });
         });
     }
 
@@ -350,11 +358,19 @@ public class WorkflowService {
         return getUUID(workflowUUIDJson).continueWith(this::getWorkflowExecutor);
     }
 
-    public synchronized ResultOrStringError<Node> createNode(@Nonnull Workflow workflow, @Nonnull JsonElement nodeType, JsonElement primitiveType) {
-        Objects.requireNonNull(workflow);
-        Objects.requireNonNull(nodeType);
+    public synchronized ResultOrStringError<Optional<WorkflowExecutor>> getOptionalWorkflowExecutor(@Nonnull JsonElement workflowUUIDJson) {
+        Objects.requireNonNull(workflowUUIDJson);
 
-        return createNode(workflow, nodeType.getAsString(), primitiveType == null ? null : primitiveType.getAsString());
+        return getUUID(workflowUUIDJson).apply(workflowUUID -> ResultOrStringError.result(WorkflowManager.getWorkflowExecutor(workflowUUID)), err -> ResultOrStringError.result(Optional.empty()));
+    }
+
+    public synchronized ResultOrStringError<Node> createNode(@Nonnull WorkflowExecutor workflowExecutor, @Nonnull JsonElement nodeType, JsonElement primitiveType, @Nonnull JsonElement posX, @Nonnull JsonElement posY) {
+        Objects.requireNonNull(workflowExecutor);
+        Objects.requireNonNull(nodeType);
+        Objects.requireNonNull(posX);
+        Objects.requireNonNull(posY);
+
+        return createNode(workflowExecutor, nodeType.getAsString(), primitiveType == null ? null : primitiveType.getAsString(), posX.getAsDouble(), posY.getAsDouble());
     }
 
     public synchronized <T extends Node> ResultOrStringError<T> getNode(@Nonnull Workflow workflow, @Nonnull JsonElement nodeIdJson, @Nonnull Class<T> clazz) {

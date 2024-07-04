@@ -24,6 +24,7 @@ import jakarta.websocket.server.ServerEndpoint;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -39,7 +40,7 @@ public class WorkflowSocket {
     @Inject
     WorkflowService service;
 
-    private final ConcurrentMap<Session, UUID> sessions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Session, Optional<UUID>> sessions = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, Listener> listeners = new ConcurrentHashMap<>();
 
     private class Listener implements WorkflowExecutionListener, NodeModifiedListener {
@@ -49,8 +50,9 @@ public class WorkflowSocket {
         }
 
         private Stream<Session> toNotify() {
+            var optUUID = Optional.of(uuid);
             return sessions.entrySet().stream()
-                .filter(es -> es.getValue().equals(uuid))
+                .filter(es -> es.getValue().equals(optUUID))
                 .map(Map.Entry::getKey);
         }
 
@@ -60,7 +62,10 @@ public class WorkflowSocket {
 
         @Override
         public void nodeModified(@Nonnull Node node) {
-            notifyConcerned(nodeModifiedJson(node));
+            //We only notify of a node modification if the node is present in the workflow
+            node.getWorkflow().getNode(node.getId()).ifPresent(n ->
+                notifyConcerned(nodeModifiedJson(n))
+            );
         }
 
         @Override
@@ -84,7 +89,8 @@ public class WorkflowSocket {
 
     @OnOpen
     public void onOpen(Session session) {
-        //TODO: Send all the currently available workflows
+        //Send all the currently available workflows
+        sessions.put(session, Optional.empty());
         sendTo(session, allWorkflowsJson());
     }
 
@@ -111,7 +117,8 @@ public class WorkflowSocket {
                     var listener = new Listener(w.getUUID());
                     var we = service.createWorkflowExecutor(w, listener);
                     we.getWorkflow().addNodeModifiedListener(listener);
-                    //TODO: Broadcast that a new workflow is available
+                    listeners.put(w.getUUID(), listener);
+                    //Broadcast that a new workflow is available
                     broadcast(newWorkflowJson(w));
                     yield ResultOrStringError.result(null);
                 }
@@ -124,7 +131,7 @@ public class WorkflowSocket {
                         var listenerToRemove = listeners.remove(we.getWorkflow().getUUID());
                         we.getWorkflow().removeNodeModifiedListener(listenerToRemove);
                         return service.removeWorkflowExecutor(we).continueWith(v -> {
-                            //TODO: Broadcast that the workflow is no longer available
+                            //Broadcast that the workflow is no longer available
                             broadcast(deletedWorkflowJson(we.getWorkflow()));
                             return ResultOrStringError.result(null);
                         });
@@ -134,24 +141,28 @@ public class WorkflowSocket {
                        service.stopWorkflow(we)
                     );
                 case "switchTo" ->
-                    service.getWorkflowExecutor(obj.get("uuid")).continueWith(we -> {
-                        sessions.remove(session);
-                        //TODO: Here send the current state of the new workflow (all nodes, connectors, state, ...)
-                        we.getWorkflow().getNodes().values().forEach(n -> {
-                            //clear is used to remove everything currently used in the frontend (all nodes, states, ...)
-                            sendTo(session, returnJsonObjectBase("clear").toString());
-                            sendTo(session, workflowStateJson(we));
-                            sendTo(session, nodeModifiedJson(n));
-                            sendTo(session, nodeStateJson(we.getStateFor(n)));
+                    service.getOptionalWorkflowExecutor(obj.get("uuid")).continueWith(we -> {
+                        sessions.put(session, Optional.empty());
+                        //Here send the current state of the new workflow (all nodes, connectors, state, ...)
+                        sendTo(session, switchedToJson(we.map(wee -> wee.getWorkflow().getUUID().toString()).orElse("")));
+
+                        we.ifPresent(wee -> {
+                            sendTo(session, workflowStateJson(wee));
+                            wee.getWorkflow().getNodes().values().forEach(n -> {
+                                sendTo(session, nodeModifiedJson(n));
+                                sendTo(session, nodeStateJson(wee.getStateFor(n)));
+                            });
+                            sessions.put(session, Optional.of(wee.getWorkflow().getUUID()));
                         });
-                        sessions.put(session, we.getWorkflow().getUUID());
                         return ResultOrStringError.result(null);
                     });
                 case "createNode" ->
-                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
-                        service.createNode(w, obj.get("type"), obj.has("primitive") ? obj.get("primitive") : null).continueWith(n -> {
-                            //TODO: Notify node created
-                            listeners.get(w.getUUID()).notifyNodeCreated(n);
+                    service.getWorkflowExecutor(obj.get("uuid")).continueWith(we ->
+                        service.createNode(we, obj.get("type"), obj.has("primitive") ? obj.get("primitive") : null, obj.get("posX"), obj.get("posY")).continueWith(n -> {
+                            //Notify node created
+                            var listener = listeners.get(we.getWorkflow().getUUID());
+                            listener.notifyNodeCreated(n);
+                            listener.nodeStateChanged(we.getStateFor(n));
                             return ResultOrStringError.result(null);
                         })
                     );
@@ -159,7 +170,7 @@ public class WorkflowSocket {
                     service.getWorkflow(obj.get("uuid")).continueWith(w ->
                         service.getNode(w, obj.get("nodeId"), Node.class).continueWith(n ->
                             service.removeNode(w, n).continueWith(v -> {
-                                //TODO: Notify node removed
+                                //Notify node removed
                                 listeners.get(w.getUUID()).notifyNodeRemoved(n);
                                 return ResultOrStringError.result(null);
                             })
@@ -387,6 +398,12 @@ public class WorkflowSocket {
         }
         toReturn.add("workflowState", ws);
 
+        return toReturn.toString();
+    }
+
+    private String switchedToJson(String workflowUUID) {
+        var toReturn = returnJsonObjectBase("switchedTo");
+        toReturn.addProperty("uuid", workflowUUID);
         return toReturn.toString();
     }
 }

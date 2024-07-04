@@ -1,29 +1,26 @@
-import "./css/PrimitiveNode.css"
-
 import { useCallback } from 'react';
-import { Handle, NodeProps, Position } from 'reactflow';
+import { NodeProps } from 'reactflow';
+import BaseNode, { BaseNodeData } from "./BaseNode";
+import { Box } from "@mui/material";
 
 // const handleStyle = { left: 10 };
  
-export type ValueData = {
+export type PrimitiveNodeData = BaseNodeData & {
   initialValue: string | number | undefined;
 }
 
-export default function PrimitiveNode(props: NodeProps<ValueData>) {
+export default function PrimitiveNode(props: NodeProps<PrimitiveNodeData>) {
   const onChange = useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
     console.log("Primitive value changed to " + evt.target?.value);
   }, []);
  
   return (
-    <div className="primitive-node">
-      <Handle type="target" position={Position.Left} />
-      <div style={{display: "flex"}}>
+    <BaseNode {...props}>
+      <Box style={{alignSelf: "center"}}>{props.data.node.outputs[1].type}</Box>
+      <Box style={{display: "flex"}}>
         <label htmlFor="text">Text:</label>
         <input id="text" name="text" size={1} style={{flexGrow: 1}} onChange={onChange} className="nodrag" defaultValue={props.data.initialValue} />
-      </div>
-      <span>Inputs / Outputs</span>
-      <Handle type="source" position={Position.Right} style={{top: 0}} id="a" />
-      <Handle type="source" position={Position.Right} id="b" />
-    </div>
+      </Box>
+    </BaseNode>
   );
 }

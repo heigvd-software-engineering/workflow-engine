@@ -1,69 +1,75 @@
-import ReactFlow, { Background, Connection, Controls, Edge, EdgeChange, Node, NodeChange, XYPosition, addEdge } from "reactflow";
+import ReactFlow, { Background, Connection, Controls, Edge, EdgeChange, Node, NodeChange, NodePositionChange, addEdge, applyNodeChanges, useReactFlow } from "reactflow";
 import Layout from "./Layout";
 import 'reactflow/dist/style.css';
 import PrimitiveNode from "./nodes/PrimitiveNode";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Dialog, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, SelectChangeEvent, TextField } from "@mui/material";
 import { useAlert } from "./utils/alert/AlertUse";
-import { WorkflowNotification, WorkflowType } from "./types/Types";
+import { ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IMoveNode, ISwitchTo, PrimitiveTypes, WorkflowNotification, WorkflowType } from "./types/Types";
 import { AddCircle } from "@mui/icons-material";
+import CreateNodeMenu, { MenuData } from "./components/CreateNodeMenu";
+import useWebSocket, { ReadyState } from "react-use-websocket";
+import { $enum } from "ts-enum-util";
 
 const nodeTypes = { PrimitiveNode: PrimitiveNode };
 
-const initialNodes: Node[] = [
-  { id: 'node-1', type: 'PrimitiveNode', position: { x: 0, y: 0 }, data: { initialValue: 123 } },
-  { id: 'node-2', type: 'PrimitiveNode', position: { x: 300, y: 0 }, data: { initialValue: 455 } },
-];
-const initialEdges: Edge[] = [
-  
-]
-
 export default function WorkflowsPage() {
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
-  const [lastPosition, setLastPosition] = useState<XYPosition>();
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
   const [workflows, setWorkflows] = useState<WorkflowType[]>([])
   const [workflow, setWorkflow] = useState<WorkflowType>();
   const { alertSuccess, alertError, alertInfo } = useAlert();
 
-  const [websocket, setWebsocket] = useState<WebSocket>();
+  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<WorkflowNotification>("ws://localhost:8080/workflow", { share: false, shouldReconnect: () => false })
+
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8080/workflow");
-    ws.onopen = () => {
-      alertSuccess("Connected to the websocket");
-      setWebsocket(ws);
+    switch (readyState) {
+      case ReadyState.OPEN: {
+        alertSuccess("Connected to the websocket"); 
+        break;
+      }
+      case ReadyState.CLOSED: {
+        alertInfo("Websocket connexion closed");
+        break;
+      }
     }
-    ws.onerror = () => {
-      alertError("Error")
-      setWebsocket(undefined);
+  }, [readyState, alertSuccess, alertInfo]);
+
+  useEffect(() => {
+    if (lastJsonMessage == undefined) {
+      return;
     }
-    ws.onmessage = (ev) => {
-      const notification: WorkflowNotification = JSON.parse(ev.data);
-      switch (notification.notificationType) {
-        case "clear": {
-          setWorkflow(undefined);
-          setNodes([]);
-          setEdges([]);
-          break;
-        }
-        case "workflows": {
-          setWorkflows(notification.workflows)
-          break;
-        }
-        case "newWorkflow": {
-          setWorkflows(w => [...w, notification.workflow])
-          break;
-        }
-        case "deletedWorkflow": {
-          setWorkflows(w => w.filter(rem => rem.uuid != notification.workflowUUID))
-          break;
-        }
-        case "node": {
-          let foundNode = nodes.find(n => n.id == notification.node.id.toString());
+    const notification = lastJsonMessage;
+    switch (notification.notificationType) {
+      case "switchedTo": {
+        setWorkflows(workflowsCurrent => {
+          setWorkflow(workflowsCurrent.find(w => w.uuid == notification.uuid));
+          return workflowsCurrent;
+        })
+        setNodes([]);
+        setEdges([]);
+        break;
+      }
+      case "workflows": {
+        setWorkflows(notification.workflows)
+        break;
+      }
+      case "newWorkflow": {
+        setWorkflows(w => [...w, notification.workflow])
+        break;
+      }
+      case "deletedWorkflow": {
+        setWorkflows(w => w.filter(rem => rem.uuid != notification.workflowUUID))
+        break;
+      }
+      case "node": {
+        setNodes(currentNodes => {
+          const foundNode = currentNodes.find(n => n.id == notification.node.id.toString());
           const recvNode = notification.node;
-          const wasFound = foundNode != undefined;
-          if (foundNode == undefined) {
-            foundNode = {
+          const wasCreated = foundNode == undefined;
+          let nodeF: Node;
+          if (wasCreated) {
+            nodeF = {
               id: recvNode.id.toString(),
               position: {
                 x: 0,
@@ -71,12 +77,14 @@ export default function WorkflowsPage() {
               },
               data: { }
             };
+          } else {
+            nodeF = foundNode;
           }
-
+  
           switch (recvNode.nodeType) {
             case "PrimitiveNode": {
-              foundNode.type = "PrimitiveNode";
-              foundNode.data.initialValue = recvNode.value;
+              nodeF.type = "PrimitiveNode";
+              nodeF.data.initialValue = recvNode.value;
               break;
             }
             case "CodeNode": {
@@ -84,7 +92,7 @@ export default function WorkflowsPage() {
             }
           }
           setEdges(edgesCurrent => {
-            const removedAll = edgesCurrent.filter(e => e.sourceNode?.id != foundNode.id || e.targetNode?.id != foundNode.id);
+            const removedAll = edgesCurrent.filter(e => e.sourceNode?.id != nodeF.id || e.targetNode?.id != nodeF.id);
             
             const inEdges = recvNode.inputs.flatMap(i => {
               if (i.connectedTo != undefined) {
@@ -92,7 +100,7 @@ export default function WorkflowsPage() {
               }
               return removedAll;
             });
-
+  
             const outEdges = recvNode.outputs.flatMap(i => {
               let ccEdges = [...inEdges];
               i.connectedTo.forEach(cc => {
@@ -100,57 +108,75 @@ export default function WorkflowsPage() {
               })
               return ccEdges;
             });
-
+  
             return outEdges;
           });
-
-          if (!wasFound) {
-            setNodes(nodesCurrent => [...nodesCurrent, foundNode]);
+          nodeF.data.node = recvNode;
+  
+          if (wasCreated) {
+            return [...currentNodes, nodeF];
           }
-          break;
-        }
-        case "nodeRemoved": {
-          setEdges(edgesCurrent => edgesCurrent.filter(e => e.sourceNode?.id != notification.nodeId.toString() || e.targetNode?.id != notification.nodeId.toString()));
-          setNodes(nodesCurrent => nodesCurrent.filter(n => n.id != notification.nodeId.toString()));
-          break;
-        }
-        case "nodeState": {
-          const foundNode = nodes.find(n => n.id == notification.nodeState.id.toString());
+          return currentNodes;
+        });
+        break;
+      }
+      case "nodeRemoved": {
+        setEdges(edgesCurrent => edgesCurrent.filter(e => e.sourceNode?.id != notification.nodeId.toString() || e.targetNode?.id != notification.nodeId.toString()));
+        setNodes(nodesCurrent => nodesCurrent.filter(n => n.id != notification.nodeId.toString()));
+        break;
+      }
+      case "nodeState": {
+        setNodes(nodesCurrent => {
+          const foundNode = nodesCurrent.find(n => n.id == notification.nodeState.nodeId.toString());
+          console.log(foundNode);
           if (foundNode != undefined) {
-            foundNode.position.x = notification.nodeState.posX;
-            foundNode.position.y = notification.nodeState.posY;
+            const posChanged: NodePositionChange = {
+              id: foundNode.id,
+              type: "position",
+              dragging: false,
+              position: {x: notification.nodeState.posX, y:notification.nodeState.posY},
+            };
+            return applyNodeChanges([posChanged], nodesCurrent);
           }
+          return nodesCurrent;
+        })
+        
+        break;
+      }
+      case "workflowState": {
 
-          break;
-        }
-        case "workflowState": {
-
-          break;
-        }
-        case "error": {
-          alertError(notification.error);
-          break;
-        }
+        break;
+      }
+      case "error": {
+        alertError(notification.error);
+        break;
       }
     }
-    ws.onclose = () => {
-      setWebsocket(undefined);
-      alertInfo("Disconnected from the websocket")
-    }
-    return () => {
-      ws.close();
-    }
-  }, [nodes, alertError, alertSuccess, alertInfo, setWebsocket, setWorkflows, setEdges, setNodes]);
+  }, 
+  //Here we want to have only lastJsonMessage as dependency because otherwise we would handle the same message multiple times
+  [lastJsonMessage]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       changes.forEach(change => {
         if (change.type == "position") {
-          if (!change.dragging && lastPosition != undefined) {
-            console.log(change.id + " changed position " + lastPosition?.x + ":" + lastPosition?.y +  " !");
-            setLastPosition(undefined);
+          if (workflow != undefined) {
+            const realPos = change.position;
+            if (realPos == undefined) {
+              return;
+            }
+
+            const data: IMoveNode = {
+              uuid: workflow.uuid,
+              action: "moveNode",
+              nodeId: Number(change.id),
+              posX: realPos.x,
+              posY: realPos.y,
+            };
+            sendJsonMessage(data);
+            // console.log(change.id + " changed position " + lastPosition.x + ":" + lastPosition.y +  " !");
           } else {
-            setLastPosition(change.position);
+            alertError("No workflow selected !");
           }
         }
         if (change.type == "remove") {
@@ -159,7 +185,7 @@ export default function WorkflowsPage() {
       });
       // setNodes((nds) => applyNodeChanges(changes, nds))
     },
-    [setLastPosition, lastPosition]
+    [alertError, sendJsonMessage, workflow]
   );
 
   const onEdgesChange = useCallback(
@@ -182,9 +208,13 @@ export default function WorkflowsPage() {
   );
 
   const handleChange = useCallback((event: SelectChangeEvent<string>) => {
-    setWorkflow(workflows.find(w => w.uuid == event.target.value));
+    const data: ISwitchTo = {
+      action: "switchTo",
+      uuid: event.target.value
+    }
+    sendJsonMessage(data);
     // setWorkflow(event.target.value);
-  }, [workflows, setWorkflow]);
+  }, [sendJsonMessage]);
 
   const [open, setOpen] = useState(false);
   const [workflowName, setWorkflowName] = useState("");
@@ -195,6 +225,11 @@ export default function WorkflowsPage() {
           <DialogTitle>Add new workflow</DialogTitle>
           <TextField label="Workflow name" value={workflowName} onChange={(ev) => setWorkflowName(ev.target.value)} />
           <Button onClick={() => {
+            const data: ICreateWorkflow = {
+              action: "createWorkflow",
+              name: workflowName
+            }
+            sendJsonMessage(data)
             // console.log(workflowName);
             setOpen(false);
           }}>Add new workflow</Button>
@@ -222,10 +257,63 @@ export default function WorkflowsPage() {
         </IconButton>
         </>
     )
-  }, [workflows, workflow, handleChange, open, setOpen, workflowName, setWorkflowName])
+  }, [workflows, workflow, open, workflowName, handleChange, sendJsonMessage])
+
+  const allPrimitives = $enum(PrimitiveTypes).getKeys().map(p => {return {name: p}});
+
+  const menus: MenuData[] = [
+    {name: "Code"}, 
+    {
+      name: "Primitive", 
+      subMenu: allPrimitives
+    }
+  ]
+
+  const { screenToFlowPosition } = useReactFlow();
+  const [menuPosition, setMenuPosition] = useState({x: 0, y: 0});
+  const [menuVisible, setMenuVisible] = useState(false);
+  const onSelect = useCallback((chosen: string) => {
+    if (workflow == undefined) {
+      alertError("No workflow selected !");
+      return;
+    }
+
+    const realPos = screenToFlowPosition(menuPosition);
+
+    const dataNode: ICreateNode = {
+      uuid: workflow.uuid,
+      action: "createNode",
+      posX: realPos.x,
+      posY: realPos.y
+    }
+    switch (chosen) {
+      case "Code": {
+        const dataCode: ICreateCodeNode = {
+          ...dataNode,
+          type: "code"
+        };
+        sendJsonMessage(dataCode);
+        break;
+      }
+      default: {
+        const chosenType = $enum(PrimitiveTypes).getKeys().find(pt => pt == chosen);
+        if (chosenType != undefined) {
+          const dataPrimitive: ICreatePrimitiveNode = {
+            ...dataNode,
+            type: "primitive",
+            primitive: "Primitive " + chosenType
+          };
+          sendJsonMessage(dataPrimitive);
+        }
+      }
+    }
+
+    setMenuVisible(false);
+  }, [workflow, menuPosition, alertError, sendJsonMessage, screenToFlowPosition]);
 
   return (
     <Layout farEnd={farEnd}>
+      <CreateNodeMenu options={menus} isVisible={menuVisible} position={menuPosition} setVisible={setMenuVisible} onSelect={onSelect} />
       <ReactFlow 
           style={{height: "auto"}} 
           nodeTypes={nodeTypes} 
@@ -235,6 +323,11 @@ export default function WorkflowsPage() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           nodeDragThreshold={1}
+          onContextMenu={(ev) => {
+            setMenuVisible(true);
+            setMenuPosition({x: ev.clientX, y: ev.clientY});
+            ev.preventDefault();
+          }}
         >
         <Background />
         <Controls />

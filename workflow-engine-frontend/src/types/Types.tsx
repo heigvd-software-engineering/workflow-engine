@@ -1,6 +1,193 @@
+//
+// Other
+//
+
+export enum PrimitiveTypes {
+  Integer,
+  String,
+  Boolean,
+  Byte,
+  Short,
+  Long,
+  Float,
+  Double,
+  Character
+}
+
+//
+// Sending data
+//
+export type WorkflowInstruction = 
+  ICreateWorkflow
+  | IExecuteWorkflow
+  | IRemoveWorkflow
+  | IStopWorkflow
+  | ISwitchTo
+  | ICreateNode
+  | IRemoveNode
+  | IMoveNode
+  | ICreateConnector
+  | IRemoveConnector
+  | IChangeConnector
+  | IChangeModifiableNode
+  | IChangePrimitiveNode
+  | IChangeCodeNode
+  | IConnect
+  | IDisconnect
+  ;
+
+type WorkflowUUID = {
+  uuid: string;
+}
+
+type NodeID = WorkflowUUID & {
+  nodeId: number;
+}
+
+type ConnectorID = NodeID & {
+  connectorId: number;
+  isInput: boolean;
+}
+
+export type ICreateWorkflow = {
+  action: "createWorkflow";
+  name: string;
+}
+
+export type IExecuteWorkflow = WorkflowUUID & {
+  action: "executeWorkflow";
+}
+
+export type IRemoveWorkflow = WorkflowUUID & {
+  action: "removeWorkflow";
+}
+
+export type IStopWorkflow = WorkflowUUID & {
+  action: "stopWorkflow";
+}
+
+export type ISwitchTo = WorkflowUUID & {
+  action: "switchTo";
+}
+
+export type IRemoveNode = NodeID & {
+  action: "removeNode";
+}
+
+export type IMoveNode = NodeID & {
+  action: "moveNode";
+  nodeId: number;
+  posX: number;
+  posY: number;
+}
+
+export type ICreateConnector = NodeID & {
+  action: "createConnector";
+  isInput: boolean;
+  name: string;
+  type: string;
+}
+
+export type IRemoveConnector = ConnectorID & {
+  action: "removeConnector";
+}
+
+// createNode
+
+export type ICreateNode = WorkflowUUID & {
+  action: "createNode";
+  posX: number;
+  posY: number;
+}
+
+export type ICreateCodeNode = ICreateNode & {
+  type: "code";
+}
+
+export type ICreatePrimitiveNode = ICreateNode & {
+  type: "primitive";
+  primitive: string;
+}
+
+// changeConnector
+
+export type IChangeConnector = ConnectorID & {
+  action: "changeConnector";
+}
+
+export type ITypeChangeConnector = IChangeConnector & {
+  subAction: "type";
+  newType: string;
+}
+
+export type INameChangeConnector = IChangeConnector & {
+  subAction: "name";
+  newName: string;
+}
+
+// changeModifiableNode
+
+export type IChangeModifiableNode = NodeID & {
+  action: "changeModifiableNode";
+}
+
+export type IIsDeterministicChangeModifiableNode = IChangeModifiableNode & {
+  subAction: "isDeterministic";
+  isDeterministic: boolean;
+}
+
+export type ITimeoutChangeModifiableNode = IChangeModifiableNode & {
+  subAction: "timeout";
+  timeout: boolean;
+}
+
+// changePrimitiveNode
+
+export type IChangePrimitiveNode = NodeID & {
+  action: "changePrimitiveNode";
+}
+
+export type IValueChangePrimitiveNode = IChangePrimitiveNode & {
+  subAction: "value";
+  value: number | string | boolean;
+}
+
+// changeCodeNode
+
+export type IChangeCodeNode = NodeID & {
+  action: "changeCodeNode";
+}
+
+export type ICodeChangeCodeNode = IChangeCodeNode & {
+  subAction: "code";
+  code: string;
+}
+
+export type ILanguageChangeCodeNode = IChangeCodeNode & {
+  subAction: "language";
+  language: string;
+}
+
+// Connexions
+
+export type IConnect = WorkflowUUID & {
+  fromNodeId: number;
+  toNodeId: number;
+  fromConnectorId: number;
+  toConnectorId: number;
+}
+
+export type IDisconnect = NodeID & {
+  connectorId: number;
+}
+
+//
+// Receiving data
+//
+
 //Base
 export type WorkflowNotification = 
-  NClear
+  NSwitchedTo
   | NAllWorkflows 
   | NWorkflowError
   | NNodeModified
@@ -11,8 +198,9 @@ export type WorkflowNotification =
   | NWorkflowState
   ;
 
-export type NClear = {
-  notificationType: "clear";
+export type NSwitchedTo = {
+  notificationType: "switchedTo";
+  uuid: string;
 }
 
 export type NAllWorkflows = {
@@ -110,7 +298,7 @@ export type NodeRemovedType = {
 export type State = "IDLE" | "RUNNING" | "FAILED" | "FINISHED";
 
 export type NodeStateType = {
-  id: number;
+  nodeId: number;
   state: State;
   hasBeenModified: boolean;
   posX: number;
