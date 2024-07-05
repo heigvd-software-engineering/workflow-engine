@@ -222,8 +222,14 @@ export default function WorkflowsPage() {
     return (
       <>
         <Dialog open={open} onClose={() => setOpen(false)}>
-          <DialogTitle>Add new workflow</DialogTitle>
-          <TextField label="Workflow name" value={workflowName} onChange={(ev) => setWorkflowName(ev.target.value)} />
+          <DialogTitle sx={{paddingBottom: 0}}>Add new workflow</DialogTitle>
+          <TextField 
+            label="Workflow name" 
+            value={workflowName} 
+            onChange={(ev) => setWorkflowName(ev.target.value)}
+            size="small"
+            sx={{margin: 1}}
+            />
           <Button onClick={() => {
             const data: ICreateWorkflow = {
               action: "createWorkflow",
@@ -237,6 +243,7 @@ export default function WorkflowsPage() {
         <FormControl sx={{minWidth: 110, maxWidth: 200}}>
           <InputLabel id="workflow-select">Wokflow</InputLabel>
           <Select
+            size="small"
             labelId="workflow-select-label"
             id="workflow-select"
             value={workflow?.uuid ?? ""}

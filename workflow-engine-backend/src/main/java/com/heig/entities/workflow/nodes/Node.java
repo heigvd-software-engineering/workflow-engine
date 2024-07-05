@@ -52,10 +52,6 @@ public abstract class Node {
         this.id = id;
         this.workflow = Objects.requireNonNull(workflow);
         this.connectorBuilder = new Connector.Builder(this, areConnectorsReadOnly);
-
-        //We add the input and output flow connector for every node
-        connectorBuilder.buildInputFlowConnector();
-        connectorBuilder.buildOutputFlowConnector();
     }
 
     public boolean isDeterministic() {

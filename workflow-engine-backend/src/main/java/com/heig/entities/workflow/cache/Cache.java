@@ -16,7 +16,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-
 public class Cache {
     private static final ConcurrentMap<UUID, Cache> instances = new ConcurrentHashMap<>();
 
