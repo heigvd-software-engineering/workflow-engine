@@ -67,7 +67,7 @@ export default function CreateNodeMenu(props: Props) {
         props.setVisible(false);
       }
     }}>
-      <MenuList dense sx={{maxHeight: "250px", overflowY: "scroll", scrollbarWidth: "thin", scrollbarColor: thumbColor + " " + scrollbarColor}}>
+      <MenuList dense sx={{maxHeight: "250px", overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: thumbColor + " " + scrollbarColor}}>
         <BasicMenu data={props.options} level={0} onSelect={props.onSelect}></BasicMenu>
       </MenuList>
     </Paper>

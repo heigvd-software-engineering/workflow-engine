@@ -1,7 +1,7 @@
 import ReactFlow, { Background, Connection, Controls, Edge, EdgeChange, Node, NodeChange, NodePositionChange, addEdge, applyNodeChanges, useReactFlow } from "reactflow";
 import Layout from "./Layout";
 import 'reactflow/dist/style.css';
-import PrimitiveNode from "./nodes/PrimitiveNode";
+import PrimitiveNode, { PrimitiveNodeData } from "./nodes/PrimitiveNode";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Dialog, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, SelectChangeEvent, TextField } from "@mui/material";
 import { useAlert } from "./utils/alert/AlertUse";
@@ -10,8 +10,10 @@ import { AddCircle } from "@mui/icons-material";
 import CreateNodeMenu, { MenuData } from "./components/CreateNodeMenu";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { $enum } from "ts-enum-util";
+import CodeNode, { CodeNodeData } from "./nodes/CodeNode";
+import { BaseNodeData } from "./nodes/BaseNode";
 
-const nodeTypes = { PrimitiveNode: PrimitiveNode };
+const nodeTypes = { PrimitiveNode: PrimitiveNode, CodeNode: CodeNode };
 
 export default function WorkflowsPage() {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -67,7 +69,11 @@ export default function WorkflowsPage() {
           const foundNode = currentNodes.find(n => n.id == notification.node.id.toString());
           const recvNode = notification.node;
           const wasCreated = foundNode == undefined;
-          let nodeF: Node;
+          let nodeF: Node<BaseNodeData>;
+          if (workflow == undefined) {
+            alertError("No workflow selected !");
+            return currentNodes;
+          }
           if (wasCreated) {
             nodeF = {
               id: recvNode.id.toString(),
@@ -75,19 +81,30 @@ export default function WorkflowsPage() {
                 x: 0,
                 y: 0
               },
-              data: { }
+              data: {
+                node: recvNode,
+                uuid: workflow.uuid,
+                sendToWebsocket(data) {
+                  sendJsonMessage(data);
+                },
+                event: new CustomEvent<string>("onDataChanged")
+              }
             };
           } else {
             nodeF = foundNode;
           }
   
+          nodeF.data.uuid = workflow.uuid;
+          nodeF.data.sendToWebsocket = sendJsonMessage;
+
+          nodeF.type = recvNode.nodeType;
           switch (recvNode.nodeType) {
             case "PrimitiveNode": {
-              nodeF.type = "PrimitiveNode";
-              nodeF.data.initialValue = recvNode.value;
+              (nodeF.data as PrimitiveNodeData).initialValue = recvNode.value;
               break;
             }
             case "CodeNode": {
+              (nodeF.data as CodeNodeData).initialCode = recvNode.code;
               break;
             }
           }
@@ -112,6 +129,7 @@ export default function WorkflowsPage() {
             return outEdges;
           });
           nodeF.data.node = recvNode;
+          window.dispatchEvent(nodeF.data.event);
   
           if (wasCreated) {
             return [...currentNodes, nodeF];
@@ -128,7 +146,6 @@ export default function WorkflowsPage() {
       case "nodeState": {
         setNodes(nodesCurrent => {
           const foundNode = nodesCurrent.find(n => n.id == notification.nodeState.nodeId.toString());
-          console.log(foundNode);
           if (foundNode != undefined) {
             const posChanged: NodePositionChange = {
               id: foundNode.id,
@@ -240,10 +257,9 @@ export default function WorkflowsPage() {
             setOpen(false);
           }}>Add new workflow</Button>
         </Dialog>
-        <FormControl sx={{minWidth: 110, maxWidth: 200}}>
+        <FormControl sx={{minWidth: 110, maxWidth: 200}} size="small">
           <InputLabel id="workflow-select">Wokflow</InputLabel>
           <Select
-            size="small"
             labelId="workflow-select-label"
             id="workflow-select"
             value={workflow?.uuid ?? ""}

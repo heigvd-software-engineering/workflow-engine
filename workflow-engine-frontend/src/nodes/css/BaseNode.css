@@ -17,6 +17,10 @@
   min-width: 100px;
 }
 
+.noWrap {
+  white-space: nowrap;
+}
+
 /* Changes the style of the connectors */
 
 .react-flow__handle-right {
@@ -65,9 +69,3 @@
   padding-left: 7px;
   padding-right: 7px;
 }
-
-/* Fix small input select label translate */
-/* .MuiInputBase-inputSizeSmall:not(.MuiFormLabel-filled):not(.Mui-focused) {
-  -webkit-transform: translate(10px, 8px) scale(1);
-  transform: translate(10px, 8px) scale(1);
-} */

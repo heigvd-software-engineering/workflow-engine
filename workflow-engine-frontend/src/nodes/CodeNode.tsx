@@ -1,34 +1,33 @@
-import { useCallback } from 'react';
-import { NodeProps } from 'reactflow';
-import BaseNode, { BaseNodeData } from "./BaseNode";
-import { Box, TextField } from "@mui/material";
+import "prismjs/themes/prism-okaidia.css";
 
-// const handleStyle = { left: 10 };
- 
+import { useState } from 'react';
+import { NodeProps } from 'reactflow';
+import { BaseNodeData } from "./BaseNode";
+import Editor from "react-simple-code-editor";
+import { highlight, languages } from "prismjs";
+import ModifiableNode from "./ModifiableNode";
+
 export type CodeNodeData = BaseNodeData & {
-  initialValue: string | number | undefined;
+  initialCode: string;
 }
 
-export default function PrimitiveNode(props: NodeProps<CodeNodeData>) {
-  const onChange = useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("Primitive value changed to " + evt.target?.value);
-  }, []);
+export default function CodeNode(props: NodeProps<CodeNodeData>) {
+  const [code, setCode] = useState(props.data.initialCode);
  
   return (
-    <BaseNode {...props}>
-      <Box style={{alignSelf: "center"}}>Code</Box>
-      <Box style={{display: "flex"}}>
-        <TextField
-          label="Value"
-          defaultValue={props.data.initialValue}
-          variant="filled"
-          size="small"
-          onChange={onChange}
-          className="nodrag"
-        />
-        {/* <label htmlFor="text">Text:</label> */}
-        {/* <input id="text" name="text" size={1} style={{flexGrow: 1}} onChange={onChange} className="nodrag" defaultValue={props.data.initialValue} /> */}
-      </Box>
-    </BaseNode>
+    <ModifiableNode {...props} title="Code">
+      <Editor 
+        value={code}
+        onValueChange={code => setCode(code)}
+        highlight={code => highlight(code, languages.js, "js")}
+        padding={10}
+        className="nodrag"
+        style={{
+          fontFamily: '"Fira code", "Fira Mono", monospace',
+          fontSize: 15,
+          border: "1px solid gray"
+        }}
+      />
+    </ModifiableNode>
   );
 }

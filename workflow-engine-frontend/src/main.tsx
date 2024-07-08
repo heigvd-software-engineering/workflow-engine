@@ -26,7 +26,7 @@ const router = createBrowserRouter([
     <ReactFlowProvider>
       <WorkflowsPage />
     </ReactFlowProvider>
-  }, 
+  },
   {
     path: "*",
     element: <NotFoundPage />

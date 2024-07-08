@@ -138,7 +138,7 @@ export type IIsDeterministicChangeModifiableNode = IChangeModifiableNode & {
 
 export type ITimeoutChangeModifiableNode = IChangeModifiableNode & {
   subAction: "timeout";
-  timeout: boolean;
+  timeout: number;
 }
 
 // changePrimitiveNode
