@@ -66,14 +66,21 @@ export default function WorkflowsPage() {
       }
       case "node": {
         setNodes(currentNodes => {
-          const foundNode = currentNodes.find(n => n.id == notification.node.id.toString());
-          const recvNode = notification.node;
-          const wasCreated = foundNode == undefined;
-          let nodeF: Node<BaseNodeData>;
           if (workflow == undefined) {
             alertError("No workflow selected !");
             return currentNodes;
           }
+
+          const foundNodeIdx = currentNodes.findIndex(n => n.id == notification.node.id.toString());
+          let wasCreated = true;
+          let oldNode: Node | undefined = undefined;
+          if (foundNodeIdx != -1) {
+            oldNode = currentNodes[foundNodeIdx];
+            currentNodes = currentNodes.filter((_, i) => i != foundNodeIdx);
+            wasCreated = false;
+          }
+          const recvNode = notification.node;
+          let nodeF: Node<BaseNodeData>;
           if (wasCreated) {
             nodeF = {
               id: recvNode.id.toString(),
@@ -86,12 +93,11 @@ export default function WorkflowsPage() {
                 uuid: workflow.uuid,
                 sendToWebsocket(data) {
                   sendJsonMessage(data);
-                },
-                event: new CustomEvent<string>("onDataChanged")
+                }
               }
             };
           } else {
-            nodeF = foundNode;
+            nodeF = oldNode!;
           }
   
           nodeF.data.uuid = workflow.uuid;
@@ -129,12 +135,8 @@ export default function WorkflowsPage() {
             return outEdges;
           });
           nodeF.data.node = recvNode;
-          window.dispatchEvent(nodeF.data.event);
   
-          if (wasCreated) {
-            return [...currentNodes, nodeF];
-          }
-          return currentNodes;
+          return [...currentNodes, nodeF];
         });
         break;
       }

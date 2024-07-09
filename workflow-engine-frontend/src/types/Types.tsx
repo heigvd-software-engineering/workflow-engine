@@ -2,6 +2,9 @@
 // Other
 //
 
+import { $enum } from "ts-enum-util";
+import { AvailableTypeNames } from "../utils/alert/TypeUtils";
+
 export enum PrimitiveTypes {
   Integer,
   String,
@@ -13,6 +16,49 @@ export enum PrimitiveTypes {
   Double,
   Character
 }
+
+export enum TypesNames {
+  Map,
+  List,
+  Primitive
+}
+
+function canBeUsedAsT(name: AvailableTypeNames): boolean {
+  switch(name) {
+    // case "File":
+    //   return false;
+    default: 
+      return true;
+  }
+}
+
+export function numOfParamsFor(name: AvailableTypeNames) {
+  switch(name) {
+    case "Map": return 2;
+    case "List": return 1;
+    case "Primitive": return 1;
+    default: return 0;
+  }
+}
+
+export function availableChildren(name: AvailableTypeNames | undefined): AvailableTypeNames[] {
+  switch(name) {
+    case "Map":
+    case "List":
+      return $enum(TypesNames).getKeys().filter(n => canBeUsedAsT(n));
+    case "Primitive":
+      return $enum(PrimitiveTypes).getKeys();
+    default: 
+      return $enum(TypesNames).getKeys();
+  }
+}
+
+
+// [
+//   {name: TypesNames.Map, numParams: 2},
+//   {name: TypesNames.List, numParams: 1},
+//   {name: TypesNames.Primitive, numParams: 1}
+// ]
 
 //
 // Sending data

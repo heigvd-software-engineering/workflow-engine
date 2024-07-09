@@ -1,10 +1,11 @@
-import { ReactNode, useCallback, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { NodeProps } from 'reactflow';
 import BaseNode, { BaseNodeData } from "./BaseNode";
 import { Box, Button, Checkbox, Dialog, DialogTitle, Divider, IconButton, Input, InputAdornment } from "@mui/material";
 import { Add, Delete, Edit, Settings } from "@mui/icons-material";
 import { Connector, IIsDeterministicChangeModifiableNode, ITimeoutChangeModifiableNode } from "../types/Types";
 import { useAlert } from "../utils/alert/AlertUse";
+import ModifyConnector from "../components/ModifiyConnector";
 
 export default function ModifiableNode(props: NodeProps<BaseNodeData> & { children: ReactNode, title: string }) {
   const [open, setOpen] = useState(false);
@@ -15,15 +16,27 @@ export default function ModifiableNode(props: NodeProps<BaseNodeData> & { childr
       </IconButton>
     )
   }, []);
-  console.log(props.data.node.timeout);
 
-  const connectorsStyle = useCallback((connectors: Connector[]) =>
+
+  const [toModifyConnector, setToModifyConnector] = useState<Connector | undefined>(undefined);
+  const [isModifyOpen, setIsModifyOpen] = useState(false);
+  const openEditConnector = useCallback((isInput: boolean, connectorId?: number) => {
+    if (connectorId == undefined) {
+      setToModifyConnector(undefined);
+    } else {
+      const connector = (isInput ? props.data.node.inputs : props.data.node.outputs).find(c => c.id == connectorId)
+      setToModifyConnector(connector);
+    }
+    setIsModifyOpen(true);
+  }, [props.data.node.inputs, props.data.node.outputs]);
+
+  const connectorsStyle = useCallback((isInput: boolean, connectors: Connector[]) =>
     <Box sx={{display: "flex", flexDirection: "column"}}>
       <Box>
         {connectors.map(c => 
           <Box key={c.id} sx={{display: "flex", alignItems: "center"}}>
             <Box>{c.name}: {c.type}</Box>
-            <IconButton size="small" sx={{marginLeft: 0.5}}>
+            <IconButton size="small" sx={{marginLeft: 0.5}} onClick={() => openEditConnector(isInput, c.id)}>
               <Edit fontSize="inherit" color="primary" />
             </IconButton>
             <IconButton size="small">
@@ -33,12 +46,12 @@ export default function ModifiableNode(props: NodeProps<BaseNodeData> & { childr
         )}
       </Box>
       <Box sx={{alignSelf: "center"}}>
-        <IconButton size="small">
+        <IconButton size="small" onClick={() => openEditConnector(isInput, undefined)}>
           <Add fontSize="inherit" color="success" />
         </IconButton>
       </Box>
     </Box>
-  , []);
+  , [openEditConnector]);
   
   const defaultIsDeterministic = useMemo(() => props.data.node.isDeterministic, [props.data.node.isDeterministic]);
   const [isDeterministic, setIsDeterministic] = useState(defaultIsDeterministic);
@@ -60,6 +73,11 @@ export default function ModifiableNode(props: NodeProps<BaseNodeData> & { childr
     setIsDeterministic(defaultIsDeterministic);
     setTimeout(defaultTimeout);
   }, [defaultIsDeterministic, defaultTimeout])
+
+  //When the cancel function is updated it means that defaultIsDeterministic or defaultTimeout has changed => we want to update the values shown in the UI
+  useEffect(() => {
+    cancel();
+  }, [cancel]);
 
   const sendValues = useCallback(() => {
     if (!Number.isInteger(timeout) || timeout <= 0) {
@@ -123,7 +141,7 @@ export default function ModifiableNode(props: NodeProps<BaseNodeData> & { childr
               <Box sx={{textAlign: "center", textDecoration: "underline"}}>
                 Inputs
               </Box>
-              {connectorsStyle(props.data.node.inputs)}
+              {connectorsStyle(true, props.data.node.inputs)}
             </Box>
             <Box sx={{margin: 1}}>
               <Divider orientation="vertical" />
@@ -132,20 +150,12 @@ export default function ModifiableNode(props: NodeProps<BaseNodeData> & { childr
               <Box sx={{textAlign: "center", textDecoration: "underline"}}>
                 Outputs
               </Box>
-              {connectorsStyle(props.data.node.outputs)}
+              {connectorsStyle(false, props.data.node.outputs)}
             </Box>
           </Box>
         </Box>
-        {/* <Button onClick={() => {
-          const data: ICreateWorkflow = {
-            action: "createWorkflow",
-            name: workflowName
-          }
-          sendJsonMessage(data)
-          // console.log(workflowName);
-          setOpen(false);
-        }}>Add new workflow</Button> */}
       </Dialog>
+      <ModifyConnector {...props.data} isOpen={isModifyOpen} onClose={() => setIsModifyOpen(false)} connector={toModifyConnector} />
       <BaseNode {...props} rightElement={settings}>
         {props.children}
       </BaseNode>
