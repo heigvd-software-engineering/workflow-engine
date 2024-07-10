@@ -1,16 +1,20 @@
 import "./css/BaseNode.css"
 
-import { Handle, NodeProps, Position } from "reactflow";
+import { Handle, NodeProps, Position } from "@xyflow/react";
 import { NodeType, WorkflowInstruction } from "../types/Types";
 import { ReactNode } from "react";
 import { Box, Divider, SxProps } from "@mui/material";
 import { Theme } from "@emotion/react";
+import { CodeNodeTypeNode } from "./CodeNode";
+import { PrimitiveNodeTypeNode } from "./PrimitiveNode";
 
 export type BaseNodeData = {
   node: NodeType;
   uuid: string;
   sendToWebsocket: (data: WorkflowInstruction) => void;
 }
+
+export type BaseNodeTypeNode = CodeNodeTypeNode | PrimitiveNodeTypeNode;
 
 const InputOutputStyle: SxProps<Theme> = {
   display: "flex",
@@ -27,7 +31,7 @@ const flexStyle: SxProps<Theme> = {
   display: "flex",
 }
 
-export default function BaseNode(props: NodeProps<BaseNodeData> & { children: ReactNode, title: string, leftElement?: ReactNode, rightElement?: ReactNode }) {
+export default function BaseNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactNode, title: string, leftElement?: ReactNode, rightElement?: ReactNode }) {
   const atLeastOneInput = props.data.node.inputs.length != 0;
   const atLeastOneOutput = props.data.node.outputs.length != 0;
   return (

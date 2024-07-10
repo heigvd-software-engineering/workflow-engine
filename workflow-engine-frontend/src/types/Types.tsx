@@ -4,6 +4,7 @@
 
 import { $enum } from "ts-enum-util";
 import { AvailableTypeNames } from "../utils/alert/TypeUtils";
+import { MenuData } from "../components/LevelMenu";
 
 export enum PrimitiveTypes {
   Integer,
@@ -19,14 +20,17 @@ export enum PrimitiveTypes {
 
 export enum TypesNames {
   Map,
-  List,
-  Primitive
+  Collection,
+  Flow
 }
 
-function canBeUsedAsT(name: AvailableTypeNames): boolean {
+function canBeUsedAsT(name?: AvailableTypeNames): boolean {
+  if (name == undefined) {
+    return false;
+  }
   switch(name) {
-    // case "File":
-    //   return false;
+    case "Flow":
+      return false;
     default: 
       return true;
   }
@@ -35,30 +39,39 @@ function canBeUsedAsT(name: AvailableTypeNames): boolean {
 export function numOfParamsFor(name: AvailableTypeNames) {
   switch(name) {
     case "Map": return 2;
-    case "List": return 1;
-    case "Primitive": return 1;
+    case "Collection": return 1;
     default: return 0;
   }
 }
 
-export function availableChildren(name: AvailableTypeNames | undefined): AvailableTypeNames[] {
-  switch(name) {
-    case "Map":
-    case "List":
-      return $enum(TypesNames).getKeys().filter(n => canBeUsedAsT(n));
-    case "Primitive":
-      return $enum(PrimitiveTypes).getKeys();
-    default: 
-      return $enum(TypesNames).getKeys();
+function getAllChildren(): MenuData<AvailableTypeNames>[] {
+  return $enum(TypesNames).getKeys().map(t => {
+    return { name: t } as MenuData<AvailableTypeNames>
+  }).concat([{
+    name: "Primitive",
+    subMenu: $enum(PrimitiveTypes).getKeys().map(t => {
+      return { name : t }
+    })
+  }]);
+}
+
+function checkIfCanBeUsed(data: MenuData<AvailableTypeNames>): boolean {
+  if (data.subMenu == undefined) {
+    return canBeUsedAsT(data.name);
+  } else {
+    return data.subMenu.every(other => checkIfCanBeUsed(other));
   }
 }
 
-
-// [
-//   {name: TypesNames.Map, numParams: 2},
-//   {name: TypesNames.List, numParams: 1},
-//   {name: TypesNames.Primitive, numParams: 1}
-// ]
+export function availableChildren(name: AvailableTypeNames | undefined): MenuData<AvailableTypeNames>[] {
+  switch(name) {
+    case "Map":
+    case "Collection":
+      return getAllChildren().filter(checkIfCanBeUsed);
+    default: 
+      return getAllChildren();
+  }
+}
 
 //
 // Sending data
@@ -217,6 +230,7 @@ export type ILanguageChangeCodeNode = IChangeCodeNode & {
 // Connexions
 
 export type IConnect = WorkflowUUID & {
+  action: "connect",
   fromNodeId: number;
   toNodeId: number;
   fromConnectorId: number;
@@ -224,6 +238,7 @@ export type IConnect = WorkflowUUID & {
 }
 
 export type IDisconnect = NodeID & {
+  action: "disconnect",
   connectorId: number;
 }
 

@@ -45,6 +45,11 @@ export function typeFromString(type: string): Type | undefined {
       return UNDEF_TYPE;
     }
 
+    if (name == "Primitive") {
+      const param = buildStructure(words);
+      return { name: param?.name, parameters: [] }
+    }
+
     const realName = availableTypeNamesFromString(name);
     if (realName == undefined) {
       return UNDEF_TYPE;
@@ -69,5 +74,11 @@ export function stringFromType(type: Type | undefined): string {
   if (type == undefined) {
     return "undefined";
   }
-  return type.name + (type.parameters.length != 0 ? " " + type.parameters.map(t => stringFromType(t)).join(" ") : "");
+
+  let name = type.name;
+  if ($enum(PrimitiveTypes).isKey(type.name)) {
+    name = "Primitive " + type.name;
+  }
+
+  return name + (type.parameters.length != 0 ? " " + type.parameters.map(t => stringFromType(t)).join(" ") : "");
 }

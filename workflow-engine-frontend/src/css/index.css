@@ -13,3 +13,36 @@ html, body, #root {
 .noFocusOutline:focus {
   outline: none;
 }
+
+.MuiList-padding:has(> .padingMenuFix) {
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+.MuiList-padding > .padingMenuFix {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.MuiMenu-paper {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: inherit;
+}
+
+.MuiPaper-root.MuiDialog-paper {
+  max-width: 95%;
+}
+
+/* To reduce the size of the input field */
+
+.smaller .MuiInputLabel-sizeSmall.MuiInputLabel-sizeSmall:not(.MuiFormLabel-filled):not(.Mui-focused) {
+  -webkit-transform: translate(10px, 8px) scale(1);
+  transform: translate(10px, 8px) scale(1);
+}
+
+.smaller .MuiOutlinedInput-input.MuiInputBase-inputSizeSmall {
+  padding: 5px;
+  padding-left: 7px;
+  padding-right: 7px;
+}

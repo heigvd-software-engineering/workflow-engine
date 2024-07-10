@@ -1,13 +1,14 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { NodeProps } from 'reactflow';
-import BaseNode, { BaseNodeData } from "./BaseNode";
+import { NodeProps } from '@xyflow/react';
+import BaseNode, { BaseNodeTypeNode } from "./BaseNode";
 import { Box, Button, Checkbox, Dialog, DialogTitle, Divider, IconButton, Input, InputAdornment } from "@mui/material";
 import { Add, Delete, Edit, Settings } from "@mui/icons-material";
-import { Connector, IIsDeterministicChangeModifiableNode, ITimeoutChangeModifiableNode } from "../types/Types";
+import { Connector, IChangeModifiableNode, IIsDeterministicChangeModifiableNode, IRemoveConnector, ITimeoutChangeModifiableNode } from "../types/Types";
 import { useAlert } from "../utils/alert/AlertUse";
 import ModifyConnector from "../components/ModifiyConnector";
+import ModifyType from "../components/ModifyType";
 
-export default function ModifiableNode(props: NodeProps<BaseNodeData> & { children: ReactNode, title: string }) {
+export default function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactNode, title: string }) {
   const [open, setOpen] = useState(false);
   const settings = useMemo(() => {
     return (
@@ -17,10 +18,11 @@ export default function ModifiableNode(props: NodeProps<BaseNodeData> & { childr
     )
   }, []);
 
-
   const [toModifyConnector, setToModifyConnector] = useState<Connector | undefined>(undefined);
+  const [toModifyIsInput, setToModifyIsInput] = useState(false);
   const [isModifyOpen, setIsModifyOpen] = useState(false);
   const openEditConnector = useCallback((isInput: boolean, connectorId?: number) => {
+    setToModifyIsInput(isInput);
     if (connectorId == undefined) {
       setToModifyConnector(undefined);
     } else {
@@ -30,18 +32,54 @@ export default function ModifiableNode(props: NodeProps<BaseNodeData> & { childr
     setIsModifyOpen(true);
   }, [props.data.node.inputs, props.data.node.outputs]);
 
+  useEffect(() => {
+    if (isModifyOpen && toModifyConnector != undefined) {
+      let connectors: Connector[] = [];
+      if (toModifyIsInput) {
+        connectors = props.data.node.inputs;
+      } else {
+        connectors = props.data.node.outputs;
+      }
+
+      let currentConn = connectors.find(c => c.id == toModifyConnector.id);
+      if (currentConn == undefined) {
+        //Closes the edit menu if the connector currently modified is removed 
+        setIsModifyOpen(false);
+      } else {
+        //Updates the current connector if needed
+        if (currentConn != toModifyConnector) {
+          setToModifyConnector(currentConn);
+        }
+      }
+    }
+  }, [isModifyOpen, toModifyIsInput, toModifyConnector, props.data.node.inputs, props.data.node.outputs]);
+
+  const deleteConnector = useCallback((isInput: boolean, c: Connector) => {
+    const data: IRemoveConnector = {
+      action: "removeConnector",
+      uuid: props.data.uuid,
+      nodeId: props.data.node.id,
+      connectorId: c.id,
+      isInput: isInput
+    };
+    props.data.sendToWebsocket(data);
+  }, [props])
+
   const connectorsStyle = useCallback((isInput: boolean, connectors: Connector[]) =>
     <Box sx={{display: "flex", flexDirection: "column"}}>
       <Box>
         {connectors.map(c => 
           <Box key={c.id} sx={{display: "flex", alignItems: "center"}}>
-            <Box>{c.name}: {c.type}</Box>
-            <IconButton size="small" sx={{marginLeft: 0.5}} onClick={() => openEditConnector(isInput, c.id)}>
-              <Edit fontSize="inherit" color="primary" />
-            </IconButton>
-            <IconButton size="small">
-              <Delete fontSize="inherit" color="error" />
-            </IconButton>
+            <Box>{c.name}:&nbsp;</Box>
+            <ModifyType type={c.type} setType={() => {}} editMode={false} />
+            {!c.isReadOnly && <>
+              <IconButton size="small" sx={{marginLeft: 0.5}} onClick={() => openEditConnector(isInput, c.id)}>
+                <Edit fontSize="inherit" color="primary" />
+              </IconButton>
+              <IconButton size="small" onClick={() => deleteConnector(isInput, c)}>
+                <Delete fontSize="inherit" color="error" />
+              </IconButton>
+            </>}
           </Box>
         )}
       </Box>
@@ -85,19 +123,21 @@ export default function ModifiableNode(props: NodeProps<BaseNodeData> & { childr
       return;
     }
 
-    const dataIsDeterministic: IIsDeterministicChangeModifiableNode = {
+    const baseData: IChangeModifiableNode = {
       uuid: props.data.uuid,
       nodeId: props.data.node.id,
-      action: "changeModifiableNode",
+      action: "changeModifiableNode"
+    };
+
+    const dataIsDeterministic: IIsDeterministicChangeModifiableNode = {
+      ...baseData,
       subAction: "isDeterministic",
       isDeterministic: isDeterministic
     };
     props.data.sendToWebsocket(dataIsDeterministic);
 
     const dataTimeout: ITimeoutChangeModifiableNode = {
-      uuid: props.data.uuid,
-      nodeId: props.data.node.id,
-      action: "changeModifiableNode",
+      ...baseData,
       subAction: "timeout",
       timeout: timeout
     };
@@ -155,7 +195,7 @@ export default function ModifiableNode(props: NodeProps<BaseNodeData> & { childr
           </Box>
         </Box>
       </Dialog>
-      <ModifyConnector {...props.data} isOpen={isModifyOpen} onClose={() => setIsModifyOpen(false)} connector={toModifyConnector} />
+      <ModifyConnector {...props.data} isOpen={isModifyOpen} onClose={() => setIsModifyOpen(false)} connector={toModifyConnector} isInput={toModifyIsInput} />
       <BaseNode {...props} rightElement={settings}>
         {props.children}
       </BaseNode>

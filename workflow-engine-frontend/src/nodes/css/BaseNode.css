@@ -1,3 +1,13 @@
+/* All nodes styles */
+
+.react-flow__node > div {
+  border: 1px transparent solid;
+}
+
+.react-flow__node.selected > div {
+  border: 1px white solid;
+}
+
 /* The node style */
 
 .base-node {
@@ -55,17 +65,4 @@
 .react-flow__handle.target.flow,
 .react-flow__handle.source.flow {
   background-color: rgb(224, 192, 51);
-}
-
-/* To reduce the size of the input field */
-
-.smaller .MuiInputLabel-sizeSmall.MuiInputLabel-sizeSmall:not(.MuiFormLabel-filled):not(.Mui-focused) {
-  -webkit-transform: translate(10px, 8px) scale(1);
-  transform: translate(10px, 8px) scale(1);
-}
-
-.smaller .MuiOutlinedInput-input.MuiInputBase-inputSizeSmall {
-  padding: 5px;
-  padding-left: 7px;
-  padding-right: 7px;
 }

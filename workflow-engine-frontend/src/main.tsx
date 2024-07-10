@@ -13,7 +13,7 @@ import NotFoundPage from "./NotFoundPage.tsx";
 import WorkflowsPage from "./WorkflowsPage.tsx";
 import { SnackbarProvider } from "notistack";
 import AlertProvider from "./utils/alert/AlertProvider.tsx";
-import { ReactFlowProvider } from "reactflow";
+import { ReactFlowProvider } from "@xyflow/react";
 
 const router = createBrowserRouter([
   {

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { NodeProps } from 'reactflow';
+import { Node, NodeProps } from '@xyflow/react';
 import BaseNode, { BaseNodeData } from "./BaseNode";
 import { TextField } from "@mui/material";
 
@@ -7,7 +7,9 @@ export type PrimitiveNodeData = BaseNodeData & {
   initialValue: string | number | undefined;
 }
 
-export default function PrimitiveNode(props: NodeProps<PrimitiveNodeData>) {
+export type PrimitiveNodeTypeNode = Node<PrimitiveNodeData, "PrimitiveNode">;
+
+export default function PrimitiveNode(props: NodeProps<PrimitiveNodeTypeNode>) {
   const onChange = useCallback((evt: React.ChangeEvent<HTMLInputElement>) => {
     console.log("Primitive value changed to " + evt.target?.value);
   }, []);

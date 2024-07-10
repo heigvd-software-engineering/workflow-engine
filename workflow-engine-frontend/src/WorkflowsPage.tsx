@@ -1,22 +1,24 @@
-import ReactFlow, { Background, Connection, Controls, Edge, EdgeChange, Node, NodeChange, NodePositionChange, addEdge, applyNodeChanges, useReactFlow } from "reactflow";
+import { ReactFlow, Background, Connection, Controls, Edge, EdgeChange, Node, NodeChange, NodePositionChange, addEdge, applyNodeChanges, useReactFlow } from "@xyflow/react";
 import Layout from "./Layout";
-import 'reactflow/dist/style.css';
-import PrimitiveNode, { PrimitiveNodeData } from "./nodes/PrimitiveNode";
+import '@xyflow/react/dist/style.css';
+import PrimitiveNode, { PrimitiveNodeTypeNode } from "./nodes/PrimitiveNode";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Dialog, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, SelectChangeEvent, TextField } from "@mui/material";
 import { useAlert } from "./utils/alert/AlertUse";
-import { ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IMoveNode, ISwitchTo, PrimitiveTypes, WorkflowNotification, WorkflowType } from "./types/Types";
+import { IConnect, ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IMoveNode, IRemoveNode, ISwitchTo, PrimitiveTypes, WorkflowNotification, WorkflowType } from "./types/Types";
 import { AddCircle } from "@mui/icons-material";
-import CreateNodeMenu, { MenuData } from "./components/CreateNodeMenu";
+import LevelMenu, { MenuData } from "./components/LevelMenu";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { $enum } from "ts-enum-util";
-import CodeNode, { CodeNodeData } from "./nodes/CodeNode";
-import { BaseNodeData } from "./nodes/BaseNode";
-
-const nodeTypes = { PrimitiveNode: PrimitiveNode, CodeNode: CodeNode };
+import CodeNode, { CodeNodeTypeNode } from "./nodes/CodeNode";
+import { BaseNodeData, BaseNodeTypeNode } from "./nodes/BaseNode";
 
 export default function WorkflowsPage() {
-  const [nodes, setNodes] = useState<Node[]>([]);
+  const nodeTypes = useMemo(() => {
+    return { PrimitiveNode: PrimitiveNode, CodeNode: CodeNode }
+  }, []);
+
+  const [nodes, setNodes] = useState<BaseNodeTypeNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [workflows, setWorkflows] = useState<WorkflowType[]>([])
   const [workflow, setWorkflow] = useState<WorkflowType>();
@@ -73,9 +75,9 @@ export default function WorkflowsPage() {
 
           const foundNodeIdx = currentNodes.findIndex(n => n.id == notification.node.id.toString());
           let wasCreated = true;
-          let oldNode: Node | undefined = undefined;
+          let oldNode: BaseNodeTypeNode | undefined = undefined;
           if (foundNodeIdx != -1) {
-            oldNode = currentNodes[foundNodeIdx];
+            oldNode = {...currentNodes[foundNodeIdx]};
             currentNodes = currentNodes.filter((_, i) => i != foundNodeIdx);
             wasCreated = false;
           }
@@ -85,8 +87,8 @@ export default function WorkflowsPage() {
             nodeF = {
               id: recvNode.id.toString(),
               position: {
-                x: 0,
-                y: 0
+                x: -1000,
+                y: -1000
               },
               data: {
                 node: recvNode,
@@ -106,42 +108,40 @@ export default function WorkflowsPage() {
           nodeF.type = recvNode.nodeType;
           switch (recvNode.nodeType) {
             case "PrimitiveNode": {
-              (nodeF.data as PrimitiveNodeData).initialValue = recvNode.value;
+              (nodeF as PrimitiveNodeTypeNode).data.initialValue = recvNode.value;
               break;
             }
             case "CodeNode": {
-              (nodeF.data as CodeNodeData).initialCode = recvNode.code;
+              (nodeF as CodeNodeTypeNode).data.initialCode = recvNode.code;
               break;
             }
           }
           setEdges(edgesCurrent => {
-            const removedAll = edgesCurrent.filter(e => e.sourceNode?.id != nodeF.id || e.targetNode?.id != nodeF.id);
+            const removedAll = edgesCurrent.filter(e => e.source != nodeF.id && e.target != nodeF.id);
             
-            const inEdges = recvNode.inputs.flatMap(i => {
+            const inEdges = recvNode.inputs.reduce<Edge[]>((acc, i) => {
               if (i.connectedTo != undefined) {
-                return addEdge({source: recvNode.id.toString(), sourceHandle: i.id.toString(), target: i.connectedTo.nodeId.toString(), targetHandle: i.connectedTo.connectorId.toString()}, removedAll);
+                return addEdge({target: recvNode.id.toString(), targetHandle: i.id.toString(), source: i.connectedTo.nodeId.toString(), sourceHandle: i.connectedTo.connectorId.toString(), animated: true}, acc);
               }
-              return removedAll;
-            });
+              return acc;
+            }, removedAll);
   
-            const outEdges = recvNode.outputs.flatMap(i => {
-              let ccEdges = [...inEdges];
-              i.connectedTo.forEach(cc => {
-                ccEdges = addEdge({source: recvNode.id.toString(), sourceHandle: i.id.toString(), target: cc.nodeId.toString(), targetHandle: cc.connectorId.toString()}, ccEdges);
-              })
-              return ccEdges;
-            });
+            const outEdges = recvNode.outputs.reduce<Edge[]>((acc, i) => {
+              return i.connectedTo.reduce<Edge[]>((acc2, cc) => {
+                return addEdge({source: recvNode.id.toString(), sourceHandle: i.id.toString(), target: cc.nodeId.toString(), targetHandle: cc.connectorId.toString(), animated: true}, acc2);
+              }, acc);
+            }, inEdges);
   
             return outEdges;
           });
           nodeF.data.node = recvNode;
   
-          return [...currentNodes, nodeF];
+          return [...currentNodes, nodeF as BaseNodeTypeNode];
         });
         break;
       }
       case "nodeRemoved": {
-        setEdges(edgesCurrent => edgesCurrent.filter(e => e.sourceNode?.id != notification.nodeId.toString() || e.targetNode?.id != notification.nodeId.toString()));
+        setEdges(edgesCurrent => edgesCurrent.filter(e => e.source != notification.nodeId.toString() || e.target != notification.nodeId.toString()));
         setNodes(nodesCurrent => nodesCurrent.filter(n => n.id != notification.nodeId.toString()));
         break;
       }
@@ -185,6 +185,10 @@ export default function WorkflowsPage() {
               return;
             }
 
+            if (Number.isNaN(realPos.x) || Number.isNaN(realPos.y)) {
+              return;
+            }
+
             const data: IMoveNode = {
               uuid: workflow.uuid,
               action: "moveNode",
@@ -199,7 +203,20 @@ export default function WorkflowsPage() {
           }
         }
         if (change.type == "remove") {
-          console.log(change.id + " has been removed !");
+          if (workflow == undefined) {
+            alertError("No workflow selected !");
+            return;
+          }
+          const data: IRemoveNode = {
+            action: "removeNode",
+            uuid: workflow.uuid,
+            nodeId: Number(change.id)
+          }
+          sendJsonMessage(data);
+          // console.log(change.id + " has been removed !");
+        }
+        if (change.type == "select" || change.type == "dimensions") {
+          setNodes((nds) => applyNodeChanges([change], nds));
         }
       });
       // setNodes((nds) => applyNodeChanges(changes, nds))
@@ -220,10 +237,24 @@ export default function WorkflowsPage() {
   );
   const onConnect = useCallback(
     (connection: Connection) => {
-      console.log("Edge added from " + connection.source + ":" + connection.sourceHandle + " to " + connection.target + ":" + connection.targetHandle);
+      if (workflow == undefined) {
+        alertError("No workflow selected !");
+        return;
+      }
+
+      const data: IConnect = {
+        action: "connect",
+        uuid: workflow.uuid,
+        fromNodeId: Number(connection.source),
+        fromConnectorId: Number(connection.sourceHandle),
+        toNodeId: Number(connection.target),
+        toConnectorId: Number(connection.targetHandle)
+      }
+      sendJsonMessage(data);
+      // console.log("Edge added from " + connection.source + ":" + connection.sourceHandle + " to " + connection.target + ":" + connection.targetHandle);
       // setEdges((eds) => addEdge(connection, eds));
     },
-    []
+    [alertError, workflow, sendJsonMessage]
   );
 
   const handleChange = useCallback((event: SelectChangeEvent<string>) => {
@@ -286,7 +317,7 @@ export default function WorkflowsPage() {
 
   const allPrimitives = $enum(PrimitiveTypes).getKeys().map(p => {return {name: p}});
 
-  const menus: MenuData[] = [
+  const menus: MenuData<string>[] = [
     {name: "Code"}, 
     {
       name: "Primitive", 
@@ -338,22 +369,29 @@ export default function WorkflowsPage() {
 
   return (
     <Layout farEnd={farEnd}>
-      <CreateNodeMenu options={menus} isVisible={menuVisible} position={menuPosition} setVisible={setMenuVisible} onSelect={onSelect} />
+      <LevelMenu 
+        options={menus} 
+        isVisible={menuVisible} 
+        position={menuPosition} 
+        onClose={() => setMenuVisible(false)} 
+        onSelect={onSelect} 
+        setPostion={setMenuPosition} 
+      />
       <ReactFlow 
-          style={{height: "auto"}} 
-          nodeTypes={nodeTypes} 
-          nodes={nodes} 
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeDragThreshold={1}
-          onContextMenu={(ev) => {
-            setMenuVisible(true);
-            setMenuPosition({x: ev.clientX, y: ev.clientY});
-            ev.preventDefault();
-          }}
-        >
+        style={{height: "auto"}} 
+        nodeTypes={nodeTypes} 
+        nodes={nodes} 
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        nodeDragThreshold={1}
+        onContextMenu={(ev: any) => {
+          setMenuVisible(true);
+          setMenuPosition({x: ev.clientX, y: ev.clientY});
+          ev.preventDefault();
+        }}
+      >
         <Background />
         <Controls />
       </ReactFlow>
