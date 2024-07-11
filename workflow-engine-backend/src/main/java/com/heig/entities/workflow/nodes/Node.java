@@ -174,13 +174,13 @@ public abstract class Node {
         obj.addProperty("timeout", timeout);
 
         var inputsArr = new JsonArray();
-        for (var inputConnector : inputs.values()) {
+        for (var inputConnector : inputs.values().stream().sorted(Comparator.comparingInt(InputConnector::getId)).toList()) {
             inputsArr.add(inputConnector.toJson());
         }
         obj.add("inputs", inputsArr);
 
         var outputsArr = new JsonArray();
-        for (var outputConnector : outputs.values()) {
+        for (var outputConnector : outputs.values().stream().sorted(Comparator.comparingInt(OutputConnector::getId)).toList()) {
             outputsArr.add(outputConnector.toJson());
         }
         obj.add("outputs", outputsArr);

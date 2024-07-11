@@ -5,14 +5,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import ModifyType from "./ModifyType";
 import { useAlert } from "../utils/alert/AlertUse";
 
-export default function ModifyConnector(props: BaseNodeData & { isOpen: boolean, onClose: () => void, connector?: Connector, isInput: boolean }) {
+export default function ModifyConnector(props: BaseNodeData & { isOpen: boolean, setIsOpen: (isOpen: boolean) => void, onClose: () => void, connector?: Connector, isInput: boolean }) {
   const { alertError } = useAlert();
   
-  const [name, setName] = useState("");
-  const [type, setType] = useState("");
-
   const defaultName = useMemo(() => props.connector?.name ?? "", [props.connector?.name]);
-  const defaultType = useMemo(() => props.connector?.type ?? "", [props.connector?.type]);
+  const defaultType = useMemo(() => props.connector?.type ?? "undefined", [props.connector?.type]);
+
+  const [name, setName] = useState(defaultName);
+  const [type, setType] = useState(defaultType);
 
   const cancel = useCallback(() => {
     setName(defaultName);
@@ -40,6 +40,7 @@ export default function ModifyConnector(props: BaseNodeData & { isOpen: boolean,
       };
 
       props.sendToWebsocket(data);
+      props.setIsOpen(false);
     } else {
       const baseData: IChangeConnector = {
         action: "changeConnector",
@@ -65,6 +66,8 @@ export default function ModifyConnector(props: BaseNodeData & { isOpen: boolean,
     }
   }, [name, type, props, alertError]);
   
+  const hasChanged = useMemo(() => defaultName != name || defaultType != type, [defaultName, name, defaultType, type]);
+
   return (
     <Dialog open={props.isOpen} onClose={props.onClose}>
       <DialogTitle sx={{paddingBottom: 0, textAlign: "center"}}>{props.connector == undefined ? "Create" : "Edit"} connector</DialogTitle>
@@ -85,10 +88,10 @@ export default function ModifyConnector(props: BaseNodeData & { isOpen: boolean,
           <ModifyType type={type} setType={setType} editMode={true} />
         </Box>
         <Box sx={{marginBottom: 1, display: "flex", justifyContent: "center"}}>
-          <Button size="small" variant="contained" sx={{marginRight: 1}} onClick={sendValues}>
-            Save
+          <Button size="small" variant="contained" sx={{marginRight: 1}} onClick={sendValues} disabled={!hasChanged}>
+            {props.connector == undefined ? "Create" : "Save"}
           </Button>
-          <Button size="small" variant="contained" color="error" onClick={cancel}>
+          <Button size="small" variant="contained" color="error" onClick={cancel} disabled={!hasChanged}>
             Cancel
           </Button>
         </Box>

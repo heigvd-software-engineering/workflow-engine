@@ -1,6 +1,6 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { NodeProps } from '@xyflow/react';
-import BaseNode, { BaseNodeTypeNode } from "./BaseNode";
+import { BaseNode, BaseNodeTypeNode } from "./BaseNode";
 import { Box, Button, Checkbox, Dialog, DialogTitle, Divider, IconButton, Input, InputAdornment } from "@mui/material";
 import { Add, Delete, Edit, Settings } from "@mui/icons-material";
 import { Connector, IChangeModifiableNode, IIsDeterministicChangeModifiableNode, IRemoveConnector, ITimeoutChangeModifiableNode } from "../types/Types";
@@ -8,7 +8,8 @@ import { useAlert } from "../utils/alert/AlertUse";
 import ModifyConnector from "../components/ModifiyConnector";
 import ModifyType from "../components/ModifyType";
 
-export default function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactNode, title: string }) {
+export const ModifiableNode = function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactNode, title: string }) {
+  const { alertError } = useAlert();
   const [open, setOpen] = useState(false);
   const settings = useMemo(() => {
     return (
@@ -41,7 +42,7 @@ export default function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { ch
         connectors = props.data.node.outputs;
       }
 
-      let currentConn = connectors.find(c => c.id == toModifyConnector.id);
+      const currentConn = connectors.find(c => c.id == toModifyConnector.id);
       if (currentConn == undefined) {
         //Closes the edit menu if the connector currently modified is removed 
         setIsModifyOpen(false);
@@ -89,7 +90,7 @@ export default function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { ch
         </IconButton>
       </Box>
     </Box>
-  , [openEditConnector]);
+  , [openEditConnector, deleteConnector]);
   
   const defaultIsDeterministic = useMemo(() => props.data.node.isDeterministic, [props.data.node.isDeterministic]);
   const [isDeterministic, setIsDeterministic] = useState(defaultIsDeterministic);
@@ -104,8 +105,6 @@ export default function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { ch
     const value = Number(e.target.value);
     setTimeout(value);
   }
-
-  const { alertError } = useAlert();
 
   const cancel = useCallback(() => {
     setIsDeterministic(defaultIsDeterministic);
@@ -144,37 +143,41 @@ export default function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { ch
     props.data.sendToWebsocket(dataTimeout);
   }, [isDeterministic, timeout, alertError, props]);
 
+  const hasChanged = useMemo(() => defaultIsDeterministic != isDeterministic || defaultTimeout != timeout, [defaultIsDeterministic, isDeterministic, defaultTimeout, timeout]);
+  
   return (
     <>
       <Dialog open={open} onClose={() => setOpen(false)}>
         <DialogTitle sx={{paddingBottom: 0, textAlign: "center"}}>Modify node</DialogTitle>
-        <Box sx={{margin: 1}}>
-          <Box sx={{display: "flex", alignItems: "center"}}>
-            <Box>Is deterministic :</Box>
-            <Checkbox 
-              checked={isDeterministic}
-              onChange={onIsDeterministicChanged}
-            />
-          </Box>
-          <Box sx={{display: "flex", alignItems: "center", marginBottom: 1}}>
-            <Box sx={{marginRight: 1}}>Timeout :</Box>
-            <Input
-              type="number"
-              value={timeout}
-              onChange={onTimeoutChanged}
-              endAdornment={<InputAdornment position="end">ms</InputAdornment>}
-              sx={{width: "12ch"}}
-              size="small"
-              className="nodrag smaller"
-            />
-          </Box>
-          <Box sx={{marginBottom: 1}}>
-            <Button size="small" variant="contained" sx={{marginRight: 1}} onClick={sendValues}>
-              Save
-            </Button>
-            <Button size="small" variant="contained" color="error" onClick={cancel}>
-              Cancel
-            </Button>
+        <Box sx={{margin: 1, display: "flex", flexDirection: "column", alignItems: "center"}}>
+          <Box sx={{display: "flex", flexDirection: "column"}}>
+            <Box sx={{display: "flex", alignItems: "center"}}>
+              <Box>Is deterministic :</Box>
+              <Checkbox 
+                checked={isDeterministic}
+                onChange={onIsDeterministicChanged}
+              />
+            </Box>
+            <Box sx={{display: "flex", alignItems: "center", marginBottom: 1}}>
+              <Box sx={{marginRight: 1}}>Timeout :</Box>
+              <Input
+                type="number"
+                value={timeout}
+                onChange={onTimeoutChanged}
+                endAdornment={<InputAdornment position="end">ms</InputAdornment>}
+                sx={{width: "12ch"}}
+                size="small"
+                className="nodrag smaller"
+              />
+            </Box>
+            <Box sx={{marginBottom: 1, display: "flex", justifyContent: "center"}}>
+              <Button size="small" variant="contained" sx={{marginRight: 1}} onClick={sendValues} disabled={!hasChanged}>
+                Save
+              </Button>
+              <Button size="small" variant="contained" color="error" onClick={cancel} disabled={!hasChanged}>
+                Cancel
+              </Button>
+            </Box>
           </Box>
           <Box sx={{display: "grid", gridTemplateColumns: "1fr min-content 1fr"}}>
             <Box sx={{display: "flex", flexDirection: "column"}}>
@@ -195,10 +198,10 @@ export default function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { ch
           </Box>
         </Box>
       </Dialog>
-      <ModifyConnector {...props.data} isOpen={isModifyOpen} onClose={() => setIsModifyOpen(false)} connector={toModifyConnector} isInput={toModifyIsInput} />
+      <ModifyConnector {...props.data} isOpen={isModifyOpen} setIsOpen={setIsModifyOpen} onClose={() => setIsModifyOpen(false)} connector={toModifyConnector} isInput={toModifyIsInput} />
       <BaseNode {...props} rightElement={settings}>
         {props.children}
       </BaseNode>
     </>
   );
-}
+};

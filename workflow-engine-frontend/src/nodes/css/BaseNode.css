@@ -4,7 +4,7 @@
   border: 1px transparent solid;
 }
 
-.react-flow__node.selected > div {
+.react-flow__node.dragging > div {
   border: 1px white solid;
 }
 

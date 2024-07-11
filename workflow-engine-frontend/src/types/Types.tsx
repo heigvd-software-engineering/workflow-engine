@@ -3,8 +3,18 @@
 //
 
 import { $enum } from "ts-enum-util";
-import { AvailableTypeNames } from "../utils/alert/TypeUtils";
+import { AvailableTypeNames } from "../utils/TypeUtils";
 import { MenuData } from "../components/LevelMenu";
+
+import Prism from "prismjs";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _ = Prism;
+
+// import "prismjs/components/prism-python";
+export enum Languages {
+  JS,
+  // Python
+}
 
 export enum PrimitiveTypes {
   Integer,
@@ -224,7 +234,7 @@ export type ICodeChangeCodeNode = IChangeCodeNode & {
 
 export type ILanguageChangeCodeNode = IChangeCodeNode & {
   subAction: "language";
-  language: string;
+  language: keyof typeof Languages;
 }
 
 // Connexions
@@ -323,7 +333,7 @@ export type NodeBaseType = {
 export type CodeNodeType = NodeBaseType & {
   nodeType: "CodeNode";
   code: string;
-  language: string;
+  language: keyof typeof Languages;
 }
 
 export type PrimitiveNodeType = NodeBaseType & {

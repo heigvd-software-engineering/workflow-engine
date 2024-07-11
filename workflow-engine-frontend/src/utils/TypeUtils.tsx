@@ -1,5 +1,5 @@
 import { $enum } from "ts-enum-util";
-import { numOfParamsFor, PrimitiveTypes, TypesNames } from "../../types/Types";
+import { Languages, numOfParamsFor, PrimitiveTypes, TypesNames } from "../types/Types";
 
 export type AvailableTypeNames = keyof typeof TypesNames | keyof typeof PrimitiveTypes;
 
@@ -81,4 +81,18 @@ export function stringFromType(type: Type | undefined): string {
   }
 
   return name + (type.parameters.length != 0 ? " " + type.parameters.map(t => stringFromType(t)).join(" ") : "");
+}
+
+export type GrammarLanguageName = "js" | "python" | "";
+
+export function getGrammarLanguageName(languageName: keyof typeof Languages): GrammarLanguageName {
+  switch(languageName) {
+    case "JS":
+      return "js";
+    case "Python":
+      return "python";
+    default:
+      console.error(languageName + "not found");
+  }
+  return "";
 }

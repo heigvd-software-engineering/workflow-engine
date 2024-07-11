@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react"
-import { AvailableTypeNames, newType, stringFromType, Type, typeFromString, UNDEF_TYPE } from "../utils/alert/TypeUtils"
+import { AvailableTypeNames, newType, stringFromType, Type, typeFromString, UNDEF_TYPE } from "../utils/TypeUtils"
 import { Box, IconButton } from "@mui/material";
 import { Add, Close } from "@mui/icons-material";
 import { availableChildren } from "../types/Types";

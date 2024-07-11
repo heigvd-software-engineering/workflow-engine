@@ -1,8 +1,8 @@
 import "./css/BaseNode.css"
 
-import { Handle, NodeProps, Position } from "@xyflow/react";
+import { Handle, NodeProps, Position, useUpdateNodeInternals } from "@xyflow/react";
 import { NodeType, WorkflowInstruction } from "../types/Types";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Box, Divider, SxProps } from "@mui/material";
 import { Theme } from "@emotion/react";
 import { CodeNodeTypeNode } from "./CodeNode";
@@ -31,9 +31,20 @@ const flexStyle: SxProps<Theme> = {
   display: "flex",
 }
 
-export default function BaseNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactNode, title: string, leftElement?: ReactNode, rightElement?: ReactNode }) {
+export const BaseNode = function BaseNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactNode, title: string, leftElement?: ReactNode, rightElement?: ReactNode }) {
   const atLeastOneInput = props.data.node.inputs.length != 0;
   const atLeastOneOutput = props.data.node.outputs.length != 0;
+
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  useEffect(() => {
+    //Needed when we add handles programmatically
+    //Source: https://reactflow.dev/learn/troubleshooting#couldnt-create-edge-for-sourcetarget-handle-id-some-id-edge-id-some-id
+    updateNodeInternals(props.data.node.id.toString());
+  //Here the inputs and outputs are not directely used but are necessary to trigger the updateNodeInternals
+  //eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.data.node.outputs, props.data.node.inputs]);
+
   return (
     <Box className="base-node" sx={{display: "flex", flexDirection: "column"}}>
       <Box sx={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 0.5}}>
@@ -69,4 +80,4 @@ export default function BaseNode(props: NodeProps<BaseNodeTypeNode> & { children
       </Box>
     </Box>
   );
-}
+};

@@ -1,5 +1,6 @@
 import { ArrowDropDown, ArrowRight } from "@mui/icons-material"
 import { lighten, ListItemIcon, ListItemText, Menu, MenuItem, useTheme } from "@mui/material"
+import { XYPosition } from "@xyflow/react"
 import { useState } from "react"
 
 export type MenuData<T extends string> = {
@@ -15,8 +16,8 @@ type Props<T extends string> = {
   onSelect: (chosen: T) => void,
   isVisible: boolean,
   onClose: () => void,
-  position: {x: number, y: number},
-  setPostion: (position: {x: number, y: number}) => void
+  position: XYPosition,
+  setPostion: (position: XYPosition) => void
 }
 
 const iconWidthPx = 20;

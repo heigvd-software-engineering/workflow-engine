@@ -16,6 +16,7 @@
     "@mui/icons-material": "^5.15.21",
     "@mui/material": "^5.15.21",
     "@types/prismjs": "^1.26.4",
+    "@xyflow/react": "^12.0.1",
     "i": "^0.3.7",
     "notistack": "^3.0.1",
     "npm": "^10.8.1",
@@ -25,7 +26,6 @@
     "react-router-dom": "^6.24.0",
     "react-simple-code-editor": "^0.14.1",
     "react-use-websocket": "^4.8.1",
-    "@xyflow/react": "^12.0.1",
     "ts-enum-util": "^4.1.0"
   },
   "devDependencies": {
