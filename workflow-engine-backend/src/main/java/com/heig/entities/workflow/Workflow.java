@@ -111,7 +111,6 @@ public class Workflow {
         var errors = new WorkflowErrors();
         if (nodes.isEmpty()) {
             errors.addError(new EmptyGraph());
-            return Optional.of(errors);
         }
 
         //Creating a directed graph with the vertices and edges currently in our graph
@@ -136,28 +135,21 @@ public class Workflow {
         var cycleDetector = new CycleDetector<>(directedGraph);
         if (cycleDetector.detectCycles()) {
             errors.addError(new CycleDetected());
-            return Optional.of(errors);
         }
 
         //Checks that the graph is weakly connected
         var ci = new ConnectivityInspector<>(directedGraph);
         if (!ci.isConnected()) {
             errors.addError(new NotConnectedGraph());
-            return Optional.of(errors);
         }
 
         //All inputs not marked as optional should be connected to an output
-        var hasError = false;
         for (var node : nodes.values()) {
             for (var input : node.getInputs().values().stream().filter(i -> !i.isOptional()).toList()) {
                 if (input.getConnectedTo().isEmpty()) {
-                    hasError = true;
                     errors.addError(new InputNotConnected(input));
                 }
             }
-        }
-        if (hasError) {
-            return Optional.of(errors);
         }
 
         //Check the types compatibility
@@ -165,16 +157,15 @@ public class Workflow {
             for (var output : node.getOutputs().values()) {
                 for (var input : output.getConnectedTo()) {
                     if (!input.getType().canBeConvertedFrom(output.getType())) {
-                        hasError = true;
                         errors.addError(new IncompatibleTypes(input, output));
                     }
                 }
             }
         }
-        if (hasError) {
+
+        if (!errors.getErrors().isEmpty()) {
             return Optional.of(errors);
         }
-        
         return Optional.empty();
     }
 

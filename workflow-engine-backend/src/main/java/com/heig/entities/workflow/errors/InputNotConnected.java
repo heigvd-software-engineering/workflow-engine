@@ -20,8 +20,12 @@ public class InputNotConnected extends WorkflowNodeError {
     @Override
     public JsonObject toJson() {
         var obj = super.toJson();
-        addErrorMessage(obj, "The input is not connected to an output");
         addInputConnector(obj, inputConnector);
         return obj;
+    }
+
+    @Override
+    public String toString() {
+        return "The input is not connected to an output";
     }
 }

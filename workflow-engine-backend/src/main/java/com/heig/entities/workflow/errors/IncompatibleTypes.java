@@ -29,12 +29,15 @@ public class IncompatibleTypes extends WorkflowNodeError {
     @Override
     public JsonObject toJson() {
         var obj = super.toJson();
-        addErrorMessage(obj, "%s is not compatible with %s".formatted(
+        addInputConnector(obj, inputConnector);
+        return obj;
+    }
+
+    @Override
+    public String toString() {
+        return "%s is not compatible with %s".formatted(
             WorkflowTypes.typeToString(inputConnector.getType()),
             WorkflowTypes.typeToString(outputConnector.getType())
-        ));
-        addInputConnector(obj, inputConnector);
-        addOutputConnector(obj, outputConnector);
-        return obj;
+        );
     }
 }

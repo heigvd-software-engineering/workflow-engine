@@ -1,5 +1,6 @@
 import { $enum } from "ts-enum-util";
-import { Languages, numOfParamsFor, PrimitiveTypes, TypesNames } from "../types/Types";
+import { Languages, PrimitiveTypes, TypesNames } from "../types/Types";
+import { MenuData } from "../components/LevelMenu";
 
 export type AvailableTypeNames = keyof typeof TypesNames | keyof typeof PrimitiveTypes;
 
@@ -11,27 +12,28 @@ export function availableTypeNamesFromString(str: string): AvailableTypeNames | 
   return key;
 }
 
-export type Type = {
+export type WType = {
   name?: AvailableTypeNames,
-  parameters: (Type | undefined)[]
+  parameters: (WType | undefined)[]
 }
-export const UNDEF_TYPE: Type = {
+
+export const UNDEF_TYPE: WType = {
   name: undefined,
   parameters: []
 }
 
-export function newType(type: AvailableTypeNames): Type {
+export function newType(type: AvailableTypeNames): WType {
   return {name: type, parameters: Array(numOfParamsFor(type)).fill(UNDEF_TYPE)}
 }
 
-export function newTypeNoParam(type: AvailableTypeNames): Type {
+export function newTypeNoParam(type: AvailableTypeNames): WType {
   return {name: type, parameters: []}
 }
 
-export function typeFromString(type: string): Type | undefined {
+export function typeFromString(type: string): WType | undefined {
   const types = type.split(" ");
 
-  function buildStructure(words: string[]): Type | undefined {
+  function buildStructure(words: string[]): WType | undefined {
     if (words.length === 0) {
       return undefined;
     }
@@ -55,7 +57,7 @@ export function typeFromString(type: string): Type | undefined {
       return UNDEF_TYPE;
     }
     
-    const parameters: Type[] = [];
+    const parameters: WType[] = [];
     for (let i = 0; i < numOfParamsFor(realName); ++i) {
       const param = buildStructure(words);
       if (param == undefined) {
@@ -70,7 +72,7 @@ export function typeFromString(type: string): Type | undefined {
   return buildStructure(types);
 }
 
-export function stringFromType(type: Type | undefined): string {
+export function stringFromType(type: WType | undefined): string {
   if (type == undefined) {
     return "undefined";
   }
@@ -89,10 +91,59 @@ export function getGrammarLanguageName(languageName: keyof typeof Languages): Gr
   switch(languageName) {
     case "JS":
       return "js";
-    case "Python":
-      return "python";
+    // case "Python":
+    //   return "python";
     default:
       console.error(languageName + "not found");
   }
   return "";
+}
+
+function canBeUsedAsT(name?: AvailableTypeNames): boolean {
+  if (name == undefined) {
+    return false;
+  }
+  switch(name) {
+    case "Flow":
+      return false;
+    default: 
+      return true;
+  }
+}
+
+function numOfParamsFor(name: AvailableTypeNames) {
+  switch(name) {
+    case "Map": return 2;
+    case "Collection": return 1;
+    default: return 0;
+  }
+}
+
+function getAllChildren(): MenuData<AvailableTypeNames>[] {
+  return $enum(TypesNames).getKeys().map(t => {
+    return { name: t } as MenuData<AvailableTypeNames>
+  }).concat([{
+    name: "Primitive",
+    subMenu: $enum(PrimitiveTypes).getKeys().map(t => {
+      return { name : t }
+    })
+  }]);
+}
+
+function checkIfCanBeUsed(data: MenuData<AvailableTypeNames>): boolean {
+  if (data.subMenu == undefined) {
+    return canBeUsedAsT(data.name);
+  } else {
+    return data.subMenu.every(other => checkIfCanBeUsed(other));
+  }
+}
+
+export function availableChildren(name: AvailableTypeNames | undefined): MenuData<AvailableTypeNames>[] {
+  switch(name) {
+    case "Map":
+    case "Collection":
+      return getAllChildren().filter(checkIfCanBeUsed);
+    default: 
+      return getAllChildren();
+  }
 }

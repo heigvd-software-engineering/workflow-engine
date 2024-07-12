@@ -1,20 +1,16 @@
 package com.heig.entities.workflow.execution;
 
+import com.heig.entities.workflow.errors.WorkflowErrors;
 import com.heig.entities.workflow.nodes.Node;
-import com.heig.helpers.ResultOrWorkflowError;
 import jakarta.annotation.Nonnull;
 
 import java.awt.*;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.*;
 
 public class NodeState {
     private State state = State.IDLE;
-    private final ConcurrentMap<Integer, ResultOrWorkflowError<Object>> valuesMap = new ConcurrentHashMap<>();
+    private final Map<Integer, Object> valuesMap = new HashMap<>();
+    private WorkflowErrors error = null;
     private final Node node;
     private boolean hasBeenModified = false;
     private final Point.Double pos = new Point.Double(0, 0);
@@ -23,16 +19,20 @@ public class NodeState {
         this.node = Objects.requireNonNull(node);
     }
 
-    public void setInputValue(int connectorId, @Nonnull ResultOrWorkflowError<Object> value) {
-        Objects.requireNonNull(value);
+    public synchronized void setInputValue(int connectorId, Object value) {
         valuesMap.put(connectorId, value);
     }
 
-    public Optional<ResultOrWorkflowError<Object>> getInputValue(int connectorId) {
-        return Optional.ofNullable(valuesMap.get(connectorId));
+    public synchronized Optional<Optional<Object>> getInputValue(int connectorId) {
+        if (!valuesMap.containsKey(connectorId)) {
+            return Optional.empty();
+        }
+
+        var value = valuesMap.get(connectorId);
+        return Optional.of(value == null ? Optional.empty() : Optional.of(value));
     }
 
-    public Map<Integer, ResultOrWorkflowError<Object>> getValues() {
+    public Map<Integer, Object> getValues() {
         return Collections.unmodifiableMap(valuesMap);
     }
 
@@ -45,7 +45,15 @@ public class NodeState {
         //If the input is marked as optional but is connected to an output, we need it to check the readiness of the node
         return node.getInputs().values().stream()
             .filter(i -> !(i.isOptional() && i.getConnectedTo().isEmpty()))
-            .noneMatch(c -> valuesMap.get(c.getId()) == null);
+            .allMatch(c -> valuesMap.containsKey(c.getId()));
+    }
+
+    public synchronized void setErrors(@Nonnull WorkflowErrors error) {
+        this.error = Objects.requireNonNull(error);
+    }
+
+    public synchronized Optional<WorkflowErrors> getErrors() {
+        return Optional.ofNullable(error);
     }
 
     public synchronized void setState(@Nonnull State state) {

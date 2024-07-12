@@ -19,6 +19,7 @@ public abstract class WorkflowNodeError extends WorkflowError {
     @Override
     public JsonObject toJson() {
         var obj = super.toJson();
+        obj.addProperty("type", "node");
         obj.addProperty("nodeId", node.getId());
         return obj;
     }

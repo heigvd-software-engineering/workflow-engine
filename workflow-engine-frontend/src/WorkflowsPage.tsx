@@ -5,8 +5,8 @@ import { PrimitiveNodeTypeNode } from "./nodes/PrimitiveNode";
 import { useCallback, useMemo, useState } from "react";
 import { Button, Dialog, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, SelectChangeEvent, TextField } from "@mui/material";
 import { useAlert } from "./utils/alert/AlertUse";
-import { ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IDisconnect, IRemoveNode, ISwitchTo, PrimitiveTypes, WorkflowNotification } from "./types/Types";
-import { AddCircle } from "@mui/icons-material";
+import { ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IDisconnect, IExecuteWorkflow, IRemoveNode, ISwitchTo, PrimitiveTypes, WorkflowGeneralErrors, WorkflowNodeErrors, WorkflowNotification } from "./types/Types";
+import { AddCircle, PlayArrow } from "@mui/icons-material";
 import useWebSocket from "react-use-websocket";
 import { $enum } from "ts-enum-util";
 import { CodeNodeTypeNode } from "./nodes/CodeNode";
@@ -15,8 +15,11 @@ import ContextMenuProvider, { ContextMenuVariants } from "./utils/contextMenu/Co
 import ReactFlowGraph from "./components/ReactFlowGraph";
 import { useWorkflowData } from "./utils/workflowData/WorkflowDataUse";
 import WorkflowSocketProvider from "./utils/workflowSocket/WorkflowSocketProvider";
+import ErrorPopover from "./components/ErrorPopover";
 
 export default function WorkflowsPage() {
+  const [workflowGeneralErrors, setWorkflowGeneralErrors] = useState<WorkflowGeneralErrors[]>([]);
+
   const { screenToFlowPosition } = useReactFlow();
   const { setNodes, setEdges, setWorkflows, setWorkflow, workflow, workflows } = useWorkflowData();
   const { alertSuccess, alertError, alertInfo } = useAlert();
@@ -78,7 +81,9 @@ export default function WorkflowsPage() {
                 data: {
                   node: recvNode,
                   uuid: workflow.uuid,
-                  sendToWebsocket: sendJsonMessage
+                  sendToWebsocket: sendJsonMessage,
+                  errors: [],
+                  execErrors: []
                 }
               };
             } else {
@@ -137,6 +142,16 @@ export default function WorkflowsPage() {
           setNodes(nodesCurrent => {
             const foundNode = nodesCurrent.find(n => n.id == notification.nodeState.nodeId.toString());
             if (foundNode != undefined) {
+              foundNode.data.execErrors = [];
+              if (notification.nodeState.state == "FAILED") {
+                if (notification.nodeState.execErrors) {
+                  foundNode.data.execErrors = notification.nodeState.execErrors;
+                }
+              }
+
+              foundNode.data = {
+                ...foundNode.data
+              }
               const posChanged: NodePositionChange = {
                 id: foundNode.id,
                 type: "position",
@@ -150,7 +165,27 @@ export default function WorkflowsPage() {
           break;
         }
         case "workflowState": {
-  
+          const nodesErrors: WorkflowNodeErrors[] = notification.workflowState.errors?.filter(e => e.type == "node") ?? [];
+          const nodesErrorsGroupedById = nodesErrors.reduce<Partial<Record<number, WorkflowNodeErrors[]>>>((acc, curr) => {
+            if (acc[curr.nodeId] == undefined) {
+              acc[curr.nodeId] = [];
+            }
+            acc[curr.nodeId]!.push(curr);
+            return acc;
+          }, {});
+          setNodes(nodesCurrent => {
+            return nodesCurrent.map(n => {
+              const data = nodesErrorsGroupedById[n.data.node.id];
+              n.data = {
+                ...n.data,
+              };
+              n.data.errors = data ?? [];
+              return {...n};
+            });
+          });
+
+          const generalErrors: WorkflowGeneralErrors[] = notification.workflowState.errors?.filter(e => e.type == "general") ?? [];
+          setWorkflowGeneralErrors(generalErrors);
           break;
         }
         case "error": {
@@ -192,6 +227,21 @@ export default function WorkflowsPage() {
             setOpen(false);
           }}>Add new workflow</Button>
         </Dialog>
+        <ErrorPopover errors={workflowGeneralErrors.map(e => e.error)} size="medium" />
+        <IconButton size="medium" sx={{marginX: 1}} onClick={() => {
+          if (workflow == undefined) {
+            alertError("No workflow selected !");
+            return;
+          }
+
+          const data: IExecuteWorkflow = {
+            action: "executeWorkflow",
+            uuid: workflow?.uuid
+          }
+          sendJsonMessage(data);
+        }}>
+          <PlayArrow fontSize="inherit" color="success" />
+        </IconButton>
         <FormControl sx={{minWidth: 110, maxWidth: 200}} size="small">
           <InputLabel id="workflow-select">Wokflow</InputLabel>
           <Select
@@ -215,7 +265,7 @@ export default function WorkflowsPage() {
         </IconButton>
       </>
     )
-  }, [workflows, workflow, open, workflowName, handleChange, sendJsonMessage])
+  }, [workflows, workflow, open, workflowName, workflowGeneralErrors, handleChange, sendJsonMessage, alertError])
 
   const onSelect = useCallback((variant: ContextMenuVariants | undefined, position: XYPosition, choice: string) => {
     if (variant == undefined) {

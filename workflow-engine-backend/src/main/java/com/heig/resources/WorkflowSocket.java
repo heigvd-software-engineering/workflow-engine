@@ -264,6 +264,13 @@ public class WorkflowSocket {
             if (res.getErrorMessage().isPresent()) {
                 throw new RuntimeException(res.getErrorMessage().get());
             }
+            //If the action was successful and the parameters has an uuid, we start the check for errors
+            //We don't want to check every times a move moves if the workflow is valid either (a node movement cam't cause an error)
+            if (obj.has("uuid") && !name.equals("moveNode")) {
+                service.getWorkflowExecutor(obj.get("uuid")).continueWith(we ->
+                    service.checkForErrors(we)
+                );
+            }
         } catch (Exception e) {
             sendTo(session, errorJson("Error while executing action : " + e.getMessage()));
         }
@@ -366,18 +373,12 @@ public class WorkflowSocket {
         ns.addProperty("hasBeenModified", state.hasBeenModified());
         ns.addProperty("posX", state.getPos().x);
         ns.addProperty("posY", state.getPos().y);
-        if (state.getState() == State.FAILED) {
+        if (state.getState() == State.FAILED && state.getErrors().isPresent()) {
             var errors = new JsonArray();
-            for (var entry : state.getValues().entrySet()) {
-                var optError = entry.getValue().getErrorMessage();
-                if (optError.isPresent()) {
-                    var error = new JsonObject();
-                    error.addProperty("inputId", entry.getKey());
-                    error.addProperty("message", optError.get().toString());
-                    errors.add(error);
-                }
+            for (var error : state.getErrors().get().getErrors()) {
+                errors.add(error.toJson());
             }
-            ns.add("errors", errors);
+            ns.add("execErrors", errors);
         }
         toReturn.add("nodeState", ns);
         return toReturn.toString();
@@ -389,7 +390,7 @@ public class WorkflowSocket {
         var toReturn = returnJsonObjectBase("workflowState");
         var ws = new JsonObject();
         ws.addProperty("state", we.getState().toString());
-        if (we.getState() == State.FAILED) {
+        if (!we.getWorkflowErrors().getErrors().isEmpty()) {
             var errors = new JsonArray();
             for (var error : we.getWorkflowErrors().getErrors()) {
                 errors.add(error.toJson());

@@ -22,10 +22,10 @@ html, body, #root {
   padding-bottom: 8px;
 }
 
-.MuiMenu-paper {
+.MuiMenu-paper, .MuiDialog-paper {
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: inherit;
+  scrollbar-color: var(--scrollbarColor);
 }
 
 .MuiPaper-root.MuiDialog-paper {

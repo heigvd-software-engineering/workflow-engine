@@ -1,5 +1,5 @@
 import { ArrowDropDown, ArrowRight } from "@mui/icons-material"
-import { lighten, ListItemIcon, ListItemText, Menu, MenuItem, useTheme } from "@mui/material"
+import { ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material"
 import { XYPosition } from "@xyflow/react"
 import { useState } from "react"
 
@@ -63,13 +63,8 @@ function SubMenu<T extends string>(props: {data: MenuData<T>, level: number, onS
 }
 
 export default function LevelMenu<T extends string>(props: Props<T>) {
-  const theme = useTheme();
-  const baseColor = theme.palette.background.paper;
-  const thumbColor = lighten(baseColor, 10 * 0.026);
-  const scrollbarColor = lighten(baseColor, 2 * 0.026);
-
   return (
-    <Menu open={props.isVisible} onClose={props.onClose} anchorReference="anchorPosition" anchorPosition={{left: props.position.x, top: props.position.y}} sx={{scrollbarColor: thumbColor + " " + scrollbarColor}}>
+    <Menu open={props.isVisible} onClose={props.onClose} anchorReference="anchorPosition" anchorPosition={{left: props.position.x, top: props.position.y}}>
       <BasicMenu data={props.options} level={0} onSelect={props.onSelect} onHeightChanged={() => {
         //Forces the refresh of the position => updates the position of the menu to avoid going out of the screen
         props.setPostion({x: props.position.x, y: props.position.y});

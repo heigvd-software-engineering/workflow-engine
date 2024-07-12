@@ -3,6 +3,7 @@ package com.heig.entities.workflow.types;
 import jakarta.annotation.Nonnull;
 
 import java.io.File;
+import java.util.Objects;
 import java.util.Optional;
 
 public class WFlow implements WType {
@@ -16,7 +17,8 @@ public class WFlow implements WType {
 
     @Override
     public boolean canBeConvertedFrom(@Nonnull WType other) {
-        return false;
+        Objects.requireNonNull(other);
+        return other instanceof WFlow;
     }
 
     @Override

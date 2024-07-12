@@ -335,6 +335,12 @@ public class WorkflowService {
         });
     }
 
+    public synchronized ResultOrStringError<Void> checkForErrors(@Nonnull WorkflowExecutor we) {
+        Objects.requireNonNull(we);
+        we.checkForErrors();
+        return ResultOrStringError.result(null);
+    }
+
     public synchronized Workflow createWorkflow(@Nonnull JsonElement nameJson) {
         Objects.requireNonNull(nameJson);
         return new Workflow(nameJson.getAsString());

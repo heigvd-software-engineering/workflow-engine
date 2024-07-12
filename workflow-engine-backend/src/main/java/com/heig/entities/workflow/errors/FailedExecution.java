@@ -1,6 +1,5 @@
 package com.heig.entities.workflow.errors;
 
-import com.google.gson.JsonObject;
 import com.heig.entities.workflow.nodes.Node;
 import jakarta.annotation.Nonnull;
 
@@ -18,9 +17,7 @@ public class FailedExecution extends WorkflowNodeError {
     }
 
     @Override
-    public JsonObject toJson() {
-        var obj = super.toJson();
-        addErrorMessage(obj, "Failed execution: %s".formatted(reason));
-        return obj;
+    public String toString() {
+        return "Failed execution: %s".formatted(reason);
     }
 }

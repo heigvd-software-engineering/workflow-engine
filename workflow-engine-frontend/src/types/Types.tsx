@@ -2,10 +2,6 @@
 // Other
 //
 
-import { $enum } from "ts-enum-util";
-import { AvailableTypeNames } from "../utils/TypeUtils";
-import { MenuData } from "../components/LevelMenu";
-
 import Prism from "prismjs";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _ = Prism;
@@ -32,55 +28,6 @@ export enum TypesNames {
   Map,
   Collection,
   Flow
-}
-
-function canBeUsedAsT(name?: AvailableTypeNames): boolean {
-  if (name == undefined) {
-    return false;
-  }
-  switch(name) {
-    case "Flow":
-      return false;
-    default: 
-      return true;
-  }
-}
-
-export function numOfParamsFor(name: AvailableTypeNames) {
-  switch(name) {
-    case "Map": return 2;
-    case "Collection": return 1;
-    default: return 0;
-  }
-}
-
-function getAllChildren(): MenuData<AvailableTypeNames>[] {
-  return $enum(TypesNames).getKeys().map(t => {
-    return { name: t } as MenuData<AvailableTypeNames>
-  }).concat([{
-    name: "Primitive",
-    subMenu: $enum(PrimitiveTypes).getKeys().map(t => {
-      return { name : t }
-    })
-  }]);
-}
-
-function checkIfCanBeUsed(data: MenuData<AvailableTypeNames>): boolean {
-  if (data.subMenu == undefined) {
-    return canBeUsedAsT(data.name);
-  } else {
-    return data.subMenu.every(other => checkIfCanBeUsed(other));
-  }
-}
-
-export function availableChildren(name: AvailableTypeNames | undefined): MenuData<AvailableTypeNames>[] {
-  switch(name) {
-    case "Map":
-    case "Collection":
-      return getAllChildren().filter(checkIfCanBeUsed);
-    default: 
-      return getAllChildren();
-  }
 }
 
 //
@@ -374,12 +321,7 @@ export type NodeStateType = {
   hasBeenModified: boolean;
   posX: number;
   posY: number;
-  errors?: NodeErrorType[];
-}
-
-export type NodeErrorType = {
-  inputId: number;
-  message: string;
+  execErrors?: WorkflowNodeErrors[];
 }
 
 export type WorkflowStateType = {
@@ -388,51 +330,62 @@ export type WorkflowStateType = {
 }
 
 //Errors
-export type WorkflowError = 
+export type WorkflowError = WorkflowGeneralErrors | WorkflowNodeErrors;
+
+export type ErrorMessage = {
+  error: string;
+}
+
+export type WorkflowGeneralError = ErrorMessage & {
+  type: "general";
+}
+
+export type WorkflowGeneralErrors = 
   CycleDetectedError 
   | EmptyGraphError 
   | NotConnectedGraphError 
   | WorkflowCancelledError
-  | ErroredInputConnectorError
+  ;
+
+export type CycleDetectedError = WorkflowGeneralError & { errorType: "CycleDetected" }
+export type EmptyGraphError = WorkflowGeneralError & { errorType: "EmptyGraph" }
+export type NotConnectedGraphError = WorkflowGeneralError & { errorType: "NotConnectedGraph" }
+export type WorkflowCancelledError = WorkflowGeneralError & { errorType: "WorkflowCancelled" }
+
+export type InputConnectorError = {
+  connectorType: "input";
+}
+
+export type OutputConnectorError = {
+  connectorType: "output";
+}
+
+export type ConnectorError = (InputConnectorError | OutputConnectorError) & {
+  connectorId: number;
+};
+
+export type WorkflowNodeError = ErrorMessage & {
+  type: "node";
+  nodeId: number;
+}
+export type WorkflowNodeErrors = 
+  ErroredInputConnectorError
   | ExecutionTimeoutError
   | FailedExecutionError
   | IncompatibleTypesError
   | InputNotConnectedError
   | MissingOutputValueError
   | NameAlreadyUsedError
+  | UnmodifiableConnectorError
+  | WrongTypeError
   ;
 
-export type ErrorMessage = {
-  error: string;
-}
-
-export type CycleDetectedError = ErrorMessage & { errorType: "CycleDetected" }
-export type EmptyGraphError = ErrorMessage & { errorType: "EmptyGraph" }
-export type NotConnectedGraphError = ErrorMessage & { errorType: "NotConnectedGraph" }
-export type WorkflowCancelledError = ErrorMessage & { errorType: "WorkflowCancelled" }
-
-export type InputConnectorError = {
-  connectorType: "input"
-  inputConnectorId: number;
-}
-
-export type OutputConnectorError = {
-  connectorType: "output"
-  outputConnectorId: number;
-}
-
-export type ConnectorError = InputConnectorError | OutputConnectorError;
-
-export type WorkflowNodeError = {
-  nodeId: number;
-}
-
-export type ErroredInputConnectorError = WorkflowNodeError & ErrorMessage & InputConnectorError & { errorType: "ErroredInputConnector" }
-export type ExecutionTimeoutError = WorkflowNodeError & ErrorMessage & { errorType: "ExecutionTimeout" }
-export type FailedExecutionError = WorkflowNodeError & ErrorMessage & { errorType: "FailedExecution" }
-export type IncompatibleTypesError = WorkflowNodeError & ErrorMessage & InputConnectorError & OutputConnectorError & { errorType: "IncompatibleTypes" }
-export type InputNotConnectedError = WorkflowNodeError & ErrorMessage & InputConnectorError & { errorType: "InputNotConnected" }
-export type MissingOutputValueError = WorkflowNodeError & ErrorMessage & OutputConnectorError & { errorType: "MissingOutputValue" }
-export type NameAlreadyUsedError = WorkflowNodeError & ErrorMessage & ConnectorError & { errorType: "NameAlreadyUsed" }
-export type UnmodifiableConnectorError = WorkflowNodeError & ErrorMessage & ConnectorError & { errorType: "UnmodifiableConnector" }
-export type WrongTypeError = WorkflowNodeError & ErrorMessage & OutputConnectorError & { errorType: "WrongType" }
+export type ErroredInputConnectorError = WorkflowNodeError & InputConnectorError & { errorType: "ErroredInputConnector" }
+export type ExecutionTimeoutError = WorkflowNodeError & { errorType: "ExecutionTimeout" }
+export type FailedExecutionError = WorkflowNodeError & { errorType: "FailedExecution" }
+export type IncompatibleTypesError = WorkflowNodeError & InputConnectorError & { errorType: "IncompatibleTypes" }
+export type InputNotConnectedError = WorkflowNodeError & InputConnectorError & { errorType: "InputNotConnected" }
+export type MissingOutputValueError = WorkflowNodeError & OutputConnectorError & { errorType: "MissingOutputValue" }
+export type NameAlreadyUsedError = WorkflowNodeError & ConnectorError & { errorType: "NameAlreadyUsed" }
+export type UnmodifiableConnectorError = WorkflowNodeError & ConnectorError & { errorType: "UnmodifiableConnector" }
+export type WrongTypeError = WorkflowNodeError & OutputConnectorError & { errorType: "WrongType" }

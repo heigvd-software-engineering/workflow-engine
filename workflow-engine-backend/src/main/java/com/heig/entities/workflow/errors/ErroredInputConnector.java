@@ -18,8 +18,12 @@ public class ErroredInputConnector extends WorkflowNodeError {
     @Override
     public JsonObject toJson() {
         var obj = super.toJson();
-        addErrorMessage(obj, "The node has an input connector with an error");
         addInputConnector(obj, inputConnector);
         return obj;
+    }
+
+    @Override
+    public String toString() {
+        return "The input connector is connected to an errored node";
     }
 }

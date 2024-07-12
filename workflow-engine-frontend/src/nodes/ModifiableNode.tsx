@@ -8,7 +8,7 @@ import { useAlert } from "../utils/alert/AlertUse";
 import ModifyConnector from "../components/ModifiyConnector";
 import ModifyType from "../components/ModifyType";
 
-export const ModifiableNode = function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactNode, title: string }) {
+export function ModifiableNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactNode, title: string }) {
   const { alertError } = useAlert();
   const [open, setOpen] = useState(false);
   const settings = useMemo(() => {
@@ -204,4 +204,4 @@ export const ModifiableNode = function ModifiableNode(props: NodeProps<BaseNodeT
       </BaseNode>
     </>
   );
-};
+}

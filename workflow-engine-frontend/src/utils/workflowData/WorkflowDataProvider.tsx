@@ -29,7 +29,7 @@ export default function WorkflowDataProvider(props: { children: ReactNode }) {
   const [nodes, setNodes] = useState<BaseNodeTypeNode[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [workflow, setWorkflow] = useState<WorkflowType>();
-  const [workflows, setWorkflows] = useState<WorkflowType[]>([])
+  const [workflows, setWorkflows] = useState<WorkflowType[]>([]);
 
   return (
     <WorkflowDataContext.Provider value={{setNodes, nodes, setEdges, edges, workflow, setWorkflow, workflows, setWorkflows}}>

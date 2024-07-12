@@ -21,8 +21,12 @@ public class MissingOutputValue extends WorkflowNodeError {
     @Override
     public JsonObject toJson() {
         var obj = super.toJson();
-        addErrorMessage(obj, "The value for this connector was not found (check that all the outputs of the node have been set to a value in the code)");
         addOutputConnector(obj, outputConnector);
         return obj;
+    }
+
+    @Override
+    public String toString() {
+        return "The value for this connector was not found (check that all the outputs of the node have been set to a value in the code)";
     }
 }

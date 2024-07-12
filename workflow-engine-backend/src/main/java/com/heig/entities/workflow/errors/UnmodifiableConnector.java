@@ -20,8 +20,12 @@ public class UnmodifiableConnector extends WorkflowNodeError {
     @Override
     public JsonObject toJson() {
         var obj = super.toJson();
-        addErrorMessage(obj, "The connector is not modifiable but you tried to modify it");
         addConnector(obj, connector);
         return obj;
+    }
+
+    @Override
+    public String toString() {
+        return "The connector is not modifiable but you tried to modify it";
     }
 }

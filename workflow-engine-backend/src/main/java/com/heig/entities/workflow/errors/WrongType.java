@@ -28,13 +28,15 @@ public class WrongType extends WorkflowNodeError {
     @Override
     public JsonObject toJson() {
         var obj = super.toJson();
-        addErrorMessage(obj,
-            "The type returned by the node execution (%s) is not compatible with the type defined in the node (%s)".formatted(
-                WorkflowTypes.typeToString(actualType),
-                WorkflowTypes.typeToString(outputConnector.getType())
-            )
-        );
         addOutputConnector(obj, outputConnector);
         return obj;
+    }
+
+    @Override
+    public String toString() {
+        return "The type returned by the node execution (%s) is not compatible with the type defined in the node (%s)".formatted(
+            WorkflowTypes.typeToString(actualType),
+            WorkflowTypes.typeToString(outputConnector.getType())
+        );
     }
 }

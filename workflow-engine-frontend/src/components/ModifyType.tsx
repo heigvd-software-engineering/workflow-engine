@@ -1,11 +1,10 @@
 import { useCallback, useMemo, useState } from "react"
-import { AvailableTypeNames, newType, stringFromType, Type, typeFromString, UNDEF_TYPE } from "../utils/TypeUtils"
+import { availableChildren, AvailableTypeNames, newType, stringFromType, WType, typeFromString, UNDEF_TYPE } from "../utils/TypeUtils"
 import { Box, IconButton } from "@mui/material";
 import { Add, Close } from "@mui/icons-material";
-import { availableChildren } from "../types/Types";
 import LevelMenu from "./LevelMenu";
 
-function TypeSelector(props: { stack: number[], type?: Type, openChooseTypeMenu: (event: React.MouseEvent<HTMLElement>, currentStack: number[]) => void, setTypeStack: (stack: number[], type?: Type) => void, editMode: boolean }) {
+function TypeSelector(props: { stack: number[], type?: WType, openChooseTypeMenu: (event: React.MouseEvent<HTMLElement>, currentStack: number[]) => void, setTypeStack: (stack: number[], type?: WType) => void, editMode: boolean }) {
   if (props.type == undefined || props.type == UNDEF_TYPE) {
     if (!props.editMode) {
       return (<></>);
@@ -50,7 +49,7 @@ export default function ModifyType(props: { type: string, setType: (type: string
   const [currentStack, setCurrentStack] = useState<number[]>([]);
 
   const getAt = useCallback((stack: number[]) => {
-    const copyRealType: Type | undefined = realType == undefined ? undefined : JSON.parse(JSON.stringify(realType));
+    const copyRealType: WType | undefined = realType == undefined ? undefined : JSON.parse(JSON.stringify(realType));
     if (stack.length == 0) {
       return copyRealType;
     } else {
@@ -65,8 +64,8 @@ export default function ModifyType(props: { type: string, setType: (type: string
     }
   }, [realType]);
 
-  const setTypeStack = useCallback((stack: number[], type?: Type) => {
-    let copyRealType: Type | undefined = realType == undefined ? undefined : JSON.parse(JSON.stringify(realType));
+  const setTypeStack = useCallback((stack: number[], type?: WType) => {
+    let copyRealType: WType | undefined = realType == undefined ? undefined : JSON.parse(JSON.stringify(realType));
     if (stack.length == 0) {
       copyRealType = type;
     } else {

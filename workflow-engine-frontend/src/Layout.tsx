@@ -1,5 +1,5 @@
-import { AppBar, Box, Container, Toolbar, styled } from "@mui/material"
-import { ReactNode } from "react"
+import { AppBar, Box, Container, Toolbar, lighten, styled, useTheme } from "@mui/material"
+import { ReactNode, useEffect } from "react"
 import { Link } from "react-router-dom";
 
 type Props = {
@@ -19,6 +19,15 @@ const StyledMainLink = styled(NavbarLink)`
 `;
 
 export default function Layout(props: Props) {
+  const theme = useTheme();
+  const baseColor = theme.palette.background.paper;
+  const thumbColor = lighten(baseColor, 10 * 0.026);
+  const scrollbarColor = lighten(baseColor, 2 * 0.026);
+
+  useEffect(() =>{
+    document.body.style.setProperty("--scrollbarColor", thumbColor + " " + scrollbarColor);
+  }, [thumbColor, scrollbarColor])
+
   return (
     <Box sx={{padding: 1, display: "flex", flexFlow: "column", height: "100%"}}>
       <AppBar position="static" sx={{flex: "0 1 auto"}}>
