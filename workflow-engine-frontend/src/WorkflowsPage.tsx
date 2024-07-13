@@ -5,8 +5,8 @@ import { PrimitiveNodeTypeNode } from "./nodes/PrimitiveNode";
 import { useCallback, useMemo, useState } from "react";
 import { Button, Dialog, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, SelectChangeEvent, TextField } from "@mui/material";
 import { useAlert } from "./utils/alert/AlertUse";
-import { ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IDisconnect, IExecuteWorkflow, IRemoveNode, ISwitchTo, PrimitiveTypes, WorkflowGeneralErrors, WorkflowNodeErrors, WorkflowNotification } from "./types/Types";
-import { AddCircle, PlayArrow } from "@mui/icons-material";
+import { ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IDisconnect, IExecuteWorkflow, IRemoveNode, IStopWorkflow, ISwitchTo, PrimitiveTypes, State, WorkflowGeneralErrors, WorkflowNodeErrors, WorkflowNotification } from "./types/Types";
+import { AddCircle, PlayArrow, Stop } from "@mui/icons-material";
 import useWebSocket from "react-use-websocket";
 import { $enum } from "ts-enum-util";
 import { CodeNodeTypeNode } from "./nodes/CodeNode";
@@ -16,14 +16,16 @@ import ReactFlowGraph from "./components/ReactFlowGraph";
 import { useWorkflowData } from "./utils/workflowData/WorkflowDataUse";
 import WorkflowSocketProvider from "./utils/workflowSocket/WorkflowSocketProvider";
 import ErrorPopover from "./components/ErrorPopover";
+import StateIcon from "./components/StateIcon";
 
 export default function WorkflowsPage() {
   const [workflowGeneralErrors, setWorkflowGeneralErrors] = useState<WorkflowGeneralErrors[]>([]);
+  const [workflowState, setWorkflowState] = useState<State>();
 
   const { screenToFlowPosition } = useReactFlow();
   const { setNodes, setEdges, setWorkflows, setWorkflow, workflow, workflows } = useWorkflowData();
   const { alertSuccess, alertError, alertInfo } = useAlert();
-  const { sendJsonMessage } = useWebSocket<WorkflowNotification>("ws://localhost:8080/workflow", { share: false, shouldReconnect: () => false, 
+  const { sendJsonMessage } = useWebSocket<WorkflowNotification>("/ws", { share: false, shouldReconnect: () => false, 
     onOpen: () => {
       alertSuccess("Connected to the websocket"); 
     },
@@ -83,7 +85,8 @@ export default function WorkflowsPage() {
                   uuid: workflow.uuid,
                   sendToWebsocket: sendJsonMessage,
                   errors: [],
-                  execErrors: []
+                  execErrors: [],
+                  state: undefined
                 }
               };
             } else {
@@ -142,6 +145,10 @@ export default function WorkflowsPage() {
           setNodes(nodesCurrent => {
             const foundNode = nodesCurrent.find(n => n.id == notification.nodeState.nodeId.toString());
             if (foundNode != undefined) {
+              foundNode.data = {
+                ...foundNode.data
+              }
+
               foundNode.data.execErrors = [];
               if (notification.nodeState.state == "FAILED") {
                 if (notification.nodeState.execErrors) {
@@ -149,9 +156,8 @@ export default function WorkflowsPage() {
                 }
               }
 
-              foundNode.data = {
-                ...foundNode.data
-              }
+              foundNode.data.state = notification.nodeState.state;
+
               const posChanged: NodePositionChange = {
                 id: foundNode.id,
                 type: "position",
@@ -175,17 +181,20 @@ export default function WorkflowsPage() {
           }, {});
           setNodes(nodesCurrent => {
             return nodesCurrent.map(n => {
-              const data = nodesErrorsGroupedById[n.data.node.id];
-              n.data = {
+              const newN = {...n};
+              const data = nodesErrorsGroupedById[newN.data.node.id];
+              newN.data = {
                 ...n.data,
               };
-              n.data.errors = data ?? [];
-              return {...n};
+              newN.data.errors = data ?? [];
+              return newN;
             });
           });
 
           const generalErrors: WorkflowGeneralErrors[] = notification.workflowState.errors?.filter(e => e.type == "general") ?? [];
           setWorkflowGeneralErrors(generalErrors);
+
+          setWorkflowState(notification.workflowState.state);
           break;
         }
         case "error": {
@@ -206,6 +215,42 @@ export default function WorkflowsPage() {
 
   const [open, setOpen] = useState(false);
   const [workflowName, setWorkflowName] = useState("");
+
+  const addWorkflow = useCallback(() => {
+    const data: ICreateWorkflow = {
+      action: "createWorkflow",
+      name: workflowName
+    }
+    sendJsonMessage(data)
+    setOpen(false);
+  }, [workflowName, sendJsonMessage])
+
+  const startWorkflow = useCallback(() => {
+    if (workflow == undefined) {
+      alertError("No workflow selected !");
+      return;
+    }
+
+    const data: IExecuteWorkflow = {
+      action: "executeWorkflow",
+      uuid: workflow?.uuid
+    }
+    sendJsonMessage(data);
+  }, [workflow, sendJsonMessage, alertError]);
+
+  const stopWorkflow = useCallback(() => {
+    if (workflow == undefined) {
+      alertError("No workflow selected !");
+      return;
+    }
+
+    const data: IStopWorkflow = {
+      action: "stopWorkflow",
+      uuid: workflow?.uuid
+    }
+    sendJsonMessage(data);
+  }, [workflow, sendJsonMessage, alertError]);
+
   const farEnd = useMemo(() => {
     return (
       <>
@@ -218,30 +263,24 @@ export default function WorkflowsPage() {
             size="small"
             sx={{margin: 1}}
             />
-          <Button onClick={() => {
-            const data: ICreateWorkflow = {
-              action: "createWorkflow",
-              name: workflowName
-            }
-            sendJsonMessage(data)
-            setOpen(false);
-          }}>Add new workflow</Button>
+          <Button onClick={addWorkflow}>Add new workflow</Button>
         </Dialog>
         <ErrorPopover errors={workflowGeneralErrors.map(e => e.error)} size="medium" />
-        <IconButton size="medium" sx={{marginX: 1}} onClick={() => {
-          if (workflow == undefined) {
-            alertError("No workflow selected !");
-            return;
-          }
-
-          const data: IExecuteWorkflow = {
-            action: "executeWorkflow",
-            uuid: workflow?.uuid
-          }
-          sendJsonMessage(data);
-        }}>
-          <PlayArrow fontSize="inherit" color="success" />
-        </IconButton>
+        {workflowState && 
+          <>
+            <StateIcon state={workflowState} size="medium" />
+            {
+              workflowState == "RUNNING" ? 
+                <IconButton size="medium" sx={{marginX: 1}} onClick={stopWorkflow}>
+                  <Stop fontSize="inherit" color="error" />
+                </IconButton>
+                :
+                <IconButton size="medium" sx={{marginX: 1}} onClick={startWorkflow}>
+                  <PlayArrow fontSize="inherit" color="success" />
+                </IconButton>
+            }
+          </>
+        }
         <FormControl sx={{minWidth: 110, maxWidth: 200}} size="small">
           <InputLabel id="workflow-select">Wokflow</InputLabel>
           <Select
@@ -265,7 +304,7 @@ export default function WorkflowsPage() {
         </IconButton>
       </>
     )
-  }, [workflows, workflow, open, workflowName, workflowGeneralErrors, handleChange, sendJsonMessage, alertError])
+  }, [workflows, workflow, open, workflowGeneralErrors, handleChange, addWorkflow, startWorkflow, stopWorkflow, workflowName, workflowState])
 
   const onSelect = useCallback((variant: ContextMenuVariants | undefined, position: XYPosition, choice: string) => {
     if (variant == undefined) {

@@ -389,3 +389,40 @@ export type MissingOutputValueError = WorkflowNodeError & OutputConnectorError &
 export type NameAlreadyUsedError = WorkflowNodeError & ConnectorError & { errorType: "NameAlreadyUsed" }
 export type UnmodifiableConnectorError = WorkflowNodeError & ConnectorError & { errorType: "UnmodifiableConnector" }
 export type WrongTypeError = WorkflowNodeError & OutputConnectorError & { errorType: "WrongType" }
+
+//
+// Documentation
+//
+
+export type DocClassValue = TypedValue<"class", DocumentClass>;
+export type DocListValue = TypedValue<"list", ClassList>;
+export type DocErrorValue = TypedValue<"error", string>;
+
+export type DocResponse = DocClassValue | DocListValue | DocErrorValue;
+
+export type TypedValue<T extends string, U> = {
+  type: T,
+  value: U
+};
+
+//Class list
+export type ClassList = string[];
+
+//Document
+export type DocumentClass = {
+  name: string;
+  comment: string;
+  methods: DocumentMethod[];
+}
+
+export type DocumentMethod = {
+  name: string;
+  type: string;
+  comment: string;
+  params: DocumentParameter[];
+}
+
+export type DocumentParameter = {
+  name: string;
+  type: string;
+}

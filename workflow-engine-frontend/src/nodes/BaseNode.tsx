@@ -1,13 +1,16 @@
 import "./css/BaseNode.css"
 
 import { Handle, NodeProps, Position, useUpdateNodeInternals } from "@xyflow/react";
-import { Connector, ConnectorError, NodeType, WorkflowInstruction, WorkflowNodeErrors } from "../types/Types";
+import { Connector, ConnectorError, NodeType, State, WorkflowInstruction, WorkflowNodeErrors } from "../types/Types";
 import { ReactNode, useCallback, useEffect, useMemo } from "react";
 import { Box, Divider, SxProps } from "@mui/material";
 import { Theme } from "@emotion/react";
 import { CodeNodeTypeNode } from "./CodeNode";
 import { PrimitiveNodeTypeNode } from "./PrimitiveNode";
 import ErrorPopover from "../components/ErrorPopover";
+import StateIcon from "../components/StateIcon";
+import BasePopover from "../components/BasePopover";
+import ModifyType from "../components/ModifyType";
 
 export type BaseNodeData = {
   node: NodeType;
@@ -15,6 +18,7 @@ export type BaseNodeData = {
   sendToWebsocket: (data: WorkflowInstruction) => void;
   errors: WorkflowNodeErrors[];
   execErrors: WorkflowNodeErrors[];
+  state?: State;
 }
 
 export type BaseNodeTypeNode = CodeNodeTypeNode | PrimitiveNodeTypeNode;
@@ -65,7 +69,11 @@ export function BaseNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactN
     return (
       <Box key={c.id} sx={{display: "flex", flexDirection: isInput ? "row" : "row-reverse", alignItems: "center"}}>
         <Handle type={isInput ? "target" : "source"} className={c.type == "Flow" ? "flow" : ""} position={isInput ? Position.Left : Position.Right} id={c.id.toString()} />
-        <span className="noWrap">{c.name}</span>
+        <Box className="noWrap">
+          <BasePopover popover={<ModifyType type={c.type} setType={() => {}} editMode={false} />}>
+            {c.name}
+          </BasePopover>
+        </Box>
         <ErrorPopover errors={filtered.map(e => e.error)} />
       </Box>
     )
@@ -75,6 +83,7 @@ export function BaseNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactN
     <Box className="base-node" sx={{display: "flex", flexDirection: "column"}}>
       <Box sx={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 0.5}}>
         <Box sx={{...flexStyle, marginRight: "auto", justifyContent: "start"}}>
+          {props.data.state && <StateIcon state={props.data.state} />}
           <ErrorPopover errors={nodeErrors.map(e => e.error)} />
         </Box>
         <Box sx={{...flexStyle, justifyContent: "center", whiteSpace: "nowrap"}}>{props.title}</Box>

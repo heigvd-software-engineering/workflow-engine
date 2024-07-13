@@ -15,6 +15,7 @@ import { SnackbarProvider } from "notistack";
 import AlertProvider from "./utils/alert/AlertProvider.tsx";
 import { ReactFlowProvider } from "@xyflow/react";
 import WorkflowDataProvider from "./utils/workflowData/WorkflowDataProvider.tsx";
+import { Documentation } from "./Documentation.tsx";
 
 const router = createBrowserRouter([
   {
@@ -29,6 +30,16 @@ const router = createBrowserRouter([
         <WorkflowsPage />
       </WorkflowDataProvider>
     </ReactFlowProvider>
+  },
+  {
+    path: "/documentation",
+    element: <Documentation />,
+    children: [
+      {
+        path: ":type",
+        element: <Documentation />
+      }
+    ]
   },
   {
     path: "*",

@@ -105,7 +105,7 @@ public class WorkflowExecutor {
                     try {
                         return ResultOrWorkflowError.result(node.execute(args));
                     } catch (Exception e) {
-                        we.addError(new FailedExecution(node, e.getMessage()));
+                        we.addError(new FailedExecution(node, e.getMessage() == null ? "Unknown error" : e.getMessage()));
                         return ResultOrWorkflowError.<NodeArguments>error(we);
                     }
                 })
