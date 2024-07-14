@@ -15,8 +15,10 @@ import com.heig.entities.workflow.nodes.PrimitiveNode;
 import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.ResultOrStringError;
 import com.heig.services.WorkflowService;
+import io.smallrye.mutiny.tuples.Tuple2;
 import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.websocket.*;
@@ -42,6 +44,17 @@ public class WorkflowSocket {
 
     private final ConcurrentMap<Session, Optional<UUID>> sessions = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, Listener> listeners = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    public void init() {
+        WorkflowManager.loadExistingWorkflows(uuid -> {
+            var listener = new Listener(uuid);
+            return Tuple2.of(listener, we -> {
+                we.getWorkflow().addNodeModifiedListener(listener);
+                listeners.put(we.getWorkflow().getUUID(), listener);
+            });
+        });
+    }
 
     private class Listener implements WorkflowExecutionListener, NodeModifiedListener {
         private final UUID uuid;

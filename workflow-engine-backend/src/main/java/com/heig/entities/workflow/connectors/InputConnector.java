@@ -1,15 +1,47 @@
 package com.heig.entities.workflow.connectors;
 
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.heig.entities.workflow.nodes.Node;
+import com.heig.entities.workflow.types.WFlow;
 import com.heig.entities.workflow.types.WType;
+import com.heig.helpers.Utils;
+import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class InputConnector extends Connector {
+    public static class Deserializer extends ConnectorDeserializer<InputConnector> {
+        public Deserializer(Utils.Connexions connexionsToMake, int id, Node parent, String name, WType type, boolean isReadOnly) {
+            super(connexionsToMake, id, parent, name, type, isReadOnly);
+        }
+
+        @Override
+        public InputConnector deserialize(JsonElement value) throws JsonParseException {
+            var obj = value.getAsJsonObject();
+            InputConnector inputConnector;
+            if (type == WFlow.of()) {
+                inputConnector = new InputFlowConnector(id, parent, name);
+            } else {
+                inputConnector = new InputConnector(id, parent, name, type, isReadOnly);
+            }
+            if (obj.has("connectedTo")) {
+                var connectedTo = obj.get("connectedTo").getAsJsonObject();
+                var nodeId = connectedTo.get("nodeId").getAsInt();
+                var connectorId = connectedTo.get("connectorId").getAsInt();
+
+                connexionsToMake.connexions().add(new Utils.Connexion(new Utils.NodeConnector(parent.getId(), id), new Utils.NodeConnector(nodeId, connectorId)));
+            }
+            return inputConnector;
+        }
+    }
+
     private OutputConnector connectedTo = null;
 
     protected InputConnector(int id, @Nonnull Node parent, @Nonnull String name, @Nonnull WType type, boolean isReadOnly) {

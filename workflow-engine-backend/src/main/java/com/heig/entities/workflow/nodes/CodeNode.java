@@ -1,8 +1,11 @@
 package com.heig.entities.workflow.nodes;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.Workflow;
+import com.heig.helpers.CustomJsonDeserializer;
 import jakarta.annotation.Nonnull;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
@@ -12,6 +15,27 @@ import org.wildfly.common.annotation.NotNull;
 import java.util.Objects;
 
 public class CodeNode extends ModifiableNode {
+    public static class Deserializer extends Node.NodeDeserializer<CodeNode> {
+        public Deserializer(int id, Workflow workflow) {
+            super(id, workflow);
+        }
+
+        @Override
+        public CodeNode deserialize(JsonElement value) throws JsonParseException {
+            var obj = value.getAsJsonObject();
+
+            var code = obj.get("code").getAsString();
+            var language = Language.valueOf(obj.get("language").getAsString());
+
+            var codeNode = new CodeNode(id, workflow);
+
+            codeNode.code = code;
+            codeNode.language = language;
+
+            return codeNode;
+        }
+    }
+
     public enum Language {
         JS("js", "function main(arguments, returnArguments){%s}");
 

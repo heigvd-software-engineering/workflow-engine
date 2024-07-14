@@ -1,4 +1,4 @@
-package com.heig.entities.workflow.cache;
+package com.heig.entities.workflow.data;
 
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.OutputConnector;
@@ -6,34 +6,24 @@ import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.Utils;
-import io.smallrye.common.annotation.CheckReturnValue;
 import jakarta.annotation.Nonnull;
 import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class Cache {
-    private static final ConcurrentMap<UUID, Cache> instances = new ConcurrentHashMap<>();
-
-    private static final File cacheRootDirectory = new File(ConfigProvider.getConfig().getValue("cache_directory", String.class));
     private final File cacheDirectory;
 
-    private Cache(@Nonnull Workflow w) {
+    Cache(@Nonnull Workflow w, @Nonnull File rootDirectory) {
         Objects.requireNonNull(w);
+        Objects.requireNonNull(rootDirectory);
 
-        cacheDirectory = new File(cacheRootDirectory, w.getUUID().toString());
-        clear();
+        cacheDirectory = new File(rootDirectory, "cache");
         if (!cacheDirectory.mkdirs()) {
             throw new RuntimeException("Could not create workflow cache directory");
         }
-    }
-
-    public static Cache get(@Nonnull Workflow w) {
-        return instances.computeIfAbsent(w.getUUID(), (uuid) -> new Cache(w));
     }
 
     private File getNodeCacheDirectory(@Nonnull Node node) {
@@ -68,7 +58,6 @@ public class Cache {
         return Arrays.hashCode(lstHashCodes.toArray());
     }
 
-    @CheckReturnValue
     public synchronized void set(@Nonnull Node node, @Nonnull NodeArguments inputs, @Nonnull NodeArguments outputs) {
         Objects.requireNonNull(node);
         Objects.requireNonNull(inputs);
@@ -110,7 +99,7 @@ public class Cache {
                 //Here we cannot use output.getType() directly. Imagine the output type is an object but the real
                 //type of the argument is a file. We should do the processing for the file type and not the object type
                 var argumentType = WorkflowTypes.fromObject(argument);
-                WorkflowTypes.toFile(cacheFileType, WorkflowTypes.typeToString(argumentType));
+                Data.toFile(cacheFileType, WorkflowTypes.typeToString(argumentType));
                 argumentType.toFile(cacheFile, argument);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -147,7 +136,7 @@ public class Cache {
             var cacheFile = getOutputConnectorFile(nodeCacheDirectory, outputConnector, false);
             var cacheFileType = getOutputConnectorFile(nodeCacheDirectory, outputConnector, true);
             if (cacheFileType.exists() && cacheFile.exists()) {
-                var typeOpt = WorkflowTypes.fromFile(cacheFileType);
+                var typeOpt = Data.fromFile(cacheFileType);
                 if (typeOpt.isPresent() && typeOpt.get() instanceof String objTypeStr) {
                     var objType = WorkflowTypes.typeFromString(objTypeStr);
                     var obj = objType.fromFile(cacheFile);
@@ -164,9 +153,5 @@ public class Cache {
 
     public synchronized void clear() {
         Utils.deleteCompleteDirectory(cacheDirectory);
-    }
-
-    public static void clearAll() {
-        Utils.deleteCompleteDirectory(cacheRootDirectory);
     }
 }

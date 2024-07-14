@@ -1,20 +1,42 @@
 package com.heig.helpers;
 
-import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import io.smallrye.mutiny.tuples.Tuple4;
 import jakarta.annotation.Nonnull;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 
 public class Utils {
     private Utils() {}
+
+    public record NodeConnector(int nodeId, int connectorId) { }
+    public record Connexion(NodeConnector input, NodeConnector output) { }
+    public record Connexions(List<Connexion> connexions) { }
+
+    public static <T> JsonArray serializeList(CustomJsonSerializer<T> elementSerializer, List<T> lstT) {
+        var arr = new JsonArray();
+        for (var elem : lstT) {
+            arr.add(elementSerializer.serialize(elem));
+        }
+        return arr;
+    }
+
+    public static <T> List<T> deserializeList(CustomJsonDeserializer<T> elementDeserializer, JsonArray elementsArr) throws JsonParseException {
+        var lstT = new LinkedList<T>();
+        for (var elem : elementsArr) {
+            lstT.add(elementDeserializer.deserialize(elem));
+        }
+        return lstT;
+    }
 
     public static void deleteCompleteDirectory(@Nonnull File directory) {
         Objects.requireNonNull(directory);
@@ -29,32 +51,5 @@ public class Utils {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    public static JsonReader getJsonReader(@Nonnull String json) {
-        Objects.requireNonNull(json);
-
-        var g = new Gson();
-        return g.newJsonReader(new StringReader(json));
-    }
-
-    public static void readJsonArray(@Nonnull JsonReader jsonReader, @Nonnull ThrowingConsumer<JsonReader, IOException> consumer) throws IOException {
-        Objects.requireNonNull(jsonReader);
-        Objects.requireNonNull(consumer);
-
-        jsonReader.beginArray();
-        consumer.accept(jsonReader);
-        jsonReader.endArray();
-    }
-
-    public static void readJsonObject(@Nonnull JsonReader jsonReader, @Nonnull ThrowingConsumer<String, IOException> consumer) throws IOException {
-        Objects.requireNonNull(jsonReader);
-        Objects.requireNonNull(consumer);
-
-        jsonReader.beginObject();
-        while (jsonReader.hasNext()) {
-            consumer.accept(jsonReader.nextName());
-        }
-        jsonReader.endObject();
     }
 }

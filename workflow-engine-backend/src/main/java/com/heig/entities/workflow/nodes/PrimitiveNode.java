@@ -1,6 +1,8 @@
 package com.heig.entities.workflow.nodes;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.execution.NodeArguments;
@@ -12,6 +14,24 @@ import jakarta.annotation.Nonnull;
 import java.util.Objects;
 
 public class PrimitiveNode extends Node {
+    public static class Deserializer extends Node.NodeDeserializer<PrimitiveNode> {
+        public Deserializer(int id, Workflow workflow) {
+            super(id, workflow);
+        }
+
+        @Override
+        public PrimitiveNode deserialize(JsonElement value) throws JsonParseException {
+            var obj = value.getAsJsonObject();
+
+            var outputType = (WPrimitive) WorkflowTypes.typeFromString(obj.get("outputType").getAsString());
+
+            var primitiveNode = new PrimitiveNode(id, workflow, outputType);
+            primitiveNode.value = outputType.fromJsonElement(obj.get("value"));
+
+            return primitiveNode;
+        }
+    }
+
     public static final String OUTPUT_NAME = "output";
     private final OutputConnector output;
 
@@ -58,7 +78,9 @@ public class PrimitiveNode extends Node {
     @Override
     public JsonObject toJson() {
         var obj = super.toJson();
-        obj.add("value", ((WPrimitive) output.getType()).toJsonElement(value));
+        var outputType = (WPrimitive) output.getType();
+        obj.addProperty("outputType", WorkflowTypes.typeToString(outputType));
+        obj.add("value", outputType.toJsonElement(value));
         return obj;
     }
 }

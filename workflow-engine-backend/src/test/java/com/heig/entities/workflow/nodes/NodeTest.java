@@ -17,10 +17,10 @@ public class NodeTest {
 
         //Adding another flow connector should throw because the name exists already
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            scenario.nodeAdd.getConnectorBuilder().buildInputFlowConnector();
+            scenario.nodeAdd.getConnectorBuilder().buildInputFlowConnector(ModifiableNode.IN_FLOW);
         });
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            scenario.nodeAdd.getConnectorBuilder().buildOutputFlowConnector();
+            scenario.nodeAdd.getConnectorBuilder().buildOutputFlowConnector(ModifiableNode.OUT_FLOW);
         });
 
         /* We now directly link the "num1" node to the "stringRepeat" node
@@ -134,12 +134,12 @@ public class NodeTest {
         var n = w.getNodeBuilder().buildCodeNode();
 
         //We should not be able to remove the input flow connector
-        var iFlow = n.getInputs().values().stream().filter(c -> c.getName().equals(InputFlowConnector.CONNECTOR_NAME)).findFirst();
+        var iFlow = n.getInputs().values().stream().filter(c -> c.getName().equals(ModifiableNode.IN_FLOW)).findFirst();
         assert iFlow.isPresent();
         assert !n.removeInput(iFlow.get());
 
         //We should not be able to remove the output flow connector
-        var oFlow = n.getOutputs().values().stream().filter(c -> c.getName().equals(OutputFlowConnector.CONNECTOR_NAME)).findFirst();
+        var oFlow = n.getOutputs().values().stream().filter(c -> c.getName().equals(ModifiableNode.OUT_FLOW)).findFirst();
         assert oFlow.isPresent();
         assert !n.removeOutput(oFlow.get());
     }

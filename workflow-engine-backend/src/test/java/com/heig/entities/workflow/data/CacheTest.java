@@ -1,46 +1,54 @@
-package com.heig.cache;
+package com.heig.entities.workflow.data;
 
 import com.google.common.collect.Sets;
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.execution.WorkflowManager;
-import com.heig.entities.workflow.cache.Cache;
 import com.heig.entities.workflow.connectors.InputFlowConnector;
 import com.heig.entities.workflow.connectors.OutputFlowConnector;
-import com.heig.entities.workflow.execution.NodeArguments;
+import com.heig.entities.workflow.execution.*;
+import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.types.*;
 import com.heig.testHelpers.TestUtils;
 import groovy.lang.Tuple2;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
+import static com.heig.testHelpers.TestUtils.createWorkflowExecutor;
+
 @QuarkusTest
 public class CacheTest {
     @BeforeAll
     public static void init() {
-        //Delete everything if there was still a cache directory
-        Cache.clearAll();
+        //Delete everything if there was still a data directory
+        Data.clearAll();
     }
 
     @Test
     public void onlyOneInstance() {
-        var w = new Workflow("test-w");
-        assert Cache.get(w) == Cache.get(w);
+        var we = createWorkflowExecutor("test-w");
+        //The data gets created in the WorkflowExecutor constructor
+        assert Data.get(we.getWorkflow().getUUID()).isPresent();
+
+        assert Data.getOrCreate(we) == Data.getOrCreate(we);
+        assert Data.get(we.getWorkflow().getUUID()).isPresent();
+        assert Data.getOrCreate(we) == Data.get(we.getWorkflow().getUUID()).get();
     }
 
     @Test
     public void test() {
-        var w = new Workflow("test-w");
+        var we = createWorkflowExecutor("test-w");
+        var w = we.getWorkflow();
         var node = w.getNodeBuilder().buildCodeNode();
         node.getConnectorBuilder().buildOutputConnector("out", WCollection.of(WObject.of()));
 
-        var cache = Cache.get(w);
+        var cache = Data.getOrCreate(we).getCache();
         var arguments = new NodeArguments();
         arguments.putArgument("out", List.of(1, "a", (byte) 0));
-        arguments.putArgument(OutputFlowConnector.CONNECTOR_NAME, WFlow.of());
+        arguments.putArgument(ModifiableNode.OUT_FLOW, WFlow.of());
 
         //Set the value in the cache
         cache.set(node, new NodeArguments(), arguments);
@@ -62,9 +70,10 @@ public class CacheTest {
 
     @Test
     public void testCodeNode() {
-        var w = new Workflow("test-w");
+        var we = createWorkflowExecutor("test-w");
+        var w = we.getWorkflow();
         var node = w.getNodeBuilder().buildCodeNode();
-        var cache = Cache.get(w);
+        var cache = Data.getOrCreate(we).getCache();
         var arguments = new NodeArguments();
         var outInt = node.getConnectorBuilder().buildOutputConnector("outInt", WPrimitive.Integer);
         arguments.putArgument(outInt.getName(), 7);
@@ -76,7 +85,7 @@ public class CacheTest {
         arguments.putArgument(outMapIntString.getName(), Map.of(1, "test", 3, "test2"));
 
         //For the output it is needed to specify the flow in the arguments
-        arguments.putArgument(OutputFlowConnector.CONNECTOR_NAME, WFlow.of());
+        arguments.putArgument(ModifiableNode.OUT_FLOW, WFlow.of());
 
         //Set the value in the cache
         cache.set(node, new NodeArguments(), arguments);
@@ -102,7 +111,7 @@ public class CacheTest {
                 && map.get(3) instanceof String s2 && s2.equals("test2");
 
         var args = new NodeArguments();
-        args.putArgument(InputFlowConnector.CONNECTOR_NAME, WFlow.of());
+        args.putArgument(ModifiableNode.IN_FLOW, WFlow.of());
         assert cache.get(node, arguments).isPresent();
 
         //After clearing the cache for the workflow, we should not have any cache result anymore
@@ -112,14 +121,15 @@ public class CacheTest {
 
     @Test
     public void testSpecific() {
-        var w = new Workflow("test-w");
+        var we = createWorkflowExecutor("test-w");
+        var w = we.getWorkflow();
         var node = w.getNodeBuilder().buildCodeNode();
         node.getConnectorBuilder().buildOutputConnector("out", WCollection.of(WPrimitive.String));
 
-        var cache = Cache.get(w);
+        var cache = Data.getOrCreate(we).getCache();
         var arguments = new NodeArguments();
         arguments.putArgument("out", Sets.newHashSet("test1", "test2"));
-        arguments.putArgument(OutputFlowConnector.CONNECTOR_NAME, WFlow.of());
+        arguments.putArgument(ModifiableNode.OUT_FLOW, WFlow.of());
 
         //Set the value in the cache
         cache.set(node, new NodeArguments(), arguments);
@@ -162,7 +172,7 @@ public class CacheTest {
         assert TestUtils.isCacheValid(
             Map.of(
                 Tuple2.tuple("in", WPrimitive.Integer), Tuple2.tuple(1, 1),
-                Tuple2.tuple(InputFlowConnector.CONNECTOR_NAME, null), Tuple2.tuple(WFlow.of(), WFlow.of())
+                Tuple2.tuple(ModifiableNode.IN_FLOW, null), Tuple2.tuple(WFlow.of(), WFlow.of())
             )
         );
 
@@ -170,7 +180,7 @@ public class CacheTest {
         assert !TestUtils.isCacheValid(
             Map.of(
                 Tuple2.tuple("in", WPrimitive.Integer), Tuple2.tuple(1, 1),
-                Tuple2.tuple(InputFlowConnector.CONNECTOR_NAME, null), Tuple2.tuple(null, WFlow.of())
+                Tuple2.tuple(ModifiableNode.IN_FLOW, null), Tuple2.tuple(null, WFlow.of())
             )
         );
 
@@ -191,7 +201,7 @@ public class CacheTest {
 
     @AfterAll
     public static void delete() {
-        //Delete everything if there was still a cache directory
-        Cache.clearAll();
+        //Delete everything if there was still a data directory
+        Data.clearAll();
     }
 }

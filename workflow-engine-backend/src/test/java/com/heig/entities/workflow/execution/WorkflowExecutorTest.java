@@ -1,15 +1,23 @@
 package com.heig.entities.workflow.execution;
 
-import com.heig.entities.workflow.nodes.Node;
+import com.heig.entities.workflow.data.Data;
 import com.heig.testHelpers.TestScenario;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.annotation.Nonnull;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
 
 @QuarkusTest
 public class WorkflowExecutorTest {
+    @BeforeAll
+    public static void init() {
+        //Delete everything if there was still a data directory
+        Data.clearAll();
+    }
+
     @Test
     public void scenario() throws InterruptedException {
         var scenario = new TestScenario();
@@ -37,5 +45,11 @@ public class WorkflowExecutorTest {
 
         //After the workflow execution, we clear the cache
         executor.clearCache();
+    }
+
+    @AfterAll
+    public static void delete() {
+        //Delete everything if there was still a data directory
+        Data.clearAll();
     }
 }

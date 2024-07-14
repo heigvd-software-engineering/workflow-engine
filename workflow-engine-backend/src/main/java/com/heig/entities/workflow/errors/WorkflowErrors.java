@@ -1,5 +1,11 @@
 package com.heig.entities.workflow.errors;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.heig.helpers.CustomJsonDeserializer;
+import com.heig.helpers.CustomJsonSerializer;
+import com.heig.helpers.Utils;
 import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
 

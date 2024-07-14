@@ -3,6 +3,7 @@ package com.heig.entities.workflow.nodes;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.heig.entities.workflow.connectors.Connector;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.Workflow;
@@ -10,6 +11,10 @@ import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.types.WPrimitive;
 import com.heig.entities.workflow.types.WType;
+import com.heig.helpers.CustomJsonDeserializer;
+import com.heig.helpers.CustomJsonSerializer;
+import com.heig.helpers.Utils;
+import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
 import java.util.*;
@@ -19,6 +24,68 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 public abstract class Node {
+    public static abstract class NodeDeserializer<T> implements CustomJsonDeserializer<T> {
+        protected int id;
+        protected Workflow workflow;
+        public NodeDeserializer(int id, Workflow workflow) {
+            this.id = id;
+            this.workflow = workflow;
+        }
+    }
+
+    public static class Serializer implements CustomJsonSerializer<Node> {
+        @Override
+        public JsonElement serialize(Node value) {
+            var obj = value.toJson();
+            obj.addProperty("currentId", value.currentId.get());
+            return obj;
+        }
+    }
+
+    public static class Deserializer implements CustomJsonDeserializer<Node> {
+        private final Workflow workflow;
+        private final Utils.Connexions connexionsToMake;
+        public Deserializer(Utils.Connexions connexionsToMake, Workflow workflow) {
+            this.connexionsToMake = connexionsToMake;
+            this.workflow = workflow;
+        }
+
+        @Override
+        public Node deserialize(JsonElement value) throws JsonParseException {
+            var obj = value.getAsJsonObject();
+            var currentId = obj.get("currentId").getAsInt();
+            var id = obj.get("id").getAsInt();
+            var isDeterministic = obj.get("isDeterministic").getAsBoolean();
+            var timeout = obj.get("timeout").getAsInt();
+
+            var nodeType = obj.get("nodeType").getAsString();
+            var deserializer = switch (nodeType) {
+                case "CodeNode":
+                    yield new CodeNode.Deserializer(id, workflow);
+                case "PrimitiveNode":
+                    yield new PrimitiveNode.Deserializer(id, workflow);
+                default:
+                    throw new RuntimeException("The node type '%s' was not found".formatted(nodeType));
+            };
+
+            var node = deserializer.deserialize(obj);
+
+            //Only used when loading workflow from disk. This is to avoid having connectors already created in the node constructor and then trying to add the same
+            node.removeAllConnectors();
+
+            var inputs = Utils.deserializeList(new Connector.Deserializer(connexionsToMake, node, true), obj.get("inputs").getAsJsonArray());
+            var outputs = Utils.deserializeList(new Connector.Deserializer(connexionsToMake, node, false), obj.get("outputs").getAsJsonArray());
+
+            node.setConnectors(
+                inputs.stream().map(c -> (InputConnector) c).toList(),
+                outputs.stream().map(c -> (OutputConnector) c).toList()
+            );
+            node.setInfos(currentId, isDeterministic, timeout);
+
+            return node;
+        }
+    }
+
     public static class Builder {
         private final Workflow workflow;
         public Builder(@Nonnull Workflow workflow) {
@@ -44,6 +111,31 @@ public abstract class Node {
     private final Workflow workflow;
     private final ConcurrentMap<Integer, InputConnector> inputs = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, OutputConnector> outputs = new ConcurrentHashMap<>();
+
+    //region Deserialization
+
+    private void setInfos(int currentId, boolean isDeterministic, int timeout) {
+        this.currentId.set(currentId);
+        this.isDeterministic = isDeterministic;
+        this.timeout = timeout;
+    }
+
+    private void setConnectors(List<InputConnector> inputs, List<OutputConnector> outputs) {
+        for (var inputConnector : inputs) {
+            this.inputs.put(inputConnector.getId(), inputConnector);
+        }
+
+        for (var outputConnector : outputs) {
+            this.outputs.put(outputConnector.getId(), outputConnector);
+        }
+    }
+
+    private void removeAllConnectors() {
+        this.inputs.clear();
+        this.outputs.clear();
+    }
+
+    //endregion
 
     protected Node(int id, @Nonnull Workflow workflow, boolean areConnectorsReadOnly) {
         if (id < 0) {

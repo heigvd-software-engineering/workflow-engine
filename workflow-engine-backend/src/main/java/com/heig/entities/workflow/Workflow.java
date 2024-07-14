@@ -1,9 +1,17 @@
 package com.heig.entities.workflow;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.errors.*;
 import com.heig.entities.workflow.nodes.Node;
+import com.heig.helpers.CustomJsonDeserializer;
+import com.heig.helpers.CustomJsonSerializer;
+import com.heig.helpers.Utils;
+import io.smallrye.mutiny.tuples.Tuple2;
 import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
@@ -18,11 +26,75 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 public class Workflow {
+    public static class Serializer implements CustomJsonSerializer<Workflow> {
+        @Override
+        public JsonElement serialize(Workflow value) {
+            var obj = new JsonObject();
+            obj.addProperty("currentId", value.currentId.get());
+            obj.add("nodes", Utils.serializeList(new Node.Serializer(), value.nodes.values().stream().toList()));
+            obj.addProperty("uuid", value.getUUID().toString());
+            obj.addProperty("name", value.getName());
+            return obj;
+        }
+    }
+
+    public static class Deserializer implements CustomJsonDeserializer<Workflow> {
+        @Override
+        public Workflow deserialize(JsonElement value) throws JsonParseException {
+            var obj = value.getAsJsonObject();
+            var currentId = obj.get("currentId").getAsInt();
+            var uuid = obj.get("uuid").getAsString();
+            var name = obj.get("name").getAsString();
+            var workflow = new Workflow(currentId, uuid, name);
+
+            Utils.Connexions connexionsToMake = new Utils.Connexions(new LinkedList<>());
+            var nodes = Utils.deserializeList(new Node.Deserializer(connexionsToMake, workflow), obj.get("nodes").getAsJsonArray());
+            workflow.setNodes(nodes);
+
+            for (var connexion : connexionsToMake.connexions()) {
+                var outputConnectorOpt = workflow
+                    .getNode(connexion.output().nodeId())
+                    .flatMap(n -> n.getOutput(connexion.output().connectorId()));
+                if (outputConnectorOpt.isEmpty()) {
+                    continue;
+                }
+
+                var inputConnectorOpt = workflow
+                    .getNode(connexion.input().nodeId())
+                    .flatMap(n -> n.getInput(connexion.input().connectorId()));
+                if (inputConnectorOpt.isEmpty()) {
+                    continue;
+                }
+
+                workflow.connect(outputConnectorOpt.get(), inputConnectorOpt.get());
+            }
+
+            return workflow;
+        }
+    }
+
     private final AtomicInteger currentId = new AtomicInteger(0);
     private final ConcurrentMap<Integer, Node> nodes = new ConcurrentHashMap<>();
     private final Node.Builder nodeBuilder = new Node.Builder(this);
     private final UUID uuid;
     private final String name;
+    private final ConcurrentHashSet<NodeModifiedListener> listeners = new ConcurrentHashSet<>();
+
+    //region Deserialization
+
+    private Workflow(int currentId, String uuid, String name) {
+        this.uuid = UUID.fromString(uuid);
+        this.name = name;
+        this.currentId.set(currentId);
+    }
+
+    private void setNodes(List<Node> nodes) {
+        for (var node: nodes) {
+            this.nodes.put(node.getId(), node);
+        }
+    }
+
+    //endregion
 
     public Workflow(@Nonnull String name) {
         this.uuid = UUID.randomUUID();
@@ -169,7 +241,6 @@ public class Workflow {
         return Optional.empty();
     }
 
-    private final ConcurrentHashSet<NodeModifiedListener> listeners = new ConcurrentHashSet<>();
     public void addNodeModifiedListener(@Nonnull NodeModifiedListener consumer) {
         Objects.requireNonNull(consumer);
         listeners.add(consumer);

@@ -1,10 +1,15 @@
 package com.heig.entities.workflow.connectors;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.heig.entities.workflow.nodes.Node;
+import com.heig.entities.workflow.types.WFlow;
 import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WType;
+import com.heig.helpers.Utils;
+import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collections;
@@ -15,6 +20,23 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class OutputConnector extends Connector {
+    public static class Deserializer extends ConnectorDeserializer<OutputConnector> {
+        public Deserializer(Utils.Connexions connexionsToMake, int id, Node parent, String name, WType type, boolean isReadOnly) {
+            super(connexionsToMake, id, parent, name, type, isReadOnly);
+        }
+
+        @Override
+        public OutputConnector deserialize(JsonElement value) throws JsonParseException {
+            OutputConnector outputConnector;
+            if (type == WFlow.of()) {
+                outputConnector = new OutputFlowConnector(id, parent, name);
+            } else {
+                outputConnector = new OutputConnector(id, parent, name, type, isReadOnly);
+            }
+            return outputConnector;
+        }
+    }
+
     private final List<InputConnector> connectedTo = new LinkedList<>();
 
     protected OutputConnector(int id, @Nonnull Node parent, @Nonnull String name, @Nonnull WType type, boolean isReadOnly) {

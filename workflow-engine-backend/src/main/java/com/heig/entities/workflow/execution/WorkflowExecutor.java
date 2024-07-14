@@ -1,25 +1,48 @@
 package com.heig.entities.workflow.execution;
 
+import com.google.gson.*;
 import com.heig.entities.workflow.NodeModifiedListener;
-import com.heig.entities.workflow.cache.Cache;
+import com.heig.entities.workflow.data.Cache;
+import com.heig.entities.workflow.data.Data;
 import com.heig.entities.workflow.errors.*;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.types.WorkflowTypes;
-import com.heig.helpers.ResultOrStringError;
+import com.heig.helpers.CustomJsonDeserializer;
+import com.heig.helpers.CustomJsonSerializer;
 import com.heig.helpers.ResultOrWorkflowError;
 import jakarta.annotation.Nonnull;
-import org.graalvm.polyglot.PolyglotException;
 
 import java.awt.*;
-import java.util.LinkedList;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class WorkflowExecutor {
+    public static class Serializer implements CustomJsonSerializer<WorkflowExecutor> {
+        @Override
+        public JsonElement serialize(WorkflowExecutor workflowExecutor) {
+            var obj = new JsonObject();
+            obj.add("workflow", new Workflow.Serializer().serialize(workflowExecutor.getWorkflow()));
+            return obj;
+        }
+    }
+
+    public static class Deserializer implements CustomJsonDeserializer<WorkflowExecutor> {
+        private WorkflowExecutionListener listener;
+        public Deserializer(@Nonnull WorkflowExecutionListener listener) {
+            Objects.requireNonNull(listener);
+            this.listener = listener;
+        }
+
+        @Override
+        public WorkflowExecutor deserialize(JsonElement jsonElement) throws JsonParseException {
+            var obj = jsonElement.getAsJsonObject();
+            var workflow = new Workflow.Deserializer().deserialize(obj.get("workflow"));
+            return new WorkflowExecutor(workflow, listener);
+        }
+    }
+
     private final Object stateLock = new Object();
     private State state = State.IDLE;
     private final Workflow workflow;
@@ -33,7 +56,7 @@ public class WorkflowExecutor {
     WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener) {
         this.workflow = Objects.requireNonNull(workflow);
         this.listener = Objects.requireNonNull(listener);
-        this.cache = Cache.get(workflow);
+        this.cache = Data.getOrCreate(this).getCache();
 
         this.nodeModifiedListener = node -> {
             var state = getStateFor(node);
@@ -320,5 +343,9 @@ public class WorkflowExecutor {
     public void delete() {
         clearCache();
         workflow.removeNodeModifiedListener(nodeModifiedListener);
+    }
+
+    public Map<Integer, NodeState> getNodeStates() {
+        return Collections.unmodifiableMap(states);
     }
 }

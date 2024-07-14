@@ -94,25 +94,6 @@ public class WorkflowTypes {
         return WObject.of();
     }
 
-    public static void toFile(@Nonnull File output, @Nonnull Object value) {
-        Objects.requireNonNull(output);
-        Objects.requireNonNull(value);
-        try (var oos = new ObjectOutputStream(new FileOutputStream(output))) {
-            oos.writeObject(value);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static Optional<Object> fromFile(@Nonnull File input) {
-        Objects.requireNonNull(input);
-        try (var ois = new ObjectInputStream(new FileInputStream(input))) {
-            return Optional.ofNullable(ois.readObject());
-        } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
-
     public static WType typeFromString(@Nonnull String strType) {
         Objects.requireNonNull(strType);
         return typeFromString(new StringBuilder(strType));
