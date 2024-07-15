@@ -4,6 +4,7 @@ import jakarta.annotation.Nonnull;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class WorkflowTypes {
@@ -43,6 +44,37 @@ public class WorkflowTypes {
             throw new IllegalArgumentException("Collection contains non-iterable type !");
         }
         return wIterableList.stream();
+    }
+
+    /**
+     * Used to have the same type for every execution.
+     * Example before the function was introduced: 1st exec: PolyglotMap / 2nd exec: HashMap
+     * Example now : 1st exec: HashMap / 2nd exec: HashMap
+     * The PolyglotMap is transformed to a PolyglotMap before being stored in the cache or being transferred to another node
+     * @param o The object to fix the type
+     * @return The fixed object
+     */
+    public static Object fixObject(@Nonnull Object o) {
+        Objects.requireNonNull(o);
+        if (o instanceof Collection<?> collection) {
+            return collection
+                .stream()
+                .map(WorkflowTypes::fixObject)
+                .collect(Collectors.toCollection(LinkedList::new));
+        }
+        if (o instanceof Map<?, ?> map) {
+            return map
+                .entrySet()
+                .stream()
+                .map((e) ->
+                    new AbstractMap.SimpleEntry<>(
+                        fixObject(e.getKey()),
+                        fixObject(e.getValue())
+                    )
+                )
+                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+        }
+        return o;
     }
 
     public static WType fromObject(@Nonnull Object o) {

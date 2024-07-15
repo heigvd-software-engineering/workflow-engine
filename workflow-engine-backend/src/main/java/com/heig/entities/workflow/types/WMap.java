@@ -3,8 +3,11 @@ package com.heig.entities.workflow.types;
 import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
+import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 

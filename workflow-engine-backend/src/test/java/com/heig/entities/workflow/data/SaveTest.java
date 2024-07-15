@@ -64,10 +64,11 @@ public class SaveTest {
     public void empty() throws InterruptedException {
         var w = new Workflow("test");
         var we = TestUtils.createWorkflowExecutor(w);
-        var save = Data.getOrCreate(we).getSave();
+        var data = Data.getOrCreate(we);
+        var save = data.getSave();
 
         save.save();
-        var loaded = save.load(new WorkflowExecutionListener() {
+        var loaded = save.load(data, new WorkflowExecutionListener() {
             @Override
             public void workflowStateChanged(@Nonnull WorkflowExecutor we) { }
 
@@ -83,10 +84,11 @@ public class SaveTest {
     public void scenario() throws InterruptedException {
         var scenario = new TestScenario();
         var we = waitForExecutionEnd(scenario.w);
-        var save = Data.getOrCreate(we).getSave();
+        var data = Data.getOrCreate(we);
+        var save = data.getSave();
 
         save.save();
-        var loaded = save.load(new WorkflowExecutionListener() {
+        var loaded = save.load(data, new WorkflowExecutionListener() {
             @Override
             public void workflowStateChanged(@Nonnull WorkflowExecutor we) { }
 

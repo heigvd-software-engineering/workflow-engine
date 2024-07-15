@@ -15,23 +15,30 @@ public class Save {
     private final File saveDirectory;
     private final WorkflowExecutor workflowExecutor;
 
-    private static final String saveFileName = "workflowExecutor.obj";
+    private static final String saveFileName = "workflowExecutor.json";
 
-    Save(@Nonnull WorkflowExecutionListener listener, @Nonnull File rootDirectory) {
-        this.saveDirectory = rootDirectory;
+    private File getSaveDirectory(File rootDirectory) {
+        var saveDirectory = new File(rootDirectory, "save");
+        if (!saveDirectory.exists() && !saveDirectory.mkdirs()) {
+            throw new RuntimeException("Could not create workflow save directory");
+        }
+        return saveDirectory;
+    }
 
-        this.workflowExecutor = load(listener).orElseThrow(() -> new RuntimeException("The save for this workflow was not found"));
+    Save(@Nonnull Data data, @Nonnull WorkflowExecutionListener listener, @Nonnull File rootDirectory) {
+        this.saveDirectory = getSaveDirectory(rootDirectory);
+        this.workflowExecutor = load(data, listener).orElseThrow(() -> new RuntimeException("The save for this workflow was not found"));
     }
 
     Save(@Nonnull WorkflowExecutor we, @Nonnull File rootDirectory) {
         Objects.requireNonNull(we);
         Objects.requireNonNull(rootDirectory);
 
-        saveDirectory = new File(rootDirectory, "save");
-        if (!saveDirectory.mkdirs()) {
-            throw new RuntimeException("Could not create workflow save directory");
-        }
+        saveDirectory = getSaveDirectory(rootDirectory);
         workflowExecutor = we;
+
+        //If the Save object was created using a WorkflowExecutor directly, we save the object
+        save();
     }
 
     public void save() {
@@ -55,7 +62,8 @@ public class Save {
         }
     }
 
-    public Optional<WorkflowExecutor> load(@Nonnull WorkflowExecutionListener listener) {
+    public Optional<WorkflowExecutor> load(@Nonnull Data data, @Nonnull WorkflowExecutionListener listener) {
+        Objects.requireNonNull(data);
         Objects.requireNonNull(listener);
 
         var file = new File(saveDirectory, saveFileName);
@@ -63,7 +71,7 @@ public class Save {
             return Optional.empty();
         }
 
-        var deserializer = new WorkflowExecutor.Deserializer(listener);
+        var deserializer = new WorkflowExecutor.Deserializer(data, listener);
 
         try (var reader = new BufferedReader(new FileReader(file))) {
             var json = reader.readLine();

@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.heig.entities.workflow.NodeModifiedListener;
 import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.Connector;
+import com.heig.entities.workflow.data.Data;
 import com.heig.entities.workflow.execution.*;
 import com.heig.entities.workflow.nodes.CodeNode;
 import com.heig.entities.workflow.nodes.ModifiableNode;
@@ -139,6 +140,10 @@ public class WorkflowSocket {
                     service.getWorkflowExecutor(obj.get("uuid")).continueWith(we ->
                         service.executeWorkflow(we)
                     );
+                case "saveWorkflow" ->
+                    service.getWorkflowExecutor(obj.get("uuid")).continueWith(we ->
+                        service.saveWorkflowExecutor(we)
+                    );
                 case "removeWorkflow" ->
                     service.getWorkflowExecutor(obj.get("uuid")).continueWith(we -> {
                         var listenerToRemove = listeners.remove(we.getWorkflow().getUUID());
@@ -180,11 +185,11 @@ public class WorkflowSocket {
                         })
                     );
                 case "removeNode" ->
-                    service.getWorkflow(obj.get("uuid")).continueWith(w ->
-                        service.getNode(w, obj.get("nodeId"), Node.class).continueWith(n ->
-                            service.removeNode(w, n).continueWith(v -> {
+                    service.getWorkflowExecutor(obj.get("uuid")).continueWith(we ->
+                        service.getNode(we.getWorkflow(), obj.get("nodeId"), Node.class).continueWith(n ->
+                            service.removeNode(we, n).continueWith(v -> {
                                 //Notify node removed
-                                listeners.get(w.getUUID()).notifyNodeRemoved(n);
+                                listeners.get(we.getWorkflow().getUUID()).notifyNodeRemoved(n);
                                 return ResultOrStringError.result(null);
                             })
                         )

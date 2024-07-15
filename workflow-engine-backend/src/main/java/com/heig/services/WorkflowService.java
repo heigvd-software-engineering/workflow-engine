@@ -2,6 +2,7 @@ package com.heig.services;
 
 import com.google.gson.JsonElement;
 import com.heig.entities.workflow.Workflow;
+import com.heig.entities.workflow.data.Data;
 import com.heig.entities.workflow.execution.State;
 import com.heig.entities.workflow.execution.WorkflowExecutionListener;
 import com.heig.entities.workflow.execution.WorkflowExecutor;
@@ -115,6 +116,18 @@ public class WorkflowService {
         return ResultOrStringError.result(null);
     }
 
+    public synchronized ResultOrStringError<Void> saveWorkflowExecutor(@Nonnull WorkflowExecutor workflowExecutor) {
+        Objects.requireNonNull(workflowExecutor);
+        return ensureNotRunning(workflowExecutor).continueWith(v -> {
+            try {
+                Data.getOrCreate(workflowExecutor).getSave().save();
+                return ResultOrStringError.result(null);
+            } catch (Exception e) {
+                return ResultOrStringError.error("Failed to save workflow: " + e.getMessage());
+            }
+        });
+    }
+
     public synchronized ResultOrStringError<Void> removeWorkflowExecutor(@Nonnull WorkflowExecutor workflowExecutor) {
         Objects.requireNonNull(workflowExecutor);
         if (!WorkflowManager.removeWorkflowExecutor(workflowExecutor)) {
@@ -154,14 +167,15 @@ public class WorkflowService {
         });
     }
 
-    public synchronized ResultOrStringError<Void> removeNode(@Nonnull Workflow workflow, @Nonnull Node node) {
-        Objects.requireNonNull(workflow);
+    public synchronized ResultOrStringError<Void> removeNode(@Nonnull WorkflowExecutor workflowExecutor, @Nonnull Node node) {
+        Objects.requireNonNull(workflowExecutor);
         Objects.requireNonNull(node);
 
-        return ensureNotRunning(workflow).continueWith(v -> {
-            if (!workflow.removeNode(node)) {
+        return ensureNotRunning(workflowExecutor).continueWith(v -> {
+            if (!workflowExecutor.getWorkflow().removeNode(node)) {
                 return ResultOrStringError.error("Failed to remove node");
             }
+            workflowExecutor.removeStateFor(node);
             return ResultOrStringError.result(null);
         });
     }

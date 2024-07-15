@@ -19,32 +19,33 @@ public class Data {
 
     private final Cache cache;
     private final Save save;
+    private final File dataDirectory;
 
     private Data(@Nonnull UUID workflowUUID, @Nonnull WorkflowExecutionListener listener) {
         Objects.requireNonNull(workflowUUID);
         Objects.requireNonNull(listener);
 
-        var dataDirectory = new File(dataRootDirectory, workflowUUID.toString());
+        dataDirectory = new File(dataRootDirectory, workflowUUID.toString());
         if (!dataDirectory.exists()) {
             throw new RuntimeException("Folder containing the save data doesn't exist");
         }
 
-        save = new Save(listener, dataDirectory);
+        save = new Save(this, listener, dataDirectory);
         cache = new Cache(save.getWorkflowExecutor().getWorkflow(), dataDirectory);
     }
 
     private Data(@Nonnull WorkflowExecutor we) {
         Objects.requireNonNull(we);
 
-        var dataDirectory = new File(dataRootDirectory, we.getWorkflow().getUUID().toString());
+        dataDirectory = new File(dataRootDirectory, we.getWorkflow().getUUID().toString());
         if (!dataDirectory.exists()) {
             if (!dataDirectory.mkdirs()) {
                 throw new RuntimeException("Could not create workflow data directory");
             }
         }
 
-        cache = new Cache(we.getWorkflow(), dataDirectory);
         save = new Save(we, dataDirectory);
+        cache = new Cache(we.getWorkflow(), dataDirectory);
     }
 
     public Cache getCache() {
@@ -53,6 +54,10 @@ public class Data {
 
     public Save getSave() {
         return save;
+    }
+
+    public void delete() {
+        Utils.deleteCompleteDirectory(dataDirectory);
     }
 
     public static void clearAll() {
@@ -64,7 +69,9 @@ public class Data {
     }
 
     public static Data loadFromSave(@Nonnull UUID workflowUUID, @Nonnull WorkflowExecutionListener listener) {
-        return instances.put(workflowUUID, new Data(workflowUUID, listener));
+        var data = new Data(workflowUUID, listener);
+        instances.put(workflowUUID, data);
+        return data;
     }
 
     public static Optional<Data> get(@Nonnull UUID workflowUUID) {

@@ -3,10 +3,10 @@ import Layout from "./Layout";
 import '@xyflow/react/dist/style.css';
 import { PrimitiveNodeTypeNode } from "./nodes/PrimitiveNode";
 import { useCallback, useMemo, useState } from "react";
-import { Button, Dialog, DialogTitle, FormControl, IconButton, InputLabel, MenuItem, Select, SelectChangeEvent, TextField } from "@mui/material";
+import { Box, Button, Dialog, DialogTitle, Divider, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, SelectChangeEvent, TextField } from "@mui/material";
 import { useAlert } from "./utils/alert/AlertUse";
-import { ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IDisconnect, IExecuteWorkflow, IRemoveNode, IStopWorkflow, ISwitchTo, PrimitiveTypes, State, WorkflowGeneralErrors, WorkflowNodeErrors, WorkflowNotification } from "./types/Types";
-import { AddCircle, PlayArrow, Stop } from "@mui/icons-material";
+import { ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IDisconnect, IExecuteWorkflow, IRemoveNode, IRemoveWorkflow, ISaveWorkflow, IStopWorkflow, ISwitchTo, PrimitiveTypes, State, WorkflowGeneralErrors, WorkflowNodeErrors, WorkflowNotification } from "./types/Types";
+import { AddCircle, Delete, PlayArrow, Save, Stop } from "@mui/icons-material";
 import useWebSocket from "react-use-websocket";
 import { $enum } from "ts-enum-util";
 import { CodeNodeTypeNode } from "./nodes/CodeNode";
@@ -25,6 +25,22 @@ export default function WorkflowsPage() {
   const { screenToFlowPosition } = useReactFlow();
   const { setNodes, setEdges, setWorkflows, setWorkflow, workflow, workflows } = useWorkflowData();
   const { alertSuccess, alertError, alertInfo } = useAlert();
+
+  const switchedTo = useCallback((uuid: string | undefined) => {
+    if (uuid == undefined) {
+      setWorkflow(undefined);
+    } else {
+      setWorkflows(workflowsCurrent => {
+        setWorkflow(workflowsCurrent.find(w => w.uuid == uuid));
+        return workflowsCurrent;
+      })
+    }
+    setNodes([]);
+    setEdges([]);
+    setWorkflowState(undefined);
+    setWorkflowGeneralErrors([]);
+  }, [setEdges, setNodes, setWorkflow, setWorkflows]);
+
   const { sendJsonMessage } = useWebSocket<WorkflowNotification>("/ws", { share: false, shouldReconnect: () => false, 
     onOpen: () => {
       alertSuccess("Connected to the websocket"); 
@@ -36,12 +52,7 @@ export default function WorkflowsPage() {
       const notification: WorkflowNotification = JSON.parse(lastJsonMessage.data);
       switch (notification.notificationType) {
         case "switchedTo": {
-          setWorkflows(workflowsCurrent => {
-            setWorkflow(workflowsCurrent.find(w => w.uuid == notification.uuid));
-            return workflowsCurrent;
-          })
-          setNodes([]);
-          setEdges([]);
+          switchedTo(notification.uuid);
           break;
         }
         case "workflows": {
@@ -53,6 +64,9 @@ export default function WorkflowsPage() {
           break;
         }
         case "deletedWorkflow": {
+          if (workflow?.uuid == notification.workflowUUID) {
+            switchedTo(undefined);
+          }
           setWorkflows(w => w.filter(rem => rem.uuid != notification.workflowUUID))
           break;
         }
@@ -233,7 +247,7 @@ export default function WorkflowsPage() {
 
     const data: IExecuteWorkflow = {
       action: "executeWorkflow",
-      uuid: workflow?.uuid
+      uuid: workflow.uuid
     }
     sendJsonMessage(data);
   }, [workflow, sendJsonMessage, alertError]);
@@ -246,7 +260,33 @@ export default function WorkflowsPage() {
 
     const data: IStopWorkflow = {
       action: "stopWorkflow",
-      uuid: workflow?.uuid
+      uuid: workflow.uuid
+    }
+    sendJsonMessage(data);
+  }, [workflow, sendJsonMessage, alertError]);
+
+  const saveWorkflow = useCallback(() => {
+    if (workflow == undefined) {
+      alertError("No workflow selected !");
+      return;
+    }
+
+    const data: ISaveWorkflow = {
+      action: "saveWorkflow",
+      uuid: workflow.uuid
+    }
+    sendJsonMessage(data);
+  }, [workflow, sendJsonMessage, alertError]);
+
+  const removeWorkflow = useCallback(() => {
+    if (workflow == undefined) {
+      alertError("No workflow selected !");
+      return;
+    }
+
+    const data: IRemoveWorkflow = {
+      action: "removeWorkflow",
+      uuid: workflow.uuid
     }
     sendJsonMessage(data);
   }, [workflow, sendJsonMessage, alertError]);
@@ -265,22 +305,38 @@ export default function WorkflowsPage() {
             />
           <Button onClick={addWorkflow}>Add new workflow</Button>
         </Dialog>
-        <ErrorPopover errors={workflowGeneralErrors.map(e => e.error)} size="medium" />
-        {workflowState && 
-          <>
-            <StateIcon state={workflowState} size="medium" />
-            {
-              workflowState == "RUNNING" ? 
-                <IconButton size="medium" sx={{marginX: 1}} onClick={stopWorkflow}>
-                  <Stop fontSize="inherit" color="error" />
-                </IconButton>
-                :
-                <IconButton size="medium" sx={{marginX: 1}} onClick={startWorkflow}>
-                  <PlayArrow fontSize="inherit" color="success" />
-                </IconButton>
-            }
-          </>
-        }
+        <Paper elevation={1} sx={{display: "flex", alignItems: "center", marginX: 1, paddingX: 1}}>
+          <Box sx={{marginLeft: 1}}>
+            <ErrorPopover errors={workflowGeneralErrors.map(e => e.error)} placement="left" size="medium" />
+          </Box>
+          {workflowState && 
+            <>
+              <StateIcon state={workflowState} size="medium" />
+              <Divider sx={{backgroundColor: "white", marginRight: 1, marginLeft: 2}} orientation="vertical" variant="middle" flexItem  />
+              {
+                workflowState == "RUNNING" ? 
+                  <IconButton size="medium" onClick={stopWorkflow}>
+                    <Stop fontSize="inherit" color="error" />
+                  </IconButton>
+                  :
+                  <IconButton size="medium" onClick={startWorkflow}>
+                    <PlayArrow fontSize="inherit" color="success" />
+                  </IconButton>
+              }
+              {workflowState != "RUNNING" &&
+                <>
+                  <Divider sx={{backgroundColor: "white", marginX: 1}} orientation="vertical" variant="middle" flexItem  />
+                  <IconButton size="medium" onClick={saveWorkflow}>
+                    <Save fontSize="inherit" color="primary" />
+                  </IconButton>
+                  <IconButton size="medium" onClick={removeWorkflow}>
+                    <Delete fontSize="inherit" color="error" />
+                  </IconButton>
+                </>
+              }
+            </>
+          }
+        </Paper>
         <FormControl sx={{minWidth: 110, maxWidth: 200}} size="small">
           <InputLabel id="workflow-select">Wokflow</InputLabel>
           <Select
@@ -304,7 +360,7 @@ export default function WorkflowsPage() {
         </IconButton>
       </>
     )
-  }, [workflows, workflow, open, workflowGeneralErrors, handleChange, addWorkflow, startWorkflow, stopWorkflow, workflowName, workflowState])
+  }, [workflows, workflow, open, workflowGeneralErrors, handleChange, addWorkflow, startWorkflow, stopWorkflow, saveWorkflow, removeWorkflow, workflowName, workflowState])
 
   const onSelect = useCallback((variant: ContextMenuVariants | undefined, position: XYPosition, choice: string) => {
     if (variant == undefined) {

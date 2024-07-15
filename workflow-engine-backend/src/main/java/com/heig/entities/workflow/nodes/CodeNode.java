@@ -5,14 +5,15 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.Workflow;
-import com.heig.helpers.CustomJsonDeserializer;
 import jakarta.annotation.Nonnull;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.HostAccess;
 import org.wildfly.common.annotation.NotNull;
 
+import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 
 public class CodeNode extends ModifiableNode {
     public static class Deserializer extends Node.NodeDeserializer<CodeNode> {
@@ -51,8 +52,17 @@ public class CodeNode extends ModifiableNode {
         }
     }
 
+    private static final Engine engine = Engine.newBuilder()
+        .option("engine.WarnInterpreterOnly", "false")
+        .build();
+    private static final Context.Builder contextBuilder = Context
+        .newBuilder()
+        .engine(engine)
+        .allowHostAccess(HostAccess.ALL);
+
     private String code = "";
     private Language language = Language.JS;
+    private Context context;
 
     protected CodeNode(int id, @Nonnull Workflow workflow) {
         super(id, workflow);
@@ -61,23 +71,25 @@ public class CodeNode extends ModifiableNode {
     @Override
     public NodeArguments execute(@Nonnull NodeArguments arguments) {
         Objects.requireNonNull(arguments);
-        var engine = Engine.newBuilder()
-                .option("engine.WarnInterpreterOnly", "false")
-                .build();
-        var contextBuilder = Context
-                .newBuilder()
-                .engine(engine)
-                .allowHostAccess(HostAccess.ALL);
-        try (var context = contextBuilder.build()) {
-            var bindings = context.getBindings(language.graalLanguageCode);
-            var returnArguments = new NodeArguments();
 
-            context.eval(language.graalLanguageCode, language.completeMain(code));
+        context = contextBuilder.build();
+        var bindings = context.getBindings(language.graalLanguageCode);
+        var returnArguments = new NodeArguments();
 
-            var mainFunc = bindings.getMember("main");
-            mainFunc.execute(arguments, returnArguments);
+        context.eval(language.graalLanguageCode, language.completeMain(code));
+        var mainFunc = bindings.getMember("main");
+        mainFunc.execute(arguments, returnArguments);
 
-            return returnArguments;
+        return returnArguments;
+    }
+
+    @Override
+    public void clean() {
+        super.clean();
+        if (context != null) {
+            try {
+                context.close(true);
+            } catch (Exception ignored) { }
         }
     }
 

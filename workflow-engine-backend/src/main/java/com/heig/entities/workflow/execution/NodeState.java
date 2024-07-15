@@ -1,13 +1,59 @@
 package com.heig.entities.workflow.execution;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.errors.WorkflowErrors;
 import com.heig.entities.workflow.nodes.Node;
+import com.heig.helpers.CustomJsonDeserializer;
+import com.heig.helpers.CustomJsonSerializer;
 import jakarta.annotation.Nonnull;
 
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.util.*;
 
 public class NodeState {
+    public static class Serializer implements CustomJsonSerializer<NodeState> {
+        @Override
+        public JsonElement serialize(NodeState value) {
+            var obj = new JsonObject();
+            obj.addProperty("nodeId", value.getNode().getId());
+            obj.addProperty("posX", value.getPos().x);
+            obj.addProperty("posY", value.getPos().y);
+            obj.addProperty("hasBeenModified", value.hasBeenModified());
+            return obj;
+        }
+    }
+
+    public static class Deserializer implements CustomJsonDeserializer<NodeState> {
+        private final Workflow workflow;
+        public Deserializer(Workflow workflow) {
+            this.workflow = workflow;
+        }
+
+        @Override
+        public NodeState deserialize(JsonElement value) throws JsonParseException {
+            var obj = value.getAsJsonObject();
+            var nodeId = obj.get("nodeId").getAsInt();
+            var posX = obj.get("posX").getAsDouble();
+            var posY = obj.get("posY").getAsDouble();
+            var hasBeenModified = obj.get("hasBeenModified").getAsBoolean();
+
+            var nodeOpt = workflow.getNode(nodeId);
+            if (nodeOpt.isEmpty()) {
+                throw new JsonParseException("Node with id " + nodeId + " does not exist");
+            }
+            var node = nodeOpt.get();
+            var nodeState = new NodeState(node);
+            nodeState.setPosition(new Point2D.Double(posX, posY));
+            nodeState.setHasBeenModified(hasBeenModified);
+
+            return nodeState;
+        }
+    }
+
     private State state = State.IDLE;
     private final Map<Integer, Object> valuesMap = new HashMap<>();
     private WorkflowErrors error = null;

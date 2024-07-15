@@ -2,7 +2,6 @@ package com.heig.entities.workflow.execution;
 
 import com.google.gson.*;
 import com.heig.entities.workflow.NodeModifiedListener;
-import com.heig.entities.workflow.data.Cache;
 import com.heig.entities.workflow.data.Data;
 import com.heig.entities.workflow.errors.*;
 import com.heig.entities.workflow.nodes.Node;
@@ -11,11 +10,15 @@ import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.CustomJsonDeserializer;
 import com.heig.helpers.CustomJsonSerializer;
 import com.heig.helpers.ResultOrWorkflowError;
+import com.heig.helpers.Utils;
 import jakarta.annotation.Nonnull;
 
 import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class WorkflowExecutor {
@@ -24,22 +27,25 @@ public class WorkflowExecutor {
         public JsonElement serialize(WorkflowExecutor workflowExecutor) {
             var obj = new JsonObject();
             obj.add("workflow", new Workflow.Serializer().serialize(workflowExecutor.getWorkflow()));
+            obj.add("nodeStates", Utils.serializeList(new NodeState.Serializer(), workflowExecutor.getNodeStates().values().stream().toList()));
             return obj;
         }
     }
 
     public static class Deserializer implements CustomJsonDeserializer<WorkflowExecutor> {
-        private WorkflowExecutionListener listener;
-        public Deserializer(@Nonnull WorkflowExecutionListener listener) {
-            Objects.requireNonNull(listener);
-            this.listener = listener;
+        private final WorkflowExecutionListener listener;
+        private final Data data;
+        public Deserializer(@Nonnull Data data, @Nonnull WorkflowExecutionListener listener) {
+            this.listener = Objects.requireNonNull(listener);
+            this.data = Objects.requireNonNull(data);
         }
 
         @Override
         public WorkflowExecutor deserialize(JsonElement jsonElement) throws JsonParseException {
             var obj = jsonElement.getAsJsonObject();
             var workflow = new Workflow.Deserializer().deserialize(obj.get("workflow"));
-            return new WorkflowExecutor(workflow, listener);
+            var nodeStates = Utils.deserializeList(new NodeState.Deserializer(workflow), obj.get("nodeStates").getAsJsonArray());
+            return new WorkflowExecutor(workflow, listener, data, nodeStates);
         }
     }
 
@@ -48,15 +54,31 @@ public class WorkflowExecutor {
     private final Workflow workflow;
     private final ConcurrentMap<Integer, NodeState> states = new ConcurrentHashMap<>();
     private final WorkflowExecutionListener listener;
-    private final WorkflowErrors workflowErrors = new WorkflowErrors();
-    private final Cache cache;
-    private CompletableFuture<Void> toWaitFor = null;
+    private final WorkflowErrors workflowExecutionErrors = new WorkflowErrors();
+    private final WorkflowErrors workflowValidityErrors = new WorkflowErrors();
+    private final Data data;
     private final NodeModifiedListener nodeModifiedListener;
+    private final AtomicBoolean stopRequested = new AtomicBoolean(false);
+    private final List<Consumer<Void>> waitingForStop = new LinkedList<>();
 
     WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener) {
+        this(workflow, listener, null, new LinkedList<>());
+    }
+
+    WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener, Data data, @Nonnull List<NodeState> states) {
         this.workflow = Objects.requireNonNull(workflow);
         this.listener = Objects.requireNonNull(listener);
-        this.cache = Data.getOrCreate(this).getCache();
+        Objects.requireNonNull(states);
+
+        for (var nodeState : states) {
+            this.states.put(nodeState.getNode().getId(), nodeState);
+        }
+
+        if (data == null) {
+            this.data = Data.getOrCreate(this);
+        } else {
+            this.data = data;
+        }
 
         this.nodeModifiedListener = node -> {
             var state = getStateFor(node);
@@ -72,12 +94,18 @@ public class WorkflowExecutor {
         return states.computeIfAbsent(node.getId(), id -> new NodeState(node));
     }
 
+    public void removeStateFor(@Nonnull Node node) {
+        states.remove(node.getId());
+    }
+
     private void changeNodeState(@Nonnull NodeState ns, @Nonnull State state) {
         Objects.requireNonNull(ns);
         Objects.requireNonNull(state);
         ns.setState(state);
         listener.nodeStateChanged(ns);
     }
+
+    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private CompletableFuture<Void> executeNode(@Nonnull Node node) {
         Objects.requireNonNull(node);
@@ -111,7 +139,7 @@ public class WorkflowExecutor {
 
             //Case if the node hasn't been modified and neither have the previous nodes (the node needs to be deterministic too)
             if (!ns.hasBeenModified() && node.isDeterministic()) {
-                var optCache = cache.get(node, args);
+                var optCache = data.getCache().get(node, args);
                 if (optCache.isPresent()) {
                     return ResultOrWorkflowError.result(optCache.get());
                 }
@@ -119,21 +147,34 @@ public class WorkflowExecutor {
 
             changeNodeState(ns, State.RUNNING);
 
-            //Only used if the node finished with a timeout
-            var weTimeout = new WorkflowErrors();
-            weTimeout.addError(new ExecutionTimeout(node));
+            if (stopRequested.get()) {
+                return ResultOrWorkflowError.error(we);
+            }
 
-            var fut = CompletableFuture
-                .supplyAsync(() -> {
+            var fut = executor
+                .<Supplier<ResultOrWorkflowError<NodeArguments>>>submit(() -> {
                     try {
-                        return ResultOrWorkflowError.result(node.execute(args));
+                        var res = ResultOrWorkflowError.result(node.execute(args));
+                        return () -> res;
                     } catch (Exception e) {
                         we.addError(new FailedExecution(node, e.getMessage() == null ? "Unknown error" : e.getMessage()));
-                        return ResultOrWorkflowError.<NodeArguments>error(we);
+                        return () -> ResultOrWorkflowError.error(we);
                     }
-                })
-                .completeOnTimeout(ResultOrWorkflowError.error(weTimeout), node.getTimeout(), TimeUnit.MILLISECONDS);
-            var resultOpt = fut.join();
+                });
+            Consumer<Void> listener = unused -> node.clean();
+            waitingForStop.add(listener);
+
+            ResultOrWorkflowError<NodeArguments> resultOpt;
+            try {
+                resultOpt = fut.get(node.getTimeout(), TimeUnit.MILLISECONDS).get();
+            } catch (Exception e) {
+                var timeoutErrors = new WorkflowErrors();
+                timeoutErrors.addError(new ExecutionTimeout(node));
+                node.clean();
+                return ResultOrWorkflowError.error(timeoutErrors);
+            }
+
+            waitingForStop.remove(listener);
             if (resultOpt.getErrorMessage().isPresent()) {
                 return ResultOrWorkflowError.error(resultOpt.getErrorMessage().get());
             }
@@ -155,7 +196,11 @@ public class WorkflowExecutor {
                     continue;
                 }
                 var argumentValue = argument.get();
-                var argumentType = WorkflowTypes.fromObject(argumentValue);
+
+                var fixedValue = WorkflowTypes.fixObject(argumentValue);
+                result.putArgument(output.getName(), fixedValue);
+
+                var argumentType = WorkflowTypes.fromObject(fixedValue);
                 //We check if we can convert the execution result to the type of the output connector
                 if (!output.getType().canBeConvertedFrom(argumentType)) {
                     we.addError(new WrongType(argumentType, output));
@@ -166,8 +211,13 @@ public class WorkflowExecutor {
                 return ResultOrWorkflowError.error(we);
             } else {
                 if (node.isDeterministic()) {
+                    try {
+                        data.getCache().set(node, args, result);
+                    } catch (Exception e) {
+                        we.addError(new FailedExecution(node, e.getMessage()));
+                        return ResultOrWorkflowError.error(we);
+                    }
                     ns.setHasBeenModified(false);
-                    cache.set(node, args, result);
                 }
 
                 return ResultOrWorkflowError.result(result);
@@ -201,6 +251,11 @@ public class WorkflowExecutor {
                     var other = input.getParent();
                     var stateOther = getStateFor(other);
                     synchronized (stateOther) {
+                        //Here we use fixObject again to obtain new instances for the map and the collection for example
+                        //If this wasn't done, all the nodes connected to the outputs would have the same instance and could lead to concurrent modification
+                        if (res != null) {
+                            res = WorkflowTypes.fixObject(res);
+                        }
                         stateOther.setInputValue(input.getId(), res);
 
                         if (stateOther.isReady()) {
@@ -209,30 +264,19 @@ public class WorkflowExecutor {
                     }
                 }
             }
+
+            //Clean the resources when the workflow execution is finished
+            node.clean();
             return CompletableFuture.allOf(toWait.toArray(CompletableFuture[]::new));
         });
     }
 
     public void checkForErrors() {
-        workflowErrors.clear();
+        workflowValidityErrors.clear();
 
         var errors = workflow.isValid();
-        if (errors.isPresent()) {
-            workflowErrors.merge(errors.get());
-            synchronized (stateLock) {
-                state = State.FAILED;
-                listener.workflowStateChanged(this);
-            }
-        } else {
-            synchronized (stateLock) {
-                //If we start checkForErrors from executeWorkflow, the state will be State.RUNNING
-                //If not, the previous state will be State.FAILED or State.IDLE
-                if (state == State.FAILED) {
-                    state = State.IDLE;
-                    listener.workflowStateChanged(this);
-                }
-            }
-        }
+        errors.ifPresent(workflowValidityErrors::merge);
+        listener.workflowStateChanged(this);
     }
 
     public boolean executeWorkflow() {
@@ -244,18 +288,28 @@ public class WorkflowExecutor {
             listener.workflowStateChanged(this);
         }
 
+        stopRequested.set(false);
+
+        checkForErrors();
+        if (!workflowValidityErrors.getErrors().isEmpty()) {
+            state = State.IDLE;
+            listener.workflowStateChanged(this);
+            return false;
+        }
+
+        workflowExecutionErrors.clear();
         workflow.getNodes().values().forEach(n -> {
             var ns = getStateFor(n);
             synchronized (ns) {
+                ns.getErrors().ifPresent(WorkflowErrors::clear);
                 ns.clearInputs();
                 changeNodeState(ns, State.IDLE);
             }
         });
 
-        checkForErrors();
-        if (!workflowErrors.getErrors().isEmpty()) {
-            return false;
-        }
+        //Before starting the workflow, we save the current workflow.
+        //Like this, if the cache changed, we will have the correct workflow when restarting the backend
+        data.getSave().save();
 
         //The starting nodes of our workflow are the nodes that have no input connected (we already know that all inputs
         //that are not optional are connected to an output thanks to workflow.isValid())
@@ -264,9 +318,17 @@ public class WorkflowExecutor {
         for (var node : notConnectedNodes) {
             toWait.add(executeNode(node));
         }
-        toWaitFor = CompletableFuture.allOf(toWait.toArray(CompletableFuture[]::new));
+        var toWaitFor = CompletableFuture.allOf(toWait.toArray(CompletableFuture[]::new));
         toWaitFor.thenAcceptAsync(v -> {
             var failed = states.values().stream().anyMatch(ns -> ns.getState() == State.FAILED);
+
+            if (stopRequested.get()) {
+                workflowExecutionErrors.addError(new WorkflowCancelled());
+                failed = true;
+            }
+
+            //When the execution ends, we save the workflow again. It is possible that the cache has changed and that the node state too
+            data.getSave().save();
             if (failed) {
                 synchronized (stateLock) {
                     state = State.FAILED;
@@ -286,29 +348,9 @@ public class WorkflowExecutor {
         if (state != State.RUNNING) {
             return false;
         }
-        if (!toWaitFor.cancel(true)) {
-            return false;
-        }
-        for (var node : workflow.getNodes().values()) {
-            var ns = getStateFor(node);
-            //For all node that have not been yet finished, we set their state to failed and set the error for each input
-            synchronized (ns) {
-                if (ns.getState() != State.FINISHED || ns.getState() != State.FAILED) {
-                    var errors = new WorkflowErrors();
-                    errors.addError(new WorkflowCancelled());
-                    var res = ResultOrWorkflowError.error(errors);
-
-                    for (var input : node.getInputs().values()) {
-                        ns.setInputValue(input.getId(), res);
-                    }
-                    changeNodeState(ns, State.FAILED);
-                }
-            }
-        }
-        synchronized (stateLock) {
-            workflowErrors.addError(new WorkflowCancelled());
-            state = State.FAILED;
-            listener.workflowStateChanged(this);
+        stopRequested.set(true);
+        for (var listener : waitingForStop) {
+            listener.accept(null);
         }
         return true;
     }
@@ -333,15 +375,18 @@ public class WorkflowExecutor {
     }
 
     public WorkflowErrors getWorkflowErrors() {
-        return workflowErrors;
+        var all = new WorkflowErrors();
+        all.merge(workflowExecutionErrors);
+        all.merge(workflowValidityErrors);
+        return all;
     }
 
     public void clearCache() {
-        cache.clear();
+        data.getCache().clear();
     }
 
     public void delete() {
-        clearCache();
+        data.delete();
         workflow.removeNodeModifiedListener(nodeModifiedListener);
     }
 

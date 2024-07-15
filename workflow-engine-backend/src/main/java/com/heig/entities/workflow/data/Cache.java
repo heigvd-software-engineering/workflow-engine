@@ -21,7 +21,7 @@ public class Cache {
         Objects.requireNonNull(rootDirectory);
 
         cacheDirectory = new File(rootDirectory, "cache");
-        if (!cacheDirectory.mkdirs()) {
+        if (!cacheDirectory.exists() && !cacheDirectory.mkdirs()) {
             throw new RuntimeException("Could not create workflow cache directory");
         }
     }

@@ -27,6 +27,7 @@ export enum PrimitiveTypes {
 export enum TypesNames {
   Map,
   Collection,
+  Object,
   Flow
 }
 
@@ -36,6 +37,7 @@ export enum TypesNames {
 export type WorkflowInstruction = 
   ICreateWorkflow
   | IExecuteWorkflow
+  | ISaveWorkflow
   | IRemoveWorkflow
   | IStopWorkflow
   | ISwitchTo
@@ -72,6 +74,10 @@ export type ICreateWorkflow = {
 
 export type IExecuteWorkflow = WorkflowUUID & {
   action: "executeWorkflow";
+}
+
+export type ISaveWorkflow = WorkflowUUID & {
+  action: "saveWorkflow";
 }
 
 export type IRemoveWorkflow = WorkflowUUID & {

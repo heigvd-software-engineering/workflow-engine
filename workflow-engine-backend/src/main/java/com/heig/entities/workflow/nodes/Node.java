@@ -278,4 +278,9 @@ public abstract class Node {
         obj.add("outputs", outputsArr);
         return obj;
     }
+
+    /**
+     * Function executed when the execution is finished or cancelled
+     */
+    public void clean() { }
 }
