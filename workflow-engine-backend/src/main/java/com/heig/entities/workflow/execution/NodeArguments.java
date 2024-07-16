@@ -14,7 +14,7 @@ import java.util.*;
     The node has 1 input named "number" and an output named "squared"
     Code (in JS here) :
     let n = arguments.get("number");
-    arguments.put("squared", n * n);
+    returnArguments.put("squared", n * n);
     """)
 public class NodeArguments {
     private final Map<String, Object> arguments = new HashMap<>();

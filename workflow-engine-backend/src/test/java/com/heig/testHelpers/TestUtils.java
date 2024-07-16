@@ -7,8 +7,11 @@ import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.OutputFlowConnector;
 import com.heig.entities.workflow.data.Data;
 import com.heig.entities.workflow.execution.*;
+import com.heig.entities.workflow.file.FileWrapper;
+import com.heig.entities.workflow.nodes.FileNode;
 import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.nodes.PrimitiveNode;
+import com.heig.entities.workflow.types.WFile;
 import com.heig.entities.workflow.types.WFlow;
 import com.heig.entities.workflow.types.WPrimitive;
 import com.heig.entities.workflow.types.WType;
@@ -18,6 +21,10 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class TestUtils {
     public static WorkflowExecutor createWorkflowExecutor(String workflowName) {
@@ -54,9 +61,7 @@ public class TestUtils {
         for (var entry : inputs.entrySet()) {
             var name = entry.getKey().getV1();
             var type = entry.getKey().getV2();
-            if (!Objects.equals(name, ModifiableNode.IN_FLOW)) {
-                n.getConnectorBuilder().buildInputConnector(name, type);
-            }
+            n.getConnectorBuilder().buildInputConnector(name, type);
             var inputValue = entry.getValue().getV1();
             if (inputValue != null) {
                 inputsArgs.putArgument(name, entry.getValue().getV1());
@@ -66,10 +71,43 @@ public class TestUtils {
                 newInputsArgs.putArgument(name, entry.getValue().getV2());
             }
         }
-        outputsArgs.putArgument(ModifiableNode.OUT_FLOW, WFlow.of());
 
         var cache = Data.getOrCreate(we).getCache();
         cache.set(n, inputsArgs, outputsArgs);
         return cache.get(n, newInputsArgs).isPresent();
+    }
+
+    public static Optional<FileWrapper> executeFileNode(FileNode node, String path) {
+        var nodeArgs = new NodeArguments();
+        nodeArgs.putArgument(FileNode.I_FILEPATH_NAME, path);
+        var resArgs = node.execute(nodeArgs);
+        return resArgs.getArgument(FileNode.O_FILE_NAME).map(o -> o instanceof FileWrapper ? (FileWrapper) o : null);
+    }
+
+    public static boolean isFileCacheValid(Consumer<FileWrapper> beforeSet, Consumer<FileWrapper> betweenSetAndGet, Function<FileWrapper, Boolean> validity) {
+        var path = "file.test";
+        var inputsArgs = new NodeArguments();
+        inputsArgs.putArgument(FileNode.I_FILEPATH_NAME, path);
+
+        var w = new Workflow("file-node");
+        var fileNode = w.getNodeBuilder().buildFileNode();
+
+        var outputArgs = new NodeArguments();
+        var fwOpt = executeFileNode(fileNode, path);
+        if (fwOpt.isEmpty()) {
+            return false;
+        }
+        var fw = fwOpt.get();
+        outputArgs.putArgument(FileNode.O_FILE_NAME, fw);
+
+        var we = TestUtils.createWorkflowExecutor(w);
+        var cache = Data.getOrCreate(we).getCache();
+
+        beforeSet.accept(fw);
+        cache.set(fileNode, inputsArgs, outputArgs);
+        betweenSetAndGet.accept(fw);
+        var isValid = cache.get(fileNode, inputsArgs).isPresent() && validity.apply(fw);
+        fw.delete();
+        return isValid;
     }
 }

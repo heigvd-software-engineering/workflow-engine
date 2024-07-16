@@ -155,6 +155,7 @@ public class WorkflowService {
                     });
                 }
                 case "code" -> ResultOrStringError.result(nodeBuilder.buildCodeNode());
+                case "file" -> ResultOrStringError.result(nodeBuilder.buildFileNode());
                 default -> ResultOrStringError.error("Invalid node type");
             };
             return ret.continueWith(n -> {

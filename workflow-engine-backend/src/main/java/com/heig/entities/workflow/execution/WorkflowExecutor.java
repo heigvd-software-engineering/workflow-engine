@@ -26,8 +26,9 @@ public class WorkflowExecutor {
         @Override
         public JsonElement serialize(WorkflowExecutor workflowExecutor) {
             var obj = new JsonObject();
-            obj.add("workflow", new Workflow.Serializer().serialize(workflowExecutor.getWorkflow()));
-            obj.add("nodeStates", Utils.serializeList(new NodeState.Serializer(), workflowExecutor.getNodeStates().values().stream().toList()));
+            var w = workflowExecutor.getWorkflow();
+            obj.add("workflow", new Workflow.Serializer().serialize(w));
+            obj.add("nodeStates", Utils.serializeList(new NodeState.Serializer(), w.getNodes().values().stream().map(workflowExecutor::getStateFor).toList()));
             return obj;
         }
     }
@@ -105,7 +106,7 @@ public class WorkflowExecutor {
         listener.nodeStateChanged(ns);
     }
 
-    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
 
     private CompletableFuture<Void> executeNode(@Nonnull Node node) {
         Objects.requireNonNull(node);

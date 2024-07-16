@@ -64,6 +64,8 @@ public abstract class Node {
                     yield new CodeNode.Deserializer(id, workflow);
                 case "PrimitiveNode":
                     yield new PrimitiveNode.Deserializer(id, workflow);
+                case "FileNode":
+                    yield new FileNode.Deserializer(id, workflow);
                 default:
                     throw new RuntimeException("The node type '%s' was not found".formatted(nodeType));
             };
@@ -98,6 +100,10 @@ public abstract class Node {
 
         public PrimitiveNode buildPrimitiveNode(@Nonnull WPrimitive type) {
             return workflow.addNode((id) -> new PrimitiveNode(id, workflow, type));
+        }
+
+        public FileNode buildFileNode() {
+            return workflow.addNode((id) -> new FileNode(id, workflow));
         }
     }
 

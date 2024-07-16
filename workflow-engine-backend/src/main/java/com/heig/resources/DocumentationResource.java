@@ -38,7 +38,7 @@ public class DocumentationResource {
             obj.add("value", v.getItem2());
         }, e -> {
             obj.addProperty("type", "error");
-            obj.addProperty("error", e);
+            obj.addProperty("value", e);
         });
         return gson.toJson(obj);
     }

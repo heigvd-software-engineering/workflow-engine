@@ -10,15 +10,8 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public abstract class ModifiableNode extends Node {
-    public static String IN_FLOW = "in-flow";
-    public static String OUT_FLOW = "out-flow";
-
     protected ModifiableNode(int id, @Nonnull Workflow workflow) {
         super(id, workflow, false);
-
-        //We add the input and output flow connector for every modifiable node
-        connectorBuilder.buildInputFlowConnector(IN_FLOW);
-        connectorBuilder.buildOutputFlowConnector(OUT_FLOW);
     }
 
     @Override

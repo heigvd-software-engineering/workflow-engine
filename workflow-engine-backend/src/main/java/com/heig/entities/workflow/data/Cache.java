@@ -93,11 +93,11 @@ public class Cache {
             var cacheFile = getOutputConnectorFile(nodeCacheDirectory, output, false);
             var cacheFileType = getOutputConnectorFile(nodeCacheDirectory, output, true);
             try {
-                if (!cacheFile.createNewFile() || !cacheFileType.createNewFile()) {
-                    throw new RuntimeException("Could not create cache file");
+                if (!cacheFileType.createNewFile()) {
+                    throw new RuntimeException("Could not create cache file type");
                 }
-                //Here we cannot use output.getType() directly. Imagine the output type is an object but the real
-                //type of the argument is a file. We should do the processing for the file type and not the object type
+                //Here we cannot use output.getType() directly. Imagine the output type is an object but the real type of the value is a file.
+                //We should do the processing for the file type and not the object type
                 var argumentType = WorkflowTypes.fromObject(argument);
                 Data.toFile(cacheFileType, WorkflowTypes.typeToString(argumentType));
                 argumentType.toFile(cacheFile, argument);
@@ -111,7 +111,7 @@ public class Cache {
         Objects.requireNonNull(node);
         Objects.requireNonNull(currentInputs);
         var nodeCacheDirectory = getNodeCacheDirectory(node);
-        if (!nodeCacheDirectory.exists() || node.getOutputs().isEmpty()) {
+        if (!nodeCacheDirectory.exists()) {
             return Optional.empty();
         }
 
@@ -135,7 +135,7 @@ public class Cache {
         for (var outputConnector : node.getOutputs().values()) {
             var cacheFile = getOutputConnectorFile(nodeCacheDirectory, outputConnector, false);
             var cacheFileType = getOutputConnectorFile(nodeCacheDirectory, outputConnector, true);
-            if (cacheFileType.exists() && cacheFile.exists()) {
+            if (cacheFileType.exists()) {
                 var typeOpt = Data.fromFile(cacheFileType);
                 if (typeOpt.isPresent() && typeOpt.get() instanceof String objTypeStr) {
                     var objType = WorkflowTypes.typeFromString(objTypeStr);

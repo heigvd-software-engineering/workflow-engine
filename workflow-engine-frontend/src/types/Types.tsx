@@ -28,6 +28,7 @@ export enum TypesNames {
   Map,
   Collection,
   Object,
+  File,
   Flow
 }
 
@@ -120,6 +121,10 @@ export type ICreateNode = WorkflowUUID & {
   action: "createNode";
   posX: number;
   posY: number;
+}
+
+export type ICreateFileNode = ICreateNode & {
+  type: "file";
 }
 
 export type ICreateCodeNode = ICreateNode & {
@@ -273,7 +278,7 @@ export type WorkflowType = {
   name: string;
 }
 
-export type NodeType = CodeNodeType | PrimitiveNodeType;
+export type NodeType = CodeNodeType | PrimitiveNodeType | FileNodeType;
 
 export type NodeBaseType = {
   id: number;
@@ -292,6 +297,10 @@ export type CodeNodeType = NodeBaseType & {
 export type PrimitiveNodeType = NodeBaseType & {
   nodeType: "PrimitiveNode";
   value: number | string;
+}
+
+export type FileNodeType = NodeBaseType & {
+  nodeType: "FileNode";
 }
 
 export type Connector = {

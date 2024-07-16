@@ -1,8 +1,9 @@
-import { Box, Paper, styled } from "@mui/material";
+import { Box, Button, Paper, styled } from "@mui/material";
 import { Link, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { ClassList, DocResponse, DocumentClass } from "./types/Types";
 import Layout from "./Layout";
+import { ArrowBack } from "@mui/icons-material";
 
 const CustomLink = styled(Link)`
   color: white;
@@ -27,14 +28,18 @@ function DocumentationList() {
   }, []);
 
   if (status) {
-    return <Box>{status}</Box>;
+    return <p>{status}</p>;
+  }
+
+  if (list == undefined) {
+    return <p>No data</p>;
   }
 
   return (
     <>
       <h2>Documented classes</h2>
       <ul>
-        {list?.map(elem => <li key={elem}>
+        {list.map(elem => <li key={elem}>
           <CustomLink to={`/documentation/${elem}`}>{elem}</CustomLink>
         </li>)}
       </ul>
@@ -46,11 +51,27 @@ function DocumentationClass(props: { type: string }) {
   const [status, setStatus] = useState<string | undefined>("Loading");
   const [classValue, setClassValue] = useState<DocumentClass>();
 
+  const returnToClassListElem = (children: ReactNode) => {
+    return (
+      <Box>
+        <Box sx={{marginTop: 1, alignItems: "center"}}>
+          <Link to="/documentation">
+            <Button>
+              <ArrowBack fontSize="small" sx={{marginRight: 0.5}} /> Back
+            </Button>
+          </Link>
+        </Box>
+        {children}
+      </Box>
+    )
+  }
+
   useEffect(() => {
     fetch(`/api/documentation/${props.type}`)
       .then(r => r.json())
       .then((data: DocResponse) => {
         if (data.type == "error") {
+          console.log(data);
           setStatus(data.value);
         } else if (data.type == "class") {
           setClassValue(data.value);
@@ -60,14 +81,14 @@ function DocumentationClass(props: { type: string }) {
   }, [props.type]);
 
   if (status) {
-    return <Box>{status}</Box>;
+    return returnToClassListElem(<p>{status}</p>);
   }
 
   if (classValue == undefined) {
-    return <Box>No data</Box>;
+    return returnToClassListElem(<p>No data</p>);
   }
 
-  return (
+  return returnToClassListElem(
     <Paper sx={{marginTop: 1, padding: 1}}>
       <Box fontSize="20px" fontWeight="bold">{classValue.name}</Box>
       <pre>{classValue.comment}</pre>

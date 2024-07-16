@@ -5,7 +5,7 @@ import { PrimitiveNodeTypeNode } from "./nodes/PrimitiveNode";
 import { useCallback, useMemo, useState } from "react";
 import { Box, Button, Dialog, DialogTitle, Divider, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, SelectChangeEvent, TextField } from "@mui/material";
 import { useAlert } from "./utils/alert/AlertUse";
-import { ICreateCodeNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IDisconnect, IExecuteWorkflow, IRemoveNode, IRemoveWorkflow, ISaveWorkflow, IStopWorkflow, ISwitchTo, PrimitiveTypes, State, WorkflowGeneralErrors, WorkflowNodeErrors, WorkflowNotification } from "./types/Types";
+import { ICreateCodeNode, ICreateFileNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IDisconnect, IExecuteWorkflow, IRemoveNode, IRemoveWorkflow, ISaveWorkflow, IStopWorkflow, ISwitchTo, PrimitiveTypes, State, WorkflowGeneralErrors, WorkflowNodeErrors, WorkflowNotification } from "./types/Types";
 import { AddCircle, Delete, PlayArrow, Save, Stop } from "@mui/icons-material";
 import useWebSocket from "react-use-websocket";
 import { $enum } from "ts-enum-util";
@@ -388,6 +388,14 @@ export default function WorkflowsPage() {
               type: "code"
             };
             sendJsonMessage(dataCode);
+            break;
+          }
+          case "File": {
+            const dataFile: ICreateFileNode = {
+              ...dataNode,
+              type: "file"
+            };
+            sendJsonMessage(dataFile);
             break;
           }
           default: {

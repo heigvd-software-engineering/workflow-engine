@@ -11,6 +11,7 @@ import ErrorPopover from "../components/ErrorPopover";
 import StateIcon from "../components/StateIcon";
 import BasePopover from "../components/BasePopover";
 import ModifyType from "../components/ModifyType";
+import { NoDataNodeTypeNode } from "./NoDataNode";
 
 export type BaseNodeData = {
   node: NodeType;
@@ -21,14 +22,14 @@ export type BaseNodeData = {
   state?: State;
 }
 
-export type BaseNodeTypeNode = CodeNodeTypeNode | PrimitiveNodeTypeNode;
+export type BaseNodeTypeNode = CodeNodeTypeNode | PrimitiveNodeTypeNode | NoDataNodeTypeNode;
 
 const flexStyle: SxProps<Theme> = {
   flex: 1,
   display: "flex",
 }
 
-export function BaseNode(props: NodeProps<BaseNodeTypeNode> & { children: ReactNode, title: string, rightElement?: ReactNode }) {
+export function BaseNode(props: NodeProps<BaseNodeTypeNode> & { children?: ReactNode, title: string, rightElement?: ReactNode }) {
   const atLeastOneInput = props.data.node.inputs.length != 0;
   const atLeastOneOutput = props.data.node.outputs.length != 0;
 

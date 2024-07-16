@@ -33,6 +33,7 @@ export default function ContextMenuProvider(props: { children: ReactNode, onSele
   const allPrimitives = useMemo(() => $enum(PrimitiveTypes).getKeys().map(p => {return {name: p}}), []);
   const menusNode: MenuData<string>[] = useMemo(() => [
     {name: "Code"}, 
+    {name: "File"},
     {
       name: "Primitive", 
       subMenu: allPrimitives

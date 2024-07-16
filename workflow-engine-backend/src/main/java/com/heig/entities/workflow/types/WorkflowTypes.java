@@ -1,5 +1,6 @@
 package com.heig.entities.workflow.types;
 
+import com.heig.entities.workflow.file.FileWrapper;
 import jakarta.annotation.Nonnull;
 
 import java.io.*;
@@ -123,6 +124,9 @@ public class WorkflowTypes {
         if (o instanceof WFlow) {
             return WFlow.of();
         }
+        if (o instanceof FileWrapper) {
+            return WFile.of();
+        }
         return WObject.of();
     }
 
@@ -187,6 +191,9 @@ public class WorkflowTypes {
         if (consumeIfPresent(builder, "Object")) {
             return WObject.of();
         }
+        if (consumeIfPresent(builder, "File")) {
+            return WFile.of();
+        }
         throw new RuntimeException("Type not supported !");
     }
 
@@ -206,6 +213,9 @@ public class WorkflowTypes {
         }
         if (type instanceof WObject) {
             return "Object";
+        }
+        if (type instanceof WFile) {
+            return "File";
         }
         throw new RuntimeException("Unsupported type !");
     }

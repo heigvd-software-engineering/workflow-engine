@@ -6,7 +6,7 @@ import jakarta.annotation.Nonnull;
 
 public class OutputFlowConnector extends OutputConnector {
     protected OutputFlowConnector(int id, @Nonnull Node parent, @Nonnull String name) {
-        super(id, parent, name, WFlow.of(), true);
+        super(id, parent, name, WFlow.of(), false);
     }
 
     @Override

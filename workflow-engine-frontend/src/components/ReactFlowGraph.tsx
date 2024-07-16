@@ -8,9 +8,10 @@ import { useWorkflowData } from "../utils/workflowData/WorkflowDataUse";
 import { useAlert } from "../utils/alert/AlertUse";
 import { IConnect, IMoveNode } from "../types/Types";
 import { useWorkflowSocket } from "../utils/workflowSocket/WebsocketUse";
+import { NoDataNode } from "../nodes/NoDataNode";
 
 export default function ReactFlowGraph() {
-  const nodeTypes = useMemo(() => ({ PrimitiveNode: PrimitiveNode, CodeNode: CodeNode }), []);
+  const nodeTypes = useMemo(() => ({ PrimitiveNode: PrimitiveNode, CodeNode: CodeNode, FileNode: NoDataNode("File") }), []);
 
   const { sendMessage } = useWorkflowSocket();
   const { openMenu } = useContextMenu();

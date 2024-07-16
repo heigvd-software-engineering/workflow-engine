@@ -2,15 +2,11 @@ package com.heig.entities.workflow.data;
 
 import com.google.common.collect.Sets;
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.connectors.InputFlowConnector;
-import com.heig.entities.workflow.connectors.OutputFlowConnector;
 import com.heig.entities.workflow.execution.*;
-import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.types.*;
 import com.heig.testHelpers.TestUtils;
 import groovy.lang.Tuple2;
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -48,7 +44,6 @@ public class CacheTest {
         var cache = Data.getOrCreate(we).getCache();
         var arguments = new NodeArguments();
         arguments.putArgument("out", List.of(1, "a", (byte) 0));
-        arguments.putArgument(ModifiableNode.OUT_FLOW, WFlow.of());
 
         //Set the value in the cache
         cache.set(node, new NodeArguments(), arguments);
@@ -84,9 +79,6 @@ public class CacheTest {
         var outMapIntString = node.getConnectorBuilder().buildOutputConnector("outMapIntString", WMap.of(WPrimitive.Integer, WPrimitive.String));
         arguments.putArgument(outMapIntString.getName(), Map.of(1, "test", 3, "test2"));
 
-        //For the output it is needed to specify the flow in the arguments
-        arguments.putArgument(ModifiableNode.OUT_FLOW, WFlow.of());
-
         //Set the value in the cache
         cache.set(node, new NodeArguments(), arguments);
 
@@ -110,8 +102,6 @@ public class CacheTest {
                 && map.get(1) instanceof String s && s.equals("test")
                 && map.get(3) instanceof String s2 && s2.equals("test2");
 
-        var args = new NodeArguments();
-        args.putArgument(ModifiableNode.IN_FLOW, WFlow.of());
         assert cache.get(node, arguments).isPresent();
 
         //After clearing the cache for the workflow, we should not have any cache result anymore
@@ -129,7 +119,6 @@ public class CacheTest {
         var cache = Data.getOrCreate(we).getCache();
         var arguments = new NodeArguments();
         arguments.putArgument("out", Sets.newHashSet("test1", "test2"));
-        arguments.putArgument(ModifiableNode.OUT_FLOW, WFlow.of());
 
         //Set the value in the cache
         cache.set(node, new NodeArguments(), arguments);
@@ -172,7 +161,7 @@ public class CacheTest {
         assert TestUtils.isCacheValid(
             Map.of(
                 Tuple2.tuple("in", WPrimitive.Integer), Tuple2.tuple(1, 1),
-                Tuple2.tuple(ModifiableNode.IN_FLOW, null), Tuple2.tuple(WFlow.of(), WFlow.of())
+                Tuple2.tuple("in-flow", WFlow.of()), Tuple2.tuple(WFlow.of(), WFlow.of())
             )
         );
 
@@ -180,7 +169,7 @@ public class CacheTest {
         assert !TestUtils.isCacheValid(
             Map.of(
                 Tuple2.tuple("in", WPrimitive.Integer), Tuple2.tuple(1, 1),
-                Tuple2.tuple(ModifiableNode.IN_FLOW, null), Tuple2.tuple(null, WFlow.of())
+                Tuple2.tuple("in-flow", WFlow.of()), Tuple2.tuple(null, WFlow.of())
             )
         );
 
@@ -196,6 +185,62 @@ public class CacheTest {
             Map.of(
                 Tuple2.tuple("in", WCollection.of(WPrimitive.Double)), Tuple2.tuple(List.of(1.0, 2.0), List.of(2.0, 2.0))
             )
+        );
+    }
+
+    @Test
+    public void fileNode() {
+        var w = new Workflow("file-node");
+        var fileNode = w.getNodeBuilder().buildFileNode();
+        var wrapperOpt = TestUtils.executeFileNode(fileNode, ".test");
+        assert wrapperOpt.isPresent();
+        var wrapper = wrapperOpt.get();
+        assert !wrapper.isFileNull();
+        assert !wrapper.exists();
+
+        //Here we just test that the FileWrapper has been correctly read from cache
+        //It does not check that the hash of the content stayed the same
+
+        assert TestUtils.isFileCacheValid(
+            fw -> {
+                fw.createOrReplace();
+            },
+            fw -> { },
+            fw -> fw.exists()
+        );
+        assert TestUtils.isFileCacheValid(
+            fw -> { },
+            fw -> {
+                fw.createOrReplace();
+            },
+            fw -> !fw.exists()
+        );
+        assert TestUtils.isFileCacheValid(
+            fw -> {
+                fw.createOrReplace();
+            },
+            fw -> {
+                fw.delete();
+            },
+            fw -> fw.exists()
+        );
+
+        assert TestUtils.isFileCacheValid(
+            fw -> {
+                fw.createOrReplace();
+                try (var writer = fw.writer()) {
+                    writer.writeLine("test");
+                    writer.writeLine("write");
+                }
+            },
+            fw -> { },
+            fw -> {
+                try (var reader = fw.reader()) {
+                    var lines = reader.readLines();
+                    var text = reader.readAllText();
+                    return lines.get(0).equals("test") && lines.get(1).equals("write") && text.equals("test" + System.lineSeparator() + "write");
+                }
+            }
         );
     }
 
