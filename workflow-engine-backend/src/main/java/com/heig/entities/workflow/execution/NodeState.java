@@ -20,8 +20,8 @@ public class NodeState {
         public JsonElement serialize(NodeState value) {
             var obj = new JsonObject();
             obj.addProperty("nodeId", value.getNode().getId());
-            obj.addProperty("posX", value.getPos().x);
-            obj.addProperty("posY", value.getPos().y);
+            obj.addProperty("posX", value.getPosition().x);
+            obj.addProperty("posY", value.getPosition().y);
             obj.addProperty("hasBeenModified", value.hasBeenModified());
             return obj;
         }
@@ -59,7 +59,7 @@ public class NodeState {
     private WorkflowErrors error = null;
     private final Node node;
     private boolean hasBeenModified = false;
-    private final Point.Double pos = new Point.Double(0, 0);
+    private final Point.Double position = new Point.Double(0, 0);
 
     public NodeState(@Nonnull Node node) {
         this.node = Objects.requireNonNull(node);
@@ -125,10 +125,10 @@ public class NodeState {
     public void setPosition(@Nonnull Point.Double pos) {
         Objects.requireNonNull(pos);
 
-        this.pos.setLocation(pos);
+        this.position.setLocation(pos);
     }
 
-    public Point.Double getPos() {
-        return pos;
+    public Point.Double getPosition() {
+        return position;
     }
 }

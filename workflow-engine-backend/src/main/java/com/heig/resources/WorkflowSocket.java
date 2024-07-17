@@ -6,18 +6,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.heig.entities.workflow.NodeModifiedListener;
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.connectors.Connector;
-import com.heig.entities.workflow.data.Data;
 import com.heig.entities.workflow.execution.*;
 import com.heig.entities.workflow.nodes.CodeNode;
 import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.nodes.PrimitiveNode;
-import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.ResultOrStringError;
 import com.heig.services.WorkflowService;
 import io.smallrye.mutiny.tuples.Tuple2;
-import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -414,8 +410,8 @@ public class WorkflowSocket {
         ns.addProperty("nodeId", state.getNode().getId());
         ns.addProperty("state", state.getState().toString());
         ns.addProperty("hasBeenModified", state.hasBeenModified());
-        ns.addProperty("posX", state.getPos().x);
-        ns.addProperty("posY", state.getPos().y);
+        ns.addProperty("posX", state.getPosition().x);
+        ns.addProperty("posY", state.getPosition().y);
         if (state.getState() == State.FAILED && state.getErrors().isPresent()) {
             var errors = new JsonArray();
             for (var error : state.getErrors().get().getErrors()) {

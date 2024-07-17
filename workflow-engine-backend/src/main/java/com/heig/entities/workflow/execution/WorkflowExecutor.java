@@ -11,6 +11,7 @@ import com.heig.helpers.CustomJsonDeserializer;
 import com.heig.helpers.CustomJsonSerializer;
 import com.heig.helpers.ResultOrWorkflowError;
 import com.heig.helpers.Utils;
+import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
 
 import java.awt.*;
@@ -60,7 +61,7 @@ public class WorkflowExecutor {
     private final Data data;
     private final NodeModifiedListener nodeModifiedListener;
     private final AtomicBoolean stopRequested = new AtomicBoolean(false);
-    private final List<Consumer<Void>> waitingForStop = new LinkedList<>();
+    private final ConcurrentHashSet<Consumer<Void>> waitingForStop = new ConcurrentHashSet<>();
 
     WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener) {
         this(workflow, listener, null, new LinkedList<>());
