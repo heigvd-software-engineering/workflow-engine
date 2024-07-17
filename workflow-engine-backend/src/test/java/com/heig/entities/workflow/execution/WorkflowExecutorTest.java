@@ -34,6 +34,12 @@ public class WorkflowExecutorTest {
                 public void nodeStateChanged(@Nonnull NodeState state) {
                     System.out.println(state.getNode().getId() + " -> " + state.getState());
                 }
+
+                @Override
+                public void newLogLine(@Nonnull String line) { }
+
+                @Override
+                public void clearLog() { }
             }
         );
         assert executor.executeWorkflow();

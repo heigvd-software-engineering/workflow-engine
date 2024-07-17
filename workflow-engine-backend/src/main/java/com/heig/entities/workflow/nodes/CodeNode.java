@@ -11,9 +11,11 @@ import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.HostAccess;
 import org.wildfly.common.annotation.NotNull;
 
+import java.io.*;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 public class CodeNode extends ModifiableNode {
     public static class Deserializer extends Node.NodeDeserializer<CodeNode> {
@@ -69,10 +71,20 @@ public class CodeNode extends ModifiableNode {
     }
 
     @Override
-    public NodeArguments execute(@Nonnull NodeArguments arguments) {
+    public NodeArguments execute(@Nonnull NodeArguments arguments, @Nonnull Consumer<String> logLine) {
         Objects.requireNonNull(arguments);
 
-        context = contextBuilder.build();
+        context = contextBuilder.out(new OutputStream() {
+            private String current = "";
+            @Override
+            public synchronized void write(int b) {
+                current += new String(new byte[] {(byte) b}, 0, 1);
+                if (current.endsWith("\n")) {
+                    logLine.accept(current);
+                    current = "";
+                }
+            }
+        }).build();
         var bindings = context.getBindings(language.graalLanguageCode);
         var returnArguments = new NodeArguments();
 

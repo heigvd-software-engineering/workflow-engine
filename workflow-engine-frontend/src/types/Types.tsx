@@ -217,7 +217,8 @@ export type IDisconnect = NodeID & {
 //Base
 export type WorkflowNotification = 
   NSwitchedTo
-  | NAllWorkflows 
+  | NAllWorkflows
+  | NLogChanged
   | NWorkflowError
   | NNodeModified
   | NNodeRemoved
@@ -235,6 +236,11 @@ export type NSwitchedTo = {
 export type NAllWorkflows = {
   notificationType: "workflows";
   workflows: WorkflowType[];
+}
+
+export type NLogChanged = {
+  notificationType: "logChanged";
+  log: string;
 }
 
 export type NWorkflowError = {

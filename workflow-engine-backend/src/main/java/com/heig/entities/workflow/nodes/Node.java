@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class Node {
@@ -245,7 +246,7 @@ public abstract class Node {
         return connector;
     }
 
-    public abstract NodeArguments execute(@Nonnull NodeArguments arguments);
+    public abstract NodeArguments execute(@Nonnull NodeArguments arguments, @Nonnull Consumer<String> logLine);
 
     protected Connector.Builder getConnectorBuilder() {
         return connectorBuilder;

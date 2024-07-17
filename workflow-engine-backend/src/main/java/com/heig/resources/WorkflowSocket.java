@@ -58,6 +58,7 @@ public class WorkflowSocket {
     }
 
     private class Listener implements WorkflowExecutionListener, NodeModifiedListener {
+        private String log = "";
         private final UUID uuid;
         public Listener(@Nonnull UUID uuid) {
             this.uuid = Objects.requireNonNull(uuid);
@@ -98,6 +99,21 @@ public class WorkflowSocket {
 
         public void notifyNodeRemoved(@Nonnull Node node) {
             notifyConcerned(nodeRemovedJson(node));
+        }
+
+        @Override
+        public synchronized void newLogLine(@Nonnull String line) {
+            log += line;
+            notifyConcerned(logJson(log));
+        }
+
+        @Override
+        public synchronized void clearLog() {
+            log = "";
+        }
+
+        public synchronized String getLog() {
+            return log;
         }
     }
 
@@ -159,18 +175,19 @@ public class WorkflowSocket {
                        service.stopWorkflow(we)
                     );
                 case "switchTo" ->
-                    service.getOptionalWorkflowExecutor(obj.get("uuid")).continueWith(we -> {
+                    service.getOptionalWorkflowExecutor(obj.get("uuid")).continueWith(weOpt -> {
                         sessions.put(session, Optional.empty());
                         //Here send the current state of the new workflow (all nodes, connectors, state, ...)
-                        sendTo(session, switchedToJson(we.map(wee -> wee.getWorkflow().getUUID().toString()).orElse("")));
+                        sendTo(session, switchedToJson(weOpt.map(wee -> wee.getWorkflow().getUUID().toString()).orElse("")));
 
-                        we.ifPresent(wee -> {
-                            sendTo(session, workflowStateJson(wee));
-                            wee.getWorkflow().getNodes().values().forEach(n -> {
+                        weOpt.ifPresent(we -> {
+                            sendTo(session, logJson(listeners.get(we.getWorkflow().getUUID()).getLog()));
+                            sendTo(session, workflowStateJson(we));
+                            we.getWorkflow().getNodes().values().forEach(n -> {
                                 sendTo(session, nodeModifiedJson(n));
-                                sendTo(session, nodeStateJson(wee.getStateFor(n)));
+                                sendTo(session, nodeStateJson(we.getStateFor(n)));
                             });
-                            sessions.put(session, Optional.of(wee.getWorkflow().getUUID()));
+                            sessions.put(session, Optional.of(we.getWorkflow().getUUID()));
                         });
                         return ResultOrStringError.result(null);
                     });
@@ -354,6 +371,14 @@ public class WorkflowSocket {
         var toReturn = returnJsonObjectBase("node");
         toReturn.add("node", node.toJson());
 
+        return toReturn.toString();
+    }
+
+    private String logJson(@Nonnull String log) {
+        Objects.requireNonNull(log);
+
+        var toReturn = returnJsonObjectBase("logChanged");
+        toReturn.addProperty("log", log);
         return toReturn.toString();
     }
 

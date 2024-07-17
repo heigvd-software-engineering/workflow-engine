@@ -39,6 +39,12 @@ public class TestUtils {
 
             @Override
             public void nodeStateChanged(@Nonnull NodeState state) { }
+
+            @Override
+            public void newLogLine(@Nonnull String line) { }
+
+            @Override
+            public void clearLog() { }
         });
     }
 
@@ -80,7 +86,7 @@ public class TestUtils {
     public static Optional<FileWrapper> executeFileNode(FileNode node, String path) {
         var nodeArgs = new NodeArguments();
         nodeArgs.putArgument(FileNode.I_FILEPATH_NAME, path);
-        var resArgs = node.execute(nodeArgs);
+        var resArgs = node.execute(nodeArgs, (str) -> { });
         return resArgs.getArgument(FileNode.O_FILE_NAME).map(o -> o instanceof FileWrapper ? (FileWrapper) o : null);
     }
 

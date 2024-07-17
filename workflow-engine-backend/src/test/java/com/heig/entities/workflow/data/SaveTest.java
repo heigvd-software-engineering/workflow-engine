@@ -33,6 +33,12 @@ public class SaveTest {
 
                 @Override
                 public void nodeStateChanged(@Nonnull NodeState state) { }
+
+                @Override
+                public void newLogLine(@Nonnull String line) { }
+
+                @Override
+                public void clearLog() { }
             }
         );
 
@@ -74,6 +80,12 @@ public class SaveTest {
 
             @Override
             public void nodeStateChanged(@Nonnull NodeState state) { }
+
+            @Override
+            public void newLogLine(@Nonnull String line) { }
+
+            @Override
+            public void clearLog() { }
         });
         assert loaded.isPresent();
 
@@ -94,6 +106,12 @@ public class SaveTest {
 
             @Override
             public void nodeStateChanged(@Nonnull NodeState state) { }
+
+            @Override
+            public void newLogLine(@Nonnull String line) { }
+
+            @Override
+            public void clearLog() { }
         });
         assert loaded.isPresent();
 

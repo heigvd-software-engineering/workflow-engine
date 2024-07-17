@@ -12,6 +12,7 @@ import com.heig.entities.workflow.types.WorkflowTypes;
 import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public class PrimitiveNode extends Node {
     public static class Deserializer extends Node.NodeDeserializer<PrimitiveNode> {
@@ -47,7 +48,7 @@ public class PrimitiveNode extends Node {
     }
 
     @Override
-    public NodeArguments execute(@Nonnull NodeArguments arguments) {
+    public NodeArguments execute(@Nonnull NodeArguments arguments, @Nonnull Consumer<String> logLine) {
         var args = new NodeArguments();
         args.putArgument(OUTPUT_NAME, value);
         return args;

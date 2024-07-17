@@ -11,6 +11,8 @@ import com.heig.entities.workflow.types.WFile;
 import com.heig.entities.workflow.types.WPrimitive;
 import jakarta.annotation.Nonnull;
 
+import java.util.function.Consumer;
+
 public class FileNode extends Node {
     public static class Deserializer extends Node.NodeDeserializer<FileNode> {
         public Deserializer(int id, Workflow workflow) {
@@ -37,7 +39,7 @@ public class FileNode extends Node {
     }
 
     @Override
-    public NodeArguments execute(@Nonnull NodeArguments arguments) {
+    public NodeArguments execute(@Nonnull NodeArguments arguments, @Nonnull Consumer<String> logLine) {
         var filePathOpt = arguments.getArgument(input.getName());
         if (filePathOpt.isEmpty()) {
             throw new RuntimeException("No file path specified");

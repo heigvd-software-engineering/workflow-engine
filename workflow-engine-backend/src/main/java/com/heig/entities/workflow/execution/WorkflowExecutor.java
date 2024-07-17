@@ -155,7 +155,7 @@ public class WorkflowExecutor {
             var fut = executor
                 .<Supplier<ResultOrWorkflowError<NodeArguments>>>submit(() -> {
                     try {
-                        var res = ResultOrWorkflowError.result(node.execute(args));
+                        var res = ResultOrWorkflowError.result(node.execute(args, listener::newLogLine));
                         return () -> res;
                     } catch (Exception e) {
                         we.addError(new FailedExecution(node, e.getMessage() == null ? "Unknown error" : e.getMessage()));
@@ -298,6 +298,7 @@ public class WorkflowExecutor {
             return false;
         }
 
+        listener.clearLog();
         workflowExecutionErrors.clear();
         workflow.getNodes().values().forEach(n -> {
             var ns = getStateFor(n);

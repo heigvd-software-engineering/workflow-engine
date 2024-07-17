@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Box, Button, Dialog, DialogTitle, Divider, FormControl, IconButton, InputLabel, MenuItem, Paper, Select, SelectChangeEvent, TextField } from "@mui/material";
 import { useAlert } from "./utils/alert/AlertUse";
 import { ICreateCodeNode, ICreateFileNode, ICreateNode, ICreatePrimitiveNode, ICreateWorkflow, IDisconnect, IExecuteWorkflow, IRemoveNode, IRemoveWorkflow, ISaveWorkflow, IStopWorkflow, ISwitchTo, PrimitiveTypes, State, WorkflowGeneralErrors, WorkflowNodeErrors, WorkflowNotification } from "./types/Types";
-import { AddCircle, Delete, PlayArrow, Save, Stop } from "@mui/icons-material";
+import { AddCircle, Delete, Feed, PlayArrow, Save, Stop } from "@mui/icons-material";
 import useWebSocket from "react-use-websocket";
 import { $enum } from "ts-enum-util";
 import { CodeNodeTypeNode } from "./nodes/CodeNode";
@@ -22,6 +22,9 @@ export default function WorkflowsPage() {
   const [workflowGeneralErrors, setWorkflowGeneralErrors] = useState<WorkflowGeneralErrors[]>([]);
   const [workflowState, setWorkflowState] = useState<State>();
 
+  const [logOpen, setLogOpen] = useState(false);
+  const [log, setLog] = useState<string>();
+
   const { screenToFlowPosition } = useReactFlow();
   const { setNodes, setEdges, setWorkflows, setWorkflow, workflow, workflows } = useWorkflowData();
   const { alertSuccess, alertError, alertInfo } = useAlert();
@@ -35,6 +38,7 @@ export default function WorkflowsPage() {
         return workflowsCurrent;
       })
     }
+    setLog(undefined);
     setNodes([]);
     setEdges([]);
     setWorkflowState(undefined);
@@ -57,6 +61,10 @@ export default function WorkflowsPage() {
         }
         case "workflows": {
           setWorkflows(notification.workflows)
+          break;
+        }
+        case "logChanged": {
+          setLog(notification.log);
           break;
         }
         case "newWorkflow": {
@@ -227,7 +235,7 @@ export default function WorkflowsPage() {
     sendJsonMessage(data);
   }, [sendJsonMessage]);
 
-  const [open, setOpen] = useState(false);
+  const [addWorkflowOpen, setAddWorkflowOpen] = useState(false);
   const [workflowName, setWorkflowName] = useState("");
 
   const addWorkflow = useCallback(() => {
@@ -236,7 +244,7 @@ export default function WorkflowsPage() {
       name: workflowName
     }
     sendJsonMessage(data)
-    setOpen(false);
+    setAddWorkflowOpen(false);
   }, [workflowName, sendJsonMessage])
 
   const startWorkflow = useCallback(() => {
@@ -294,8 +302,8 @@ export default function WorkflowsPage() {
   const farEnd = useMemo(() => {
     return (
       <>
-        <Dialog open={open} onClose={() => setOpen(false)}>
-          <DialogTitle sx={{paddingBottom: 0}}>Add new workflow</DialogTitle>
+        <Dialog open={addWorkflowOpen} onClose={() => setAddWorkflowOpen(false)}>
+          <DialogTitle sx={{paddingBottom: 0, textAlign: "center"}}>Add new workflow</DialogTitle>
           <TextField 
             label="Workflow name"
             value={workflowName} 
@@ -305,7 +313,16 @@ export default function WorkflowsPage() {
             />
           <Button onClick={addWorkflow}>Add new workflow</Button>
         </Dialog>
-        <Paper elevation={1} sx={{display: "flex", alignItems: "center", marginX: 1, paddingX: 1}}>
+        <Dialog open={logOpen} onClose={() => setLogOpen(false)}>
+          <DialogTitle sx={{paddingBottom: 0, textAlign: "center"}}>Log</DialogTitle>
+          <Paper elevation={1} sx={{margin: 1, paddingX: 1, minWidth: 250}}>
+            <pre>{log}</pre>
+          </Paper>
+        </Dialog>
+        {log && <IconButton size="medium" onClick={() => setLogOpen(true)}>
+          <Feed fontSize="inherit" />
+        </IconButton>}
+        {(workflowState || workflowGeneralErrors.length != 0) && <Paper elevation={1} sx={{display: "flex", alignItems: "center", marginX: 1, paddingX: 1}}>
           <Box sx={{marginLeft: 1}}>
             <ErrorPopover errors={workflowGeneralErrors.map(e => e.error)} placement="left" size="medium" />
           </Box>
@@ -336,7 +353,7 @@ export default function WorkflowsPage() {
               }
             </>
           }
-        </Paper>
+        </Paper>}
         <FormControl sx={{minWidth: 110, maxWidth: 200}} size="small">
           <InputLabel id="workflow-select">Wokflow</InputLabel>
           <Select
@@ -354,13 +371,13 @@ export default function WorkflowsPage() {
         </FormControl>
         <IconButton onClick={() => {
           setWorkflowName("");
-          setOpen(true);
+          setAddWorkflowOpen(true);
         }}>
           <AddCircle />
         </IconButton>
       </>
     )
-  }, [workflows, workflow, open, workflowGeneralErrors, handleChange, addWorkflow, startWorkflow, stopWorkflow, saveWorkflow, removeWorkflow, workflowName, workflowState])
+  }, [workflows, workflow, addWorkflowOpen, workflowGeneralErrors, log, logOpen, handleChange, addWorkflow, startWorkflow, stopWorkflow, saveWorkflow, removeWorkflow, workflowName, workflowState])
 
   const onSelect = useCallback((variant: ContextMenuVariants | undefined, position: XYPosition, choice: string) => {
     if (variant == undefined) {
