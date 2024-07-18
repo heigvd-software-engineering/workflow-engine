@@ -102,7 +102,7 @@ public abstract class Connector {
     private final ConnectorData data;
     private final boolean isReadOnly;
 
-    public Connector(int id, @Nonnull Node parent, @Nonnull String name, @Nonnull WType type, boolean isReadOnly) {
+    protected Connector(int id, @Nonnull Node parent, @Nonnull String name, @Nonnull WType type, boolean isReadOnly) {
         if (id < 0) {
             throw new IllegalArgumentException("The id cannot be negative");
         }

@@ -11,14 +11,12 @@ import com.heig.entities.workflow.file.FileWrapper;
 import com.heig.entities.workflow.nodes.FileNode;
 import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.nodes.PrimitiveNode;
-import com.heig.entities.workflow.types.WFile;
-import com.heig.entities.workflow.types.WFlow;
-import com.heig.entities.workflow.types.WPrimitive;
-import com.heig.entities.workflow.types.WType;
+import com.heig.entities.workflow.types.*;
 import groovy.lang.Tuple;
 import groovy.lang.Tuple2;
 import jakarta.annotation.Nonnull;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -115,5 +113,10 @@ public class TestUtils {
         var isValid = cache.get(fileNode, inputsArgs).isPresent() && validity.apply(fw);
         fw.delete();
         return isValid;
+    }
+
+    public static boolean hashCodeTest(Supplier<Object> supp) {
+        var realType = WorkflowTypes.fromObject(supp.get());
+        return realType.getHashCode(supp.get()) == realType.getHashCode(supp.get());
     }
 }

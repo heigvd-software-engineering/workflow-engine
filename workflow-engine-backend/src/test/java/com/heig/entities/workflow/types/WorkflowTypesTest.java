@@ -1,5 +1,7 @@
 package com.heig.entities.workflow.types;
 
+import com.heig.entities.workflow.file.FileWrapper;
+import com.heig.testHelpers.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -7,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 @QuarkusTest
 public class WorkflowTypesTest {
@@ -83,5 +86,60 @@ public class WorkflowTypesTest {
         assert testType(WMap.of(WObject.of(), WCollection.of(WPrimitive.Double)));
         assert testType(WMap.of(WPrimitive.Byte, WMap.of(WObject.of(), WPrimitive.Boolean)));
         assert testType(WCollection.of(WMap.of(WMap.of(WPrimitive.Character, WPrimitive.Long), WMap.of(WObject.of(), WPrimitive.Integer))));
+    }
+
+    @Test
+    public void hashCodeTest() {
+        assert TestUtils.hashCodeTest(WFlow::of);
+
+        assert TestUtils.hashCodeTest(() -> List.of(Map.of(Map.of('a', (long) 1), Map.of(22, 34))));
+        assert TestUtils.hashCodeTest(() -> List.of(Map.of(Map.of('a', (short) 1), Map.of((double)22, 34))));
+        assert TestUtils.hashCodeTest(() -> List.of(1, 2, "3", List.of(1, 2, 3, 4)));
+        assert TestUtils.hashCodeTest(() -> List.of(Map.of(Map.of(), Map.of(22, 34))));
+
+        var fwNotExists = new FileWrapper("notExists.file");
+        if (fwNotExists.exists()) {
+            assert fwNotExists.delete();
+        }
+
+        var fwEmpty = new FileWrapper("empty.file");
+        assert fwEmpty.createOrReplace();
+
+        var fwContent1 = new FileWrapper("content1.file");
+        assert fwContent1.createOrReplace();
+        try (var writer = fwContent1.writer()) {
+            writer.write("This is a test");
+        }
+
+        var fwContent2 = new FileWrapper("content2.file");
+        assert fwContent2.createOrReplace();
+        try (var writer = fwContent2.writer()) {
+            writer.write("This is another test");
+        }
+
+        assert TestUtils.hashCodeTest(() -> fwNotExists);
+        assert TestUtils.hashCodeTest(() -> fwEmpty);
+        assert TestUtils.hashCodeTest(() -> fwContent1);
+        assert TestUtils.hashCodeTest(() -> fwContent2);
+
+        var lstFiles = List.of(fwNotExists, fwEmpty, fwContent1, fwContent2);
+
+        for (int i = 0; i < lstFiles.size(); i++) {
+            var hcI = WFile.of().getHashCode(lstFiles.get(i));
+            for (int j = 0; j < lstFiles.size(); j++) {
+                if (i == j) {
+                    continue;
+                }
+                var hcJ = WFile.of().getHashCode(lstFiles.get(j));
+                assert hcI != hcJ;
+            }
+        }
+
+        assert lstFiles.stream().allMatch(fw -> {
+            if (fw.exists()) {
+                return fw.delete();
+            }
+            return true;
+        });
     }
 }

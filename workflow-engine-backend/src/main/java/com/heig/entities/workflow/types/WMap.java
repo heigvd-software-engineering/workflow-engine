@@ -4,10 +4,7 @@ import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -47,6 +44,25 @@ public class WMap implements WIterableType {
     @Override
     public String toString() {
         return "Map<%s, %s>".formatted(keyType.toString(), valueType.toString());
+    }
+
+    @Override
+    public int getHashCode(@Nonnull Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return Arrays.hashCode(
+                map
+                    .entrySet()
+                    .stream()
+                    .map(entry ->
+                        Objects.hash(
+                            keyType.getHashCode(entry.getKey()),
+                            valueType.getHashCode(entry.getValue())
+                        )
+                    )
+                    .toArray()
+            );
+        }
+        throw new RuntimeException("WMap should always be an instance of Map");
     }
 
     @Override

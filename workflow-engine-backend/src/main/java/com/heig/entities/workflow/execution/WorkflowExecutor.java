@@ -154,13 +154,12 @@ public class WorkflowExecutor {
             }
 
             var fut = executor
-                .<Supplier<ResultOrWorkflowError<NodeArguments>>>submit(() -> {
+                .<ResultOrWorkflowError<NodeArguments>>submit(() -> {
                     try {
-                        var res = ResultOrWorkflowError.result(node.execute(args, listener::newLogLine));
-                        return () -> res;
+                        return ResultOrWorkflowError.result(node.execute(args, listener::newLogLine));
                     } catch (Exception e) {
                         we.addError(new FailedExecution(node, e.getMessage() == null ? "Unknown error" : e.getMessage()));
-                        return () -> ResultOrWorkflowError.error(we);
+                        return ResultOrWorkflowError.error(we);
                     }
                 });
             Consumer<Void> listener = unused -> node.clean();
@@ -168,12 +167,17 @@ public class WorkflowExecutor {
 
             ResultOrWorkflowError<NodeArguments> resultOpt;
             try {
-                resultOpt = fut.get(node.getTimeout(), TimeUnit.MILLISECONDS).get();
+                resultOpt = fut.get(node.getTimeout(), TimeUnit.MILLISECONDS);
             } catch (Exception e) {
-                var timeoutErrors = new WorkflowErrors();
-                timeoutErrors.addError(new ExecutionTimeout(node));
+                waitingForStop.remove(listener);
+                var otherErrors = new WorkflowErrors();
+                if (e instanceof TimeoutException) {
+                    otherErrors.addError(new ExecutionTimeout(node));
+                } else {
+                    otherErrors.addError(new FailedExecution(node, e.getMessage() == null ? "Unknown error" : e.getMessage()));
+                }
                 node.clean();
-                return ResultOrWorkflowError.error(timeoutErrors);
+                return ResultOrWorkflowError.error(otherErrors);
             }
 
             waitingForStop.remove(listener);

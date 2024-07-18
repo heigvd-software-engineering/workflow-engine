@@ -2,10 +2,7 @@ package com.heig.entities.workflow.types;
 
 import jakarta.annotation.Nonnull;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -37,6 +34,19 @@ public class WCollection implements WIterableType {
     @Override
     public String toString() {
         return "List<%s>".formatted(valueType.toString());
+    }
+
+    @Override
+    public int getHashCode(@Nonnull Object value) {
+        if (value instanceof List<?> collection) {
+            return Arrays.hashCode(
+                collection
+                    .stream()
+                    .map(valueType::getHashCode)
+                    .toArray()
+            );
+        }
+        throw new RuntimeException("WCollection should always be an instance of List");
     }
 
     @Override

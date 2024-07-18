@@ -5,6 +5,7 @@ import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.io.*;
 import java.util.Arrays;
+import java.util.Objects;
 
 @Document("""
     This class is the wrapper for a file passed to an input / output of a node.
@@ -154,12 +155,15 @@ public class FileWrapper {
     }
 
     public int getContentHashCode() {
-        if (isFileNull() || !exists()) {
+        if (isFileNull()) {
             return 0;
+        }
+        if (!exists()) {
+            return 2;
         }
 
         try (var reader = reader()) {
-            return Arrays.hashCode(new Object[] { reader.readAllText().hashCode(), filePath.hashCode() });
+            return Objects.hash(reader.readAllText().hashCode(), filePath.hashCode());
         }
     }
 }

@@ -316,10 +316,10 @@ export default function WorkflowsPage() {
         <Dialog open={logOpen} onClose={() => setLogOpen(false)}>
           <DialogTitle sx={{paddingBottom: 0, textAlign: "center"}}>Log</DialogTitle>
           <Paper elevation={1} sx={{margin: 1, paddingX: 1, minWidth: 250}}>
-            <pre>{log}</pre>
+            <pre>{log == "" ? <i>Empty</i> : log}</pre>
           </Paper>
         </Dialog>
-        {log && <IconButton size="medium" onClick={() => setLogOpen(true)}>
+        {log != undefined && <IconButton size="medium" onClick={() => setLogOpen(true)}>
           <Feed fontSize="inherit" />
         </IconButton>}
         {(workflowState || workflowGeneralErrors.length != 0) && <Paper elevation={1} sx={{display: "flex", alignItems: "center", marginX: 1, paddingX: 1}}>

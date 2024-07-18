@@ -52,7 +52,10 @@ public class Cache {
                 throw new RuntimeException("Should never happen ! Node should have been marked as modified !");
             } else {
                 var argument = argumentOpt.get();
-                lstHashCodes.add(input.getType().getHashCode(argument));
+                //Here we use the real type, not the one declared by the input.
+                //If the input was WObject, but the type is WFile, we want to get the hash code from the WFile type, not from WObject
+                var realType = WorkflowTypes.fromObject(argument);
+                lstHashCodes.add(realType.getHashCode(argument));
             }
         }
         return Arrays.hashCode(lstHashCodes.toArray());

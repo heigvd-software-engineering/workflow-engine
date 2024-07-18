@@ -17,8 +17,7 @@ public class WFlow implements WType {
 
     @Override
     public boolean canBeConvertedFrom(@Nonnull WType other) {
-        Objects.requireNonNull(other);
-        return other instanceof WFlow;
+        return Objects.requireNonNull(other) instanceof WFlow;
     }
 
     @Override

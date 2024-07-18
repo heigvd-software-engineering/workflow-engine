@@ -56,7 +56,7 @@ public class NodeState {
 
     private State state = State.IDLE;
     private final Map<Integer, Object> valuesMap = new HashMap<>();
-    private WorkflowErrors error = null;
+    private WorkflowErrors errors = null;
     private final Node node;
     private boolean hasBeenModified = false;
     private final Point.Double position = new Point.Double(0, 0);
@@ -95,11 +95,11 @@ public class NodeState {
     }
 
     public synchronized void setErrors(@Nonnull WorkflowErrors error) {
-        this.error = Objects.requireNonNull(error);
+        this.errors = Objects.requireNonNull(error);
     }
 
     public synchronized Optional<WorkflowErrors> getErrors() {
-        return Optional.ofNullable(error);
+        return Optional.ofNullable(errors);
     }
 
     public synchronized void setState(@Nonnull State state) {

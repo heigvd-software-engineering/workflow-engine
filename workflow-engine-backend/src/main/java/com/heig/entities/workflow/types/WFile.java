@@ -19,7 +19,7 @@ public class WFile implements WType {
 
     @Override
     public boolean canBeConvertedFrom(@Nonnull WType other) {
-        return other instanceof WFile;
+        return Objects.requireNonNull(other) instanceof WFile;
     }
 
     @Override

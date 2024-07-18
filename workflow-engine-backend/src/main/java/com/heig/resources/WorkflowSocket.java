@@ -106,6 +106,7 @@ public class WorkflowSocket {
         @Override
         public synchronized void clearLog() {
             log = "";
+            notifyConcerned(logJson(log));
         }
 
         public synchronized String getLog() {
