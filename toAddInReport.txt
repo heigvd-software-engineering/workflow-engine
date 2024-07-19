@@ -1,21 +1,21 @@
-- Graphes avec https://jgrapht.org/
+x Graphes avec https://jgrapht.org/
     - Weakly connected pour détecter si on a le graphe qui est en plusieurs parties : 
 		- https://jgrapht.org/javadoc/org.jgrapht.core/org/jgrapht/alg/connectivity/package-summary.html => A directed graph is called weakly connected if replacing all of its directed edges with undirected edges produces a connected (undirected) graph 
 		- ConnectivityInspector isConnected https://jgrapht.org/javadoc/org.jgrapht.core/org/jgrapht/alg/connectivity/ConnectivityInspector.html
     - CycleDetector pour détecter la présence de cycles
 		- CycleDetector detectCycles() https://jgrapht.org/javadoc/org.jgrapht.core/org/jgrapht/alg/cycle/CycleDetector.html
-- Explication de la structure des types pour le workflow
-- Explication de comment est géré la vérification du graphe (en lien avec la détection de cycle et de si le graphe est en plusieurs parties)
-- Expliquer pourquoi avoir fait des Builder pour les Nodes et les Connectors (problème de visibilité des constructeurs de Nodes et ne pas pouvoir y accéder depuis Workflow pour les créer à cause de l'organisation des packages)
+x Explication de la structure des types pour le workflow
+x Explication de comment est géré la vérification du graphe (en lien avec la détection de cycle et de si le graphe est en plusieurs parties)
+x Expliquer pourquoi avoir fait des Builder pour les Nodes et les Connectors (problème de visibilité des constructeurs de Nodes et ne pas pouvoir y accéder depuis Workflow pour les créer à cause de l'organisation des packages)
 	- Expliquer pourquoi faire une ModifiableNode qui permet de modifier les input / output et les deterministic etc
-- Expliquer la structure de ConnectorData et Connector (pourquoi utiliser un bridge pattern ici => pour ne pas avoir à créer ModifiableInputConnector, ModifiableOutputConnector, ModifiableInputFlowConnector, ...)
-- Expliquer pourquoi avoir utilisé @CheckReturnValue peut-être => pour avoir un warning si on n'utilise pas la valeur de retour
-- Expliquer pourquoi les @Nonnull et les Objects.requireNonNull() => Pour être sûr de ne jamais recevoir de valeur nulle
-- Expliquer pourquoi avoir utilisé ObjectOutputStream et non un parser plus classique -> on perde le type réel avec un parser classique (type GSON) ce qui peut faire que le code fonctionne la 1ère fois mais quand on va charger depuis le cache ça va ne plus fonctionner
-- Expliquer le fonctionnement de ConfigProvider.getConfig() avec le application.properties de Quarkus https://quarkus.io/guides/config-reference#programmatically-access
-- Expliquer pourquoi avoir fait une instance avec les caches (1 par workflow) => Vu que get et set sont synchronized, on doit avoir le même objet pour que cela fonctionne (et donc que l'on ne modifie pas les fichiers constituant le cache en même temps)
-- Expliquer pourquoi ne pas avoir laissé faire des listes de fichier (et de WFlow) => Copier chaque fichier pour mettre en cache
-- Expliquer comment marche la mise en cache et la récupération depuis le cache => les inputs sont hash et les outputs sont mis en cache en tant qu'objet pour pouvoir récuperer il faut que le nouveau hash obtenu de tous les inputs donne le même hash que celui qu'on a mis en cache. Sinon on doit relancer l'exécution du noeud actuel
-- Expliquer pourquoi avoir créer un fichier ".type" quand on met les valeurs dans le cache => Parce que si on a un output qui est de type Object mais que l'objet en lui-même est un fichier (et donc qui demande un traitement différent) on ne peut pas le deviner -> faire un fichier qui contient le type (WType) réel de la valeur mise en cache
-- Expliquer pourquoi il n'y a qu'une seule connexion possible sur les connecteurs flow d'entrée => On les traite comme des connecteurs normaux avec un type spécifique
-- Expliquer comment c'est fait le management de fichiers (locks) => https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.html
+x Expliquer la structure de ConnectorData et Connector (pourquoi utiliser un bridge pattern ici => pour ne pas avoir à créer ModifiableInputConnector, ModifiableOutputConnector, ModifiableInputFlowConnector, ...)
+n Expliquer pourquoi avoir utilisé @CheckReturnValue peut-être => pour avoir un warning si on n'utilise pas la valeur de retour
+x Expliquer pourquoi les @Nonnull et les Objects.requireNonNull() => Pour être sûr de ne jamais recevoir de valeur nulle
+x Expliquer pourquoi avoir utilisé ObjectOutputStream et non un parser plus classique -> on perde le type réel avec un parser classique (type GSON) ce qui peut faire que le code fonctionne la 1ère fois mais quand on va charger depuis le cache ça va ne plus fonctionner
+x Expliquer le fonctionnement de ConfigProvider.getConfig() avec le application.properties de Quarkus https://quarkus.io/guides/config-reference#programmatically-access
+x Expliquer pourquoi avoir fait une instance avec les caches (1 par workflow) => Vu que get et set sont synchronized, on doit avoir le même objet pour que cela fonctionne (et donc que l'on ne modifie pas les fichiers constituant le cache en même temps)
+x Expliquer pourquoi ne pas avoir laissé faire des listes de fichier (et de WFlow) => Copier chaque fichier pour mettre en cache
+x Expliquer comment marche la mise en cache et la récupération depuis le cache => les inputs sont hash et les outputs sont mis en cache en tant qu'objet pour pouvoir récuperer il faut que le nouveau hash obtenu de tous les inputs donne le même hash que celui qu'on a mis en cache. Sinon on doit relancer l'exécution du noeud actuel
+x Expliquer pourquoi avoir créer un fichier ".type" quand on met les valeurs dans le cache => Parce que si on a un output qui est de type Object mais que l'objet en lui-même est un fichier (et donc qui demande un traitement différent) on ne peut pas le deviner -> faire un fichier qui contient le type (WType) réel de la valeur mise en cache
+x Expliquer pourquoi il n'y a qu'une seule connexion possible sur les connecteurs flow d'entrée => On les traite comme des connecteurs normaux avec un type spécifique
+x Expliquer comment c'est fait le management de fichiers (locks) => https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.html

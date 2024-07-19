@@ -147,7 +147,9 @@ public class WorkflowTypes {
         Objects.requireNonNull(builder);
         if (consumeIfPresent(builder, "Map ")) {
             var keyType = (WIterableType) typeFromString(builder);
-            consumeIfPresent(builder, " ");
+            if (!consumeIfPresent(builder, " ")) {
+                throw new RuntimeException("Type not valid !");
+            }
             var valueType = (WIterableType) typeFromString(builder);
             return WMap.of(keyType, valueType);
         }

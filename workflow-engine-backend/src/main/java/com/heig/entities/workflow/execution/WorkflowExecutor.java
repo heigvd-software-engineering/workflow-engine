@@ -61,7 +61,7 @@ public class WorkflowExecutor {
     private final Data data;
     private final NodeModifiedListener nodeModifiedListener;
     private final AtomicBoolean stopRequested = new AtomicBoolean(false);
-    private final ConcurrentHashSet<Consumer<Void>> waitingForStop = new ConcurrentHashSet<>();
+    private final ConcurrentHashSet<Runnable> waitingForStop = new ConcurrentHashSet<>();
 
     WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener) {
         this(workflow, listener, null, new LinkedList<>());
@@ -147,7 +147,9 @@ public class WorkflowExecutor {
                 }
             }
 
-            changeNodeState(ns, State.RUNNING);
+            synchronized (ns) {
+                changeNodeState(ns, State.RUNNING);
+            }
 
             if (stopRequested.get()) {
                 return ResultOrWorkflowError.error(we);
@@ -162,7 +164,7 @@ public class WorkflowExecutor {
                         return ResultOrWorkflowError.error(we);
                     }
                 });
-            Consumer<Void> listener = unused -> node.clean();
+            Runnable listener = node::clean;
             waitingForStop.add(listener);
 
             ResultOrWorkflowError<NodeArguments> resultOpt;
@@ -229,15 +231,15 @@ public class WorkflowExecutor {
                 return ResultOrWorkflowError.result(result);
             }
         }).thenApplyAsync(o -> {
-            o.execute(value -> {
-                changeNodeState(getStateFor(node), State.FINISHED);
-            }, we -> {
-                var ns = getStateFor(node);
-                synchronized (ns) {
+            var ns = getStateFor(node);
+            synchronized (ns) {
+                o.execute(value -> {
+                    changeNodeState(ns, State.FINISHED);
+                }, we -> {
                     ns.setErrors(we);
                     changeNodeState(ns, State.FAILED);
-                }
-            });
+                });
+            }
             return o.getResult();
         }).thenComposeAsync(o -> {
             var toWait = new LinkedList<CompletableFuture<Void>>();
@@ -336,16 +338,14 @@ public class WorkflowExecutor {
 
             //When the execution ends, we save the workflow again. It is possible that the cache has changed and that the node state too
             data.getSave().save();
-            if (failed) {
-                synchronized (stateLock) {
+
+            synchronized (stateLock) {
+                if (failed) {
                     state = State.FAILED;
-                    listener.workflowStateChanged(this);
-                }
-            } else {
-                synchronized (stateLock) {
+                } else {
                     state = State.FINISHED;
-                    listener.workflowStateChanged(this);
                 }
+                listener.workflowStateChanged(this);
             }
         });
         return true;
@@ -357,7 +357,7 @@ public class WorkflowExecutor {
         }
         stopRequested.set(true);
         for (var listener : waitingForStop) {
-            listener.accept(null);
+            listener.run();
         }
         return true;
     }

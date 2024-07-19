@@ -41,7 +41,7 @@ public class Save {
         save();
     }
 
-    public void save() {
+    public synchronized void save() {
         var serializer = new WorkflowExecutor.Serializer();
         var json = new Gson().toJson(serializer.serialize(workflowExecutor));
         var file = new File(saveDirectory, saveFileName);
@@ -62,7 +62,7 @@ public class Save {
         }
     }
 
-    public Optional<WorkflowExecutor> load(@Nonnull Data data, @Nonnull WorkflowExecutionListener listener) {
+    public synchronized Optional<WorkflowExecutor> load(@Nonnull Data data, @Nonnull WorkflowExecutionListener listener) {
         Objects.requireNonNull(data);
         Objects.requireNonNull(listener);
 
