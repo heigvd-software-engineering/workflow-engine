@@ -19,3 +19,15 @@ x Expliquer comment marche la mise en cache et la récupération depuis le cache
 x Expliquer pourquoi avoir créer un fichier ".type" quand on met les valeurs dans le cache => Parce que si on a un output qui est de type Object mais que l'objet en lui-même est un fichier (et donc qui demande un traitement différent) on ne peut pas le deviner -> faire un fichier qui contient le type (WType) réel de la valeur mise en cache
 x Expliquer pourquoi il n'y a qu'une seule connexion possible sur les connecteurs flow d'entrée => On les traite comme des connecteurs normaux avec un type spécifique
 x Expliquer comment c'est fait le management de fichiers (locks) => https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/locks/ReentrantReadWriteLock.html
+x Communication back <-> front (websocket, json)
+x Packages importants (back et front)
+x Inefficience -> envoie plusieurs fois le NodeState alors que on aurait pu envoyer une seule fois a la fin
+x WorkflowSocketTest à modifier
+x Manque tests unitaires ?
+x noeud sans timeout inexistant
+x side effect méthode fixObject -> Set<> transformé en LinkedList<>
+- ajouter présentation du site web + exemples de workflow (dire qu'on a finalement traité plusieurs workflows / pas cliquer glisser pour ajouter mais contextmenu)
+- mettre commentaires + readme
+- conclusion
+- résumé + affiche
+- exécution en mode production du front et back

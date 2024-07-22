@@ -19,7 +19,6 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class WorkflowExecutor {
@@ -152,6 +151,7 @@ public class WorkflowExecutor {
             }
 
             if (stopRequested.get()) {
+                we.addError(new FailedExecution(node, "A stop has been requested"));
                 return ResultOrWorkflowError.error(we);
             }
 
@@ -164,8 +164,11 @@ public class WorkflowExecutor {
                         return ResultOrWorkflowError.error(we);
                     }
                 });
-            Runnable listener = node::clean;
+            Runnable listener = node::cancel;
             waitingForStop.add(listener);
+            if (stopRequested.get()) {
+                node.cancel();
+            }
 
             ResultOrWorkflowError<NodeArguments> resultOpt;
             try {
@@ -178,7 +181,7 @@ public class WorkflowExecutor {
                 } else {
                     otherErrors.addError(new FailedExecution(node, e.getMessage() == null ? "Unknown error" : e.getMessage()));
                 }
-                node.clean();
+                node.cancel();
                 return ResultOrWorkflowError.error(otherErrors);
             }
 
@@ -274,7 +277,7 @@ public class WorkflowExecutor {
             }
 
             //Clean the resources when the workflow execution is finished
-            node.clean();
+            node.cancel();
             return CompletableFuture.allOf(toWait.toArray(CompletableFuture[]::new));
         });
     }

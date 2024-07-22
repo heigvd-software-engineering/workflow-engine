@@ -10,11 +10,9 @@ import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.types.WPrimitive;
-import com.heig.entities.workflow.types.WType;
 import com.heig.helpers.CustomJsonDeserializer;
 import com.heig.helpers.CustomJsonSerializer;
 import com.heig.helpers.Utils;
-import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
 import java.util.*;
@@ -289,5 +287,5 @@ public abstract class Node {
     /**
      * Function executed when the execution is finished or cancelled
      */
-    public void clean() { }
+    public void cancel() { }
 }

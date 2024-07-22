@@ -12,9 +12,7 @@ import org.graalvm.polyglot.HostAccess;
 import org.wildfly.common.annotation.NotNull;
 
 import java.io.*;
-import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 public class CodeNode extends ModifiableNode {
@@ -96,8 +94,8 @@ public class CodeNode extends ModifiableNode {
     }
 
     @Override
-    public void clean() {
-        super.clean();
+    public void cancel() {
+        super.cancel();
         if (context != null) {
             try {
                 context.close(true);
