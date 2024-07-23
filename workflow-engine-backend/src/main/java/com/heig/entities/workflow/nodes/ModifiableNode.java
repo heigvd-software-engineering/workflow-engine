@@ -7,7 +7,6 @@ import com.heig.entities.workflow.connectors.OutputConnector;
 import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
-import java.util.function.Function;
 
 public abstract class ModifiableNode extends Node {
     protected ModifiableNode(int id, @Nonnull Workflow workflow) {

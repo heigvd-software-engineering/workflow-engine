@@ -39,8 +39,8 @@ public class FileNode extends Node {
     }
 
     @Override
-    public NodeArguments execute(@Nonnull NodeArguments arguments, @Nonnull Consumer<String> logLine) {
-        var filePathOpt = arguments.getArgument(input.getName());
+    public NodeArguments execute(@Nonnull NodeArguments inputs, @Nonnull Consumer<String> logLine) {
+        var filePathOpt = inputs.getArgument(input.getName());
         if (filePathOpt.isEmpty()) {
             throw new RuntimeException("No file path specified");
         }

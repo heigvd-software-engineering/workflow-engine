@@ -6,10 +6,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.types.WFlow;
-import com.heig.entities.workflow.types.WObject;
 import com.heig.entities.workflow.types.WType;
 import com.heig.helpers.Utils;
-import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collections;

@@ -1,24 +1,18 @@
 package com.heig.testHelpers;
 
-import com.heig.entities.workflow.data.Cache;
-import com.heig.entities.workflow.connectors.InputFlowConnector;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.connectors.OutputFlowConnector;
 import com.heig.entities.workflow.data.Data;
 import com.heig.entities.workflow.execution.*;
 import com.heig.entities.workflow.file.FileWrapper;
 import com.heig.entities.workflow.nodes.FileNode;
-import com.heig.entities.workflow.nodes.ModifiableNode;
 import com.heig.entities.workflow.nodes.PrimitiveNode;
 import com.heig.entities.workflow.types.*;
 import groovy.lang.Tuple;
 import groovy.lang.Tuple2;
 import jakarta.annotation.Nonnull;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;

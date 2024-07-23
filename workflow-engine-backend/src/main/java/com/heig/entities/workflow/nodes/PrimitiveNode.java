@@ -7,7 +7,6 @@ import com.heig.entities.workflow.Workflow;
 import com.heig.entities.workflow.connectors.OutputConnector;
 import com.heig.entities.workflow.execution.NodeArguments;
 import com.heig.entities.workflow.types.WPrimitive;
-import com.heig.entities.workflow.types.WType;
 import com.heig.entities.workflow.types.WorkflowTypes;
 import jakarta.annotation.Nonnull;
 
@@ -48,7 +47,7 @@ public class PrimitiveNode extends Node {
     }
 
     @Override
-    public NodeArguments execute(@Nonnull NodeArguments arguments, @Nonnull Consumer<String> logLine) {
+    public NodeArguments execute(@Nonnull NodeArguments inputs, @Nonnull Consumer<String> logLine) {
         var args = new NodeArguments();
         args.putArgument(OUTPUT_NAME, value);
         return args;

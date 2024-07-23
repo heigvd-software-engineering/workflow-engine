@@ -26,7 +26,6 @@ import java.awt.geom.Point2D;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
 
 @ApplicationScoped
 public class WorkflowService {

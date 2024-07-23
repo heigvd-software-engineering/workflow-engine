@@ -7,7 +7,6 @@ import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.types.WorkflowTypes;
 import com.heig.helpers.Utils;
 import jakarta.annotation.Nonnull;
-import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.io.*;
 import java.nio.ByteBuffer;

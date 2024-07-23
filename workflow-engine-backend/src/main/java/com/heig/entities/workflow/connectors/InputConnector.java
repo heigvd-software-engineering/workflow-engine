@@ -1,6 +1,5 @@
 package com.heig.entities.workflow.connectors;
 
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -8,10 +7,8 @@ import com.heig.entities.workflow.nodes.Node;
 import com.heig.entities.workflow.types.WFlow;
 import com.heig.entities.workflow.types.WType;
 import com.heig.helpers.Utils;
-import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;

@@ -1,23 +1,11 @@
 package com.heig.entities.workflow.nodes;
 
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.data.Data;
-import com.heig.entities.workflow.execution.NodeArguments;
-import com.heig.entities.workflow.execution.WorkflowManager;
-import com.heig.entities.workflow.connectors.InputFlowConnector;
-import com.heig.entities.workflow.connectors.OutputFlowConnector;
-import com.heig.entities.workflow.types.WFile;
-import com.heig.entities.workflow.types.WFlow;
 import com.heig.entities.workflow.types.WPrimitive;
 import com.heig.testHelpers.TestScenario;
-import com.heig.testHelpers.TestUtils;
-import groovy.lang.Tuple2;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import java.util.Map;
-import java.util.Objects;
 
 @QuarkusTest
 public class NodeTest {

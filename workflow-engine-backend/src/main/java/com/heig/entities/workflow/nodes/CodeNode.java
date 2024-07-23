@@ -38,7 +38,7 @@ public class CodeNode extends ModifiableNode {
     }
 
     public enum Language {
-        JS("js", "function main(arguments, returnArguments){%s}");
+        JS("js", "function main(inputs, outputs){%s}");
 
         private final String graalLanguageCode;
         private final String mainCodeTemplate;
@@ -69,8 +69,8 @@ public class CodeNode extends ModifiableNode {
     }
 
     @Override
-    public NodeArguments execute(@Nonnull NodeArguments arguments, @Nonnull Consumer<String> logLine) {
-        Objects.requireNonNull(arguments);
+    public NodeArguments execute(@Nonnull NodeArguments inputs, @Nonnull Consumer<String> logLine) {
+        Objects.requireNonNull(inputs);
 
         context = contextBuilder.out(new OutputStream() {
             private String current = "";
@@ -84,13 +84,13 @@ public class CodeNode extends ModifiableNode {
             }
         }).build();
         var bindings = context.getBindings(language.graalLanguageCode);
-        var returnArguments = new NodeArguments();
+        var outputs = new NodeArguments();
 
         context.eval(language.graalLanguageCode, language.completeMain(code));
         var mainFunc = bindings.getMember("main");
-        mainFunc.execute(arguments, returnArguments);
+        mainFunc.execute(inputs, outputs);
 
-        return returnArguments;
+        return outputs;
     }
 
     @Override

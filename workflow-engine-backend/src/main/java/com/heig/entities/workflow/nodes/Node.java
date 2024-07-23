@@ -244,7 +244,7 @@ public abstract class Node {
         return connector;
     }
 
-    public abstract NodeArguments execute(@Nonnull NodeArguments arguments, @Nonnull Consumer<String> logLine);
+    public abstract NodeArguments execute(@Nonnull NodeArguments inputs, @Nonnull Consumer<String> logLine);
 
     protected Connector.Builder getConnectorBuilder() {
         return connectorBuilder;

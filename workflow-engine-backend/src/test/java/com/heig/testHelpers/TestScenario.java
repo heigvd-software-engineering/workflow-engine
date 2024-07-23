@@ -1,6 +1,5 @@
 package com.heig.testHelpers;
 
-import com.heig.entities.workflow.execution.WorkflowManager;
 import com.heig.entities.workflow.connectors.InputConnector;
 import com.heig.entities.workflow.nodes.CodeNode;
 import com.heig.entities.workflow.connectors.OutputConnector;

@@ -8,13 +8,13 @@ import java.util.*;
 @Document("""
     This class is used to pass data from and to the Code node executor.
     You can use :
-    - "arguments" to access the node parameters
-    - "returnArguments" to specify the values of each node parameter to return
+    - "inputs" to access the node parameters
+    - "outputs" to specify the values of each node parameter to return
     Example :
     The node has 1 input named "number" and an output named "squared"
     Code (in JS here) :
-    let n = arguments.get("number");
-    returnArguments.put("squared", n * n);
+    let n = inputs.get("number");
+    outputs.put("squared", n * n);
     """)
 public class NodeArguments {
     private final Map<String, Object> arguments = new HashMap<>();

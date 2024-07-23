@@ -26,8 +26,11 @@ x WorkflowSocketTest à modifier
 x Manque tests unitaires ?
 x noeud sans timeout inexistant
 x side effect méthode fixObject -> Set<> transformé en LinkedList<>
-- ajouter présentation du site web + exemples de workflow (dire qu'on a finalement traité plusieurs workflows / pas cliquer glisser pour ajouter mais contextmenu)
+x ajouter présentation du site web + exemples de workflow (dire qu'on a finalement traité plusieurs workflows / pas cliquer glisser pour ajouter mais contextmenu)
+x renommer input outputs // returnarguments
 - mettre commentaires + readme
-- conclusion
 - résumé + affiche
 - exécution en mode production du front et back
+- licence apache v2
+- conclusion et travail futur (ext vscode / workflow en tant que noeud de code / )
+- vidéo démo -> Bertil

@@ -106,6 +106,8 @@ function canBeUsedAsT(name?: AvailableTypeNames): boolean {
   switch(name) {
     case "Flow":
       return false;
+    case "File":
+      return false;
     default: 
       return true;
   }

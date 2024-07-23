@@ -1,6 +1,5 @@
 package com.heig.entities.workflow;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -11,7 +10,6 @@ import com.heig.entities.workflow.nodes.Node;
 import com.heig.helpers.CustomJsonDeserializer;
 import com.heig.helpers.CustomJsonSerializer;
 import com.heig.helpers.Utils;
-import io.smallrye.mutiny.tuples.Tuple2;
 import io.vertx.core.impl.ConcurrentHashSet;
 import jakarta.annotation.Nonnull;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
