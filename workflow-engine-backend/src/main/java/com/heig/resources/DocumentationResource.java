@@ -27,6 +27,11 @@ public class DocumentationResource {
                 Collectors.toMap(DocumentClass::name, Function.identity())
             );
 
+    /**
+     * Returns the json representation of the data to send to the client. The type will be "error" if the value is an error.
+     * @param value The value
+     * @return The json representation to send to the client
+     */
     private static String toJson(ResultOrStringError<Tuple2<String, JsonElement>> value) {
         var gson = new Gson();
         var obj = new JsonObject();

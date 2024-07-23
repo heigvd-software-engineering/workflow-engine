@@ -21,7 +21,13 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+/**
+ * Handles the execution of the workflow
+ */
 public class WorkflowExecutor {
+    /**
+     * Used to convert a {@link WorkflowExecutor} to its json representation
+     */
     public static class Serializer implements CustomJsonSerializer<WorkflowExecutor> {
         @Override
         public JsonElement serialize(WorkflowExecutor workflowExecutor) {
@@ -33,6 +39,9 @@ public class WorkflowExecutor {
         }
     }
 
+    /**
+     * Used to convert json to a {@link WorkflowExecutor}
+     */
     public static class Deserializer implements CustomJsonDeserializer<WorkflowExecutor> {
         private final WorkflowExecutionListener listener;
         private final Data data;
@@ -50,16 +59,59 @@ public class WorkflowExecutor {
         }
     }
 
+    /**
+     * Object used to synchronize the {@link State} of this {@link WorkflowExecutor}
+     */
     private final Object stateLock = new Object();
+
+    /**
+     * The {@link State}
+     */
     private State state = State.IDLE;
+
+    /**
+     * The {@link Workflow} linked to this {@link WorkflowExecutor}
+     */
     private final Workflow workflow;
+
+    /**
+     * Stores the {@link NodeState} for each {@link Node} (here represented by its id)
+     */
     private final ConcurrentMap<Integer, NodeState> states = new ConcurrentHashMap<>();
+
+    /**
+     * The listener to notify when a change happens
+     */
     private final WorkflowExecutionListener listener;
+
+    /**
+     * The execution errors
+     */
     private final WorkflowErrors workflowExecutionErrors = new WorkflowErrors();
+
+    /**
+     * The validity errors
+     */
     private final WorkflowErrors workflowValidityErrors = new WorkflowErrors();
+
+    /**
+     * The {@link Data} object
+     */
     private final Data data;
+
+    /**
+     * The listener to notify when a node has been modified
+     */
     private final NodeModifiedListener nodeModifiedListener;
+
+    /**
+     * True if a stop has been requested by the user, false otherwise
+     */
     private final AtomicBoolean stopRequested = new AtomicBoolean(false);
+
+    /**
+     * List of all the {@link Runnable} to start if a stop has been requested
+     */
     private final ConcurrentHashSet<Runnable> waitingForStop = new ConcurrentHashSet<>();
 
     WorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener listener) {
@@ -81,6 +133,7 @@ public class WorkflowExecutor {
             this.data = data;
         }
 
+        //When a node has been modified, we set that the NodeState linked has been modified
         this.nodeModifiedListener = node -> {
             var state = getStateFor(node);
             synchronized (state) {
@@ -99,6 +152,11 @@ public class WorkflowExecutor {
         states.remove(node.getId());
     }
 
+    /**
+     * Changes the state for a {@link Node} and notifies the {@link WorkflowExecutionListener}
+     * @param ns The {@link NodeState} to change
+     * @param state The new {@link State}
+     */
     private void changeNodeState(@Nonnull NodeState ns, @Nonnull State state) {
         Objects.requireNonNull(ns);
         Objects.requireNonNull(state);
@@ -106,8 +164,16 @@ public class WorkflowExecutor {
         listener.nodeStateChanged(ns);
     }
 
+    /**
+     * The thread pool to execute the tasks
+     */
     private static final ExecutorService executor = Executors.newCachedThreadPool();
 
+    /**
+     * Executes the node
+     * @param node The {@link Node} to execute
+     * @return A future that completes when the {@link Node} and all the nodes depending on this node are executed
+     */
     private CompletableFuture<Void> executeNode(@Nonnull Node node) {
         Objects.requireNonNull(node);
         return CompletableFuture.supplyAsync((Supplier<ResultOrWorkflowError<NodeArguments>>) () -> {
@@ -282,14 +348,22 @@ public class WorkflowExecutor {
         });
     }
 
+    /**
+     * Checks if the current workflow is valid. Notifies that the state of the workflow has changed to the {@link WorkflowExecutionListener}.
+     */
     public void checkForErrors() {
         workflowValidityErrors.clear();
 
         var errors = workflow.isValid();
         errors.ifPresent(workflowValidityErrors::merge);
+        //Notify because the workflowValidityErrors have changed
         listener.workflowStateChanged(this);
     }
 
+    /**
+     * Executes the workflow
+     * @return True if the execution has been correctly started, false otherwise
+     */
     public boolean executeWorkflow() {
         synchronized (stateLock) {
             if (state == State.RUNNING) {
@@ -302,12 +376,14 @@ public class WorkflowExecutor {
         stopRequested.set(false);
 
         checkForErrors();
+        //If a validity error is present, we stop here
         if (!workflowValidityErrors.getErrors().isEmpty()) {
             state = State.IDLE;
             listener.workflowStateChanged(this);
             return false;
         }
 
+        //Resets the state of the entire workflow
         listener.clearLog();
         workflowExecutionErrors.clear();
         workflow.getNodes().values().forEach(n -> {
@@ -354,6 +430,10 @@ public class WorkflowExecutor {
         return true;
     }
 
+    /**
+     * Requests a stop of the workflow
+     * @return False if the workflow is not running, true otherwise
+     */
     public boolean stopWorkflow() {
         if (state != State.RUNNING) {
             return false;
@@ -384,6 +464,10 @@ public class WorkflowExecutor {
         return state;
     }
 
+    /**
+     * Returns the workflow errors (execution + validity errors)
+     * @return The workflow errors
+     */
     public WorkflowErrors getWorkflowErrors() {
         var all = new WorkflowErrors();
         all.merge(workflowExecutionErrors);
@@ -391,10 +475,16 @@ public class WorkflowExecutor {
         return all;
     }
 
+    /**
+     * Clears the cache for the workflow
+     */
     public void clearCache() {
         data.getCache().clear();
     }
 
+    /**
+     * Deletes the data directory for the current workflow and removed the {@link NodeModifiedListener} from the workflow
+     */
     public void delete() {
         data.delete();
         workflow.removeNodeModifiedListener(nodeModifiedListener);

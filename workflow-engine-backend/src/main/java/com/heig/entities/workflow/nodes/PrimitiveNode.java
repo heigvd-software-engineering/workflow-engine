@@ -13,7 +13,13 @@ import jakarta.annotation.Nonnull;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * The primitive node
+ */
 public class PrimitiveNode extends Node {
+    /**
+     * Used to convert a json representation to a {@link PrimitiveNode}
+     */
     public static class Deserializer extends Node.NodeDeserializer<PrimitiveNode> {
         public Deserializer(int id, Workflow workflow) {
             super(id, workflow);
@@ -32,9 +38,15 @@ public class PrimitiveNode extends Node {
         }
     }
 
+    /**
+     * The name of the output
+     */
     public static final String OUTPUT_NAME = "output";
     private final OutputConnector output;
 
+    /**
+     * The value of the node
+     */
     private Object value;
 
     protected PrimitiveNode(int id, @Nonnull Workflow workflow, @Nonnull WPrimitive type) {
@@ -53,6 +65,12 @@ public class PrimitiveNode extends Node {
         return args;
     }
 
+    /**
+     * Sets the value of the primitive node.
+     * Throws a {@link RuntimeException} if the value cannot be converted to the expected type.
+     * Notifies {@link Workflow#nodeModified(Node)}
+     * @param value The value
+     */
     public void setValue(@Nonnull Object value) {
         var outputType = output.getType();
         var valueType = WorkflowTypes.fromObject(value);

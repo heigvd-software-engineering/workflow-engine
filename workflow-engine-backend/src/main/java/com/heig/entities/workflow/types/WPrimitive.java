@@ -4,11 +4,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import jakarta.annotation.Nonnull;
 
-import javax.swing.*;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Type representing a primitive
+ */
 public enum WPrimitive implements WIterableType {
     Integer(0, JsonElement::getAsInt),
     String("", JsonElement::getAsString),
@@ -26,7 +27,14 @@ public enum WPrimitive implements WIterableType {
         return str.charAt(0);
     });
 
+    /**
+     * The default value for the primitive type
+     */
     private final Object defaultValue;
+
+    /**
+     * Function allowing to get an object of the correct type from a json element
+     */
     private final Function<JsonElement, Object> converter;
     WPrimitive(@Nonnull Object defaultValue, @Nonnull Function<JsonElement, Object> converter) {
         this.defaultValue = Objects.requireNonNull(defaultValue);

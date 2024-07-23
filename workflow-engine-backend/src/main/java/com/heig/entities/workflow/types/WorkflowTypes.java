@@ -3,12 +3,24 @@ package com.heig.entities.workflow.types;
 import com.heig.entities.workflow.file.FileWrapper;
 import jakarta.annotation.Nonnull;
 
-import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Static class having all utilities methods for the workflow types
+ */
 public class WorkflowTypes {
+    /**
+     * Determines the common type of the stream of types. Examples :
+     * <ul>
+     *     <li>[Integer, Double, List&lt;String&gt;] gives Object</li>
+     *     <li>[List&lt;String&gt; List&lt;String&gt;] gives List&lt;String&gt;</li>
+     *     <li>[List&lt;Double&gt; List&lt;String&gt;] gives List&lt;Object&gt;</li>
+     * </ul>
+     * @param stream The types
+     * @return The common type
+     */
     private static WIterableType determineCommonTypeOf(@Nonnull Stream<WIterableType> stream) {
         Objects.requireNonNull(stream);
         return stream.reduce((acc, t) -> {
@@ -34,6 +46,11 @@ public class WorkflowTypes {
         }).orElse(WObject.of());
     }
 
+    /**
+     * Ensures that all types in the stream are implementing {@link WIterableType}
+     * @param stream The stream of {@link WType}
+     * @return The stream of {@link WIterableType}
+     */
     private static Stream<WIterableType> ensureAllAreIterableTypes(Stream<WType> stream) {
         var wIterableList = stream.map(wType -> {
             if (wType instanceof WIterableType w) {
@@ -78,6 +95,16 @@ public class WorkflowTypes {
         return o;
     }
 
+    /**
+     * Returns the type from an object. Examples :
+     * <ul>
+     *     <li>List.of(1, 2, 3) gives WCollection.of(WPrimitive.Integer)</li>
+     *     <li>2.0f gives WPrimitive.Float</li>
+     *     <li>new FileWrapper("test") gives WFile.of()</li>
+     * </ul>
+     * @param o The object to determine the type of
+     * @return The type of the object
+     */
     public static WType fromObject(@Nonnull Object o) {
         Objects.requireNonNull(o);
         if (o instanceof Collection<?> collection) {
@@ -130,11 +157,22 @@ public class WorkflowTypes {
         return WObject.of();
     }
 
+    /**
+     * Returns a type from a string representation of a type
+     * @param strType The string representation of a type
+     * @return The type
+     */
     public static WType typeFromString(@Nonnull String strType) {
         Objects.requireNonNull(strType);
         return typeFromString(new StringBuilder(strType));
     }
 
+    /**
+     * Consumes a string if the {@link StringBuilder} starts with the string
+     * @param builder The string builder
+     * @param toFind The string to consume
+     * @return True if a string was consumed, false otherwise
+     */
     private static boolean consumeIfPresent(@Nonnull StringBuilder builder, @Nonnull String toFind) {
         if (builder.toString().startsWith(toFind)) {
             builder.delete(0, toFind.length());
@@ -199,6 +237,11 @@ public class WorkflowTypes {
         throw new RuntimeException("Type not supported !");
     }
 
+    /**
+     * Returns a string representation for the type
+     * @param type The type
+     * @return The string representation
+     */
     public static String typeToString(@Nonnull WType type) {
         Objects.requireNonNull(type);
         if (type instanceof WMap map) {

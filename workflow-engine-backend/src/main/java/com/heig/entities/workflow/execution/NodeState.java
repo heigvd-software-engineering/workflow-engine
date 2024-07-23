@@ -14,7 +14,13 @@ import java.awt.*;
 import java.awt.geom.Point2D;
 import java.util.*;
 
+/**
+ * Represents the state that a {@link Node} has
+ */
 public class NodeState {
+    /**
+     * Used to convert a {@link NodeState} to a json representation
+     */
     public static class Serializer implements CustomJsonSerializer<NodeState> {
         @Override
         public JsonElement serialize(NodeState value) {
@@ -27,6 +33,9 @@ public class NodeState {
         }
     }
 
+    /**
+     * Used to convert a json to a {@link NodeState}
+     */
     public static class Deserializer implements CustomJsonDeserializer<NodeState> {
         private final Workflow workflow;
         public Deserializer(Workflow workflow) {
@@ -54,11 +63,34 @@ public class NodeState {
         }
     }
 
+    /**
+     * The current state of the {@link NodeState}
+     */
     private State state = State.IDLE;
+
+    /**
+     * The input values that have been passed to this node
+     */
     private final Map<Integer, Object> valuesMap = new HashMap<>();
+
+    /**
+     * The execution errors for this node
+     */
     private WorkflowErrors errors = null;
+
+    /**
+     * The {@link Node} linked to this {@link NodeState}
+     */
     private final Node node;
+
+    /**
+     * Whether the node has been modified
+     */
     private boolean hasBeenModified = false;
+
+    /**
+     * The position of the node on the UI
+     */
     private final Point.Double position = new Point.Double(0, 0);
 
     public NodeState(@Nonnull Node node) {
@@ -69,6 +101,16 @@ public class NodeState {
         valuesMap.put(connectorId, value);
     }
 
+    /**
+     * Returns the input value for a specific connector
+     * @param connectorId The id of the connector
+     * @return Returns :
+     * <ul>
+     *     <li>{@link Optional#empty()} if the value for the connector does not exist</li>
+     *     <li>{@link Optional#of(Object)} of {@link Optional#empty()} if the value exists but is null</li>
+     *     <li>{@link Optional#of(Object)} of {@link Optional#of(Object)} if the value exists and is not null</li>
+     * </ul>
+     */
     public synchronized Optional<Optional<Object>> getInputValue(int connectorId) {
         if (!valuesMap.containsKey(connectorId)) {
             return Optional.empty();
@@ -86,6 +128,10 @@ public class NodeState {
         return node;
     }
 
+    /**
+     * Returns true if the node is ready to be executed (all the necessary inputs values are presents)
+     * @return True if the node is ready to be executed, false otherwise
+     */
     public boolean isReady() {
         //For the node to be ready to be executed, we need to have all inputs (except the ones marked as optional) to be available
         //If the input is marked as optional but is connected to an output, we need it to check the readiness of the node

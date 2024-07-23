@@ -13,7 +13,13 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+/**
+ * Represents an input connector for a {@link Node}
+ */
 public class InputConnector extends Connector {
+    /**
+     * Deserializes an input connector from json
+     */
     public static class Deserializer extends ConnectorDeserializer<InputConnector> {
         public Deserializer(Utils.Connexions connexionsToMake, int id, Node parent, String name, WType type, boolean isReadOnly) {
             super(connexionsToMake, id, parent, name, type, isReadOnly);
@@ -39,6 +45,9 @@ public class InputConnector extends Connector {
         }
     }
 
+    /**
+     * The output that this input is connected to
+     */
     private OutputConnector connectedTo = null;
 
     protected InputConnector(int id, @Nonnull Node parent, @Nonnull String name, @Nonnull WType type, boolean isReadOnly) {
@@ -49,6 +58,11 @@ public class InputConnector extends Connector {
         return Optional.ofNullable(connectedTo);
     }
 
+    /**
+     * Changes the output that this input is connected to
+     * Notifies the node that a modification has been made with {@link Node#connectorModified(Connector)}
+     * @param connectedTo The new output connected (can be null if no output is connected)
+     */
     public void setConnectedTo(OutputConnector connectedTo) {
         if (this.connectedTo != connectedTo) {
             this.connectedTo = connectedTo;
@@ -56,6 +70,10 @@ public class InputConnector extends Connector {
         }
     }
 
+    /**
+     * Return all input connectors of the parent node
+     * @return All input connectors of the parent node
+     */
     @Override
     protected Stream<Connector> getExistingConnectors() {
         return getParent().getInputs().values().stream().map(Function.identity());

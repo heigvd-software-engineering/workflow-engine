@@ -12,7 +12,13 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+/**
+ * Represents the cache for a workflow
+ */
 public class Cache {
+    /**
+     * The cache directory
+     */
     private final File cacheDirectory;
 
     Cache(@Nonnull Workflow w, @Nonnull File rootDirectory) {
@@ -25,18 +31,41 @@ public class Cache {
         }
     }
 
+    /**
+     * Returns the cache directory for the node
+     * @param node The node
+     * @return The cache directory
+     */
     private File getNodeCacheDirectory(@Nonnull Node node) {
         return new File(cacheDirectory, String.valueOf(node.getId()));
     }
 
+    /**
+     * Returns the cache file for an input connector
+     * @param nodeCacheDirectory The cache directory of the node
+     * @param outputConnector The output connector
+     * @param isType If true, returns a file ending in .type, .obj otherwise
+     * @return The cache file for the connector
+     */
     private File getOutputConnectorFile(@Nonnull File nodeCacheDirectory, @Nonnull OutputConnector outputConnector, boolean isType) {
         return new File(nodeCacheDirectory, outputConnector.getId() + "." + (isType ? "type" : "obj"));
     }
 
+    /**
+     * Return the info file for the node cache directory
+     * @param nodeCacheDirectory The node cache directory
+     * @return The info file for the node cache directory
+     */
     private File getInfoFile(@Nonnull File nodeCacheDirectory) {
         return new File(nodeCacheDirectory, ".info");
     }
 
+    /**
+     * Returns the hash for all the inputs
+     * @param node The node
+     * @param inputs The inputs
+     * @return The hash
+     */
     private static int getHashFor(@Nonnull Node node, @Nonnull NodeArguments inputs) {
         Objects.requireNonNull(node);
         Objects.requireNonNull(inputs);
@@ -60,6 +89,12 @@ public class Cache {
         return Arrays.hashCode(lstHashCodes.toArray());
     }
 
+    /**
+     * Sets the cache for the node
+     * @param node The node
+     * @param inputs The inputs
+     * @param outputs The outputs
+     */
     public synchronized void set(@Nonnull Node node, @Nonnull NodeArguments inputs, @Nonnull NodeArguments outputs) {
         Objects.requireNonNull(node);
         Objects.requireNonNull(inputs);
@@ -109,6 +144,12 @@ public class Cache {
         }
     }
 
+    /**
+     * Tries to get the outputs from the cache for a node
+     * @param node The node
+     * @param currentInputs The current inputs
+     * @return The outputs or {@link Optional#empty()} if the retrieval failed (the hash code of the inputs changed for example)
+     */
     public synchronized Optional<NodeArguments> get(@Nonnull Node node, @Nonnull NodeArguments currentInputs) {
         Objects.requireNonNull(node);
         Objects.requireNonNull(currentInputs);
@@ -129,6 +170,7 @@ public class Cache {
             throw new RuntimeException(e);
         }
 
+        //The hash code stored in the file should be equals to the hash of the currentInputs
         if (cachedHashCode != getHashFor(node, currentInputs)) {
             return Optional.empty();
         }
@@ -153,6 +195,9 @@ public class Cache {
         return Optional.of(nodesArguments);
     }
 
+    /**
+     * Clears the cache for this workflow
+     */
     public synchronized void clear() {
         Utils.deleteCompleteDirectory(cacheDirectory);
     }

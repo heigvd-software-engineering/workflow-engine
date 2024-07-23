@@ -27,8 +27,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Service containing all the actions possible to be done by the frontend.
+ * All public method are marked by synchronized to avoid having multiple methods running at the same time.
+ * With this method, we avoid problems that are caused by having multiple {@link jakarta.websocket.Session} (or thread) executing methods modifying the same data thus creating inconsistencies
+ */
 @ApplicationScoped
 public class WorkflowService {
+    //region Internal
+
     private ResultOrStringError<WType> getWType(@Nonnull String wTypeStr) {
         Objects.requireNonNull(wTypeStr);
 
@@ -91,6 +98,8 @@ public class WorkflowService {
     private <T> ResultOrStringError<T> ensureNotRunning(@Nonnull Workflow workflow) {
         return getWorkflowExecutor(workflow.getUUID()).continueWith(this::ensureNotRunning);
     }
+
+    //endregion
 
     public synchronized ResultOrStringError<Void> executeWorkflow(@Nonnull WorkflowExecutor workflowExecutor) {
         Objects.requireNonNull(workflowExecutor);

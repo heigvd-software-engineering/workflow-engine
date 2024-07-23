@@ -8,6 +8,9 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
 
+/**
+ * Represents a node that can be modified (connector name, connector type, add / remove connector, ...) from outside
+ */
 public abstract class ModifiableNode extends Node {
     protected ModifiableNode(int id, @Nonnull Workflow workflow) {
         super(id, workflow, false);

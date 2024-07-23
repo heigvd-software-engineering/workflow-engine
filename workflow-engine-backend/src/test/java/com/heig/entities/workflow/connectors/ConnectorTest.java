@@ -1,7 +1,6 @@
 package com.heig.entities.workflow.connectors;
 
 import com.heig.entities.workflow.Workflow;
-import com.heig.entities.workflow.execution.WorkflowManager;
 import com.heig.entities.workflow.errors.UnmodifiableConnector;
 import com.heig.entities.workflow.nodes.CodeNode;
 import com.heig.entities.workflow.nodes.PrimitiveNode;

@@ -1,7 +1,6 @@
 package com.heig.resources;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.heig.entities.workflow.data.Data;
 import com.heig.entities.workflow.execution.WorkflowManager;
@@ -17,10 +16,6 @@ import java.util.Objects;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
-/**
- *
- * Source: <a href="https://quarkus.io/guides/websockets">Using websockets</a>
- */
 @QuarkusTest
 public class WorkflowSocketTest {
     @BeforeAll

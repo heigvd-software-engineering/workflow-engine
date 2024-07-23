@@ -4,6 +4,9 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
 
+/**
+ * Type representing an object
+ */
 public class WObject implements WIterableType {
     private static final WObject instance = new WObject();
 

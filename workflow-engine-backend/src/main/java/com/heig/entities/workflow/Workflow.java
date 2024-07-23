@@ -23,7 +23,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+/**
+ * The workflow
+ */
 public class Workflow {
+    /**
+     * Used to serialize the {@link Workflow}
+     */
     public static class Serializer implements CustomJsonSerializer<Workflow> {
         @Override
         public JsonElement serialize(Workflow value) {
@@ -36,6 +42,9 @@ public class Workflow {
         }
     }
 
+    /**
+     * Used to deserialize a {@link Workflow} from a json representation
+     */
     public static class Deserializer implements CustomJsonDeserializer<Workflow> {
         @Override
         public Workflow deserialize(JsonElement value) throws JsonParseException {
@@ -71,21 +80,56 @@ public class Workflow {
         }
     }
 
+    /**
+     * The current id used to generate nodes
+     */
     private final AtomicInteger currentId = new AtomicInteger(0);
+
+    /**
+     * The nodes in the workflow. The key is the node id
+     */
     private final ConcurrentMap<Integer, Node> nodes = new ConcurrentHashMap<>();
+
+    /**
+     * The node builder for this workflow
+     */
     private final Node.Builder nodeBuilder = new Node.Builder(this);
+
+    /**
+     * The workflow UUID
+     */
     private final UUID uuid;
+
+    /**
+     * The workflow name
+     */
     private final String name;
+
+    /**
+     * The {@link NodeModifiedListener} listening for node changes
+     */
     private final ConcurrentHashSet<NodeModifiedListener> listeners = new ConcurrentHashSet<>();
 
     //region Deserialization
 
+    /**
+     * Used only in the Deserialization process.
+     * Create a workflow with multiple parameters
+     * @param currentId The current id to use when creating nodes
+     * @param uuid The workflow uuid
+     * @param name The name of the workflow
+     */
     private Workflow(int currentId, String uuid, String name) {
         this.uuid = UUID.fromString(uuid);
         this.name = name;
         this.currentId.set(currentId);
     }
 
+    /**
+     * Used only in the Deserialization process.
+     * Sets the nodes of the current workflow
+     * @param nodes The nodes to set
+     */
     private void setNodes(List<Node> nodes) {
         for (var node: nodes) {
             this.nodes.put(node.getId(), node);
@@ -103,6 +147,12 @@ public class Workflow {
         return nodeBuilder;
     }
 
+    /**
+     * Adds a node to the workflow
+     * @param nodeCreator Function taking the workflow id in parameter and returning a Node of type T
+     * @return The node added
+     * @param <T> The type of the node
+     */
     public <T extends Node> T addNode(@Nonnull Function<Integer, T> nodeCreator) {
         Objects.requireNonNull(nodeCreator);
         var node = nodeCreator.apply(currentId.incrementAndGet());
@@ -110,6 +160,11 @@ public class Workflow {
         return node;
     }
 
+    /**
+     * Removes a node from the workflow
+     * @param node The node to remove
+     * @return True if the node was remove, false otherwise
+     */
     public boolean removeNode(@Nonnull Node node) {
         Objects.requireNonNull(node);
         //When removing a node we need to disconnect everything connected to it
@@ -134,6 +189,12 @@ public class Workflow {
         return name;
     }
 
+    /**
+     * Connect an output to an input
+     * @param output The output
+     * @param input The input
+     * @return True if the connexion was established, false otherwise
+     */
     public boolean connect(@Nonnull OutputConnector output, @Nonnull InputConnector input) {
         Objects.requireNonNull(output);
         Objects.requireNonNull(input);
@@ -158,6 +219,11 @@ public class Workflow {
         return true;
     }
 
+    /**
+     * Disconnects an input
+     * @param input The input to disconnect
+     * @return True if the node was disconnected correctly, false otherwise
+     */
     public boolean disconnect(@Nonnull InputConnector input) {
         Objects.requireNonNull(input);
 
@@ -249,6 +315,10 @@ public class Workflow {
         listeners.remove(consumer);
     }
 
+    /**
+     * Notifies all {@link NodeModifiedListener} that a node has changed
+     * @param node The node that changed
+     */
     public void nodeModified(@Nonnull Node node) {
         Objects.requireNonNull(node);
         for (var listener : listeners) {

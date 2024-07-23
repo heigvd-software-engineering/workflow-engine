@@ -53,13 +53,28 @@ public class WorkflowSocket {
         });
     }
 
+    /**
+     * Class used to transmit changes to the concerned {@link Session}
+     */
     private class Listener implements WorkflowExecutionListener, NodeModifiedListener {
+        /**
+         * The log content
+         */
         private String log = "";
+
+        /**
+         * The workflow UUID
+         */
         private final UUID uuid;
+
         public Listener(@Nonnull UUID uuid) {
             this.uuid = Objects.requireNonNull(uuid);
         }
 
+        /**
+         * Returns a list of {@link Session} concerned
+         * @return The list of {@link Session} concerned
+         */
         private Stream<Session> toNotify() {
             var optUUID = Optional.of(uuid);
             return sessions.entrySet().stream()
@@ -67,6 +82,10 @@ public class WorkflowSocket {
                 .map(Map.Entry::getKey);
         }
 
+        /**
+         * Notifies the {@link Session} concerned
+         * @param message The notification to send
+         */
         private void notifyConcerned(String message) {
             toNotify().forEach(s -> sendTo(s, message));
         }
@@ -89,10 +108,18 @@ public class WorkflowSocket {
             notifyConcerned(nodeStateJson(state));
         }
 
+        /**
+         * Notifies the {@link Session} concerned when a node was created
+         * @param node The node created
+         */
         public void notifyNodeCreated(@Nonnull Node node) {
             notifyConcerned(nodeModifiedJson(node));
         }
 
+        /**
+         * Notifies the {@link Session} concerned when a node was removed
+         * @param node The node removed
+         */
         public void notifyNodeRemoved(@Nonnull Node node) {
             notifyConcerned(nodeRemovedJson(node));
         }
@@ -109,6 +136,10 @@ public class WorkflowSocket {
             notifyConcerned(logJson(log));
         }
 
+        /**
+         * Returns the current text in the log
+         * @return The current text in the log
+         */
         public synchronized String getLog() {
             return log;
         }
@@ -313,6 +344,11 @@ public class WorkflowSocket {
         sessions.keySet().forEach(s -> sendTo(s, message));
     }
 
+    /**
+     * Sends a message to a specific {@link Session}
+     * @param session The session
+     * @param message The message
+     */
     private void sendTo(@Nonnull Session session, @Nonnull String message) {
         Objects.requireNonNull(session);
         Objects.requireNonNull(message);
@@ -324,6 +360,11 @@ public class WorkflowSocket {
         });
     }
 
+    /**
+     * Converts the {@link Workflow} to a json representation
+     * @param workflow The {@link Workflow}
+     * @return The {@link Workflow} as a json representation
+     */
     private JsonObject workflowJson(@Nonnull Workflow workflow) {
         Objects.requireNonNull(workflow);
 
@@ -333,6 +374,11 @@ public class WorkflowSocket {
         return obj;
     }
 
+    /**
+     * The base json used to make a notification json
+     * @param notificationType The type of the notification
+     * @return The base json
+     */
     private JsonObject returnJsonObjectBase(@Nonnull String notificationType) {
         Objects.requireNonNull(notificationType);
 
@@ -341,6 +387,11 @@ public class WorkflowSocket {
         return obj;
     }
 
+    /**
+     * Converts the error to a json representation
+     * @param error The error
+     * @return The error as a json representation
+     */
     private String errorJson(@Nonnull String error) {
         Objects.requireNonNull(error);
 
@@ -349,6 +400,10 @@ public class WorkflowSocket {
         return toReturn.toString();
     }
 
+    /**
+     * Returns all the existing workflow as json with {@link WorkflowSocket#workflowJson(Workflow)}
+     * @return All the existing workflow as json
+     */
     private String allWorkflowsJson() {
         var workflows = WorkflowManager.getWorkflowExecutors().stream().map(WorkflowExecutor::getWorkflow).toList();
         var arr = new JsonArray();
@@ -362,6 +417,11 @@ public class WorkflowSocket {
         return toReturn.toString();
     }
 
+    /**
+     * Converts the {@link Node} to a json representation
+     * @param node The {@link Node}
+     * @return The {@link Node} as a json representation
+     */
     private String nodeModifiedJson(@Nonnull Node node) {
         Objects.requireNonNull(node);
 
@@ -371,6 +431,11 @@ public class WorkflowSocket {
         return toReturn.toString();
     }
 
+    /**
+     * Converts the log to a json representation
+     * @param log The log
+     * @return The log as a json representation
+     */
     private String logJson(@Nonnull String log) {
         Objects.requireNonNull(log);
 
@@ -379,6 +444,11 @@ public class WorkflowSocket {
         return toReturn.toString();
     }
 
+    /**
+     * Converts the node removal to a json representation
+     * @param node The {@link Node} removed
+     * @return The node removal as a json representation
+     */
     private String nodeRemovedJson(@Nonnull Node node) {
         Objects.requireNonNull(node);
 
@@ -387,6 +457,11 @@ public class WorkflowSocket {
         return toReturn.toString();
     }
 
+    /**
+     * Converts the {@link Workflow} to a json representation
+     * @param workflow The {@link Workflow}
+     * @return The {@link Workflow} as a json representation
+     */
     private String newWorkflowJson(@Nonnull Workflow workflow) {
         Objects.requireNonNull(workflow);
 
@@ -395,6 +470,11 @@ public class WorkflowSocket {
         return toReturn.toString();
     }
 
+    /**
+     * Converts the workflow to a json representation
+     * @param workflow The {@link Workflow} removed
+     * @return The workflow removal as a json representation
+     */
     private String deletedWorkflowJson(@Nonnull Workflow workflow) {
         Objects.requireNonNull(workflow);
 
@@ -403,6 +483,11 @@ public class WorkflowSocket {
         return toReturn.toString();
     }
 
+    /**
+     * Converts the {@link NodeState} to a json representation
+     * @param state The {@link NodeState}
+     * @return The {@link NodeState} as a json representation
+     */
     private String nodeStateJson(@Nonnull NodeState state) {
         Objects.requireNonNull(state);
 
@@ -424,6 +509,11 @@ public class WorkflowSocket {
         return toReturn.toString();
     }
 
+    /**
+     * Converts the {@link WorkflowExecutor} state to a json representation
+     * @param we The {@link WorkflowExecutor}
+     * @return The {@link WorkflowExecutor} state as a json representation
+     */
     private String workflowStateJson(@Nonnull WorkflowExecutor we) {
         Objects.requireNonNull(we);
 
@@ -442,6 +532,11 @@ public class WorkflowSocket {
         return toReturn.toString();
     }
 
+    /**
+     * Converts the switch to a new workflow to a json representation
+     * @param workflowUUID The workflow UUID
+     * @return The switch to a new workflow as a json representation
+     */
     private String switchedToJson(String workflowUUID) {
         var toReturn = returnJsonObjectBase("switchedTo");
         toReturn.addProperty("uuid", workflowUUID);

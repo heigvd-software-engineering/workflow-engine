@@ -6,6 +6,9 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Objects;
 
+/**
+ * Represents an error that happened in a {@link Node}
+ */
 public abstract class WorkflowNodeError extends WorkflowError {
     private final Node node;
     public WorkflowNodeError(@Nonnull Node node) {

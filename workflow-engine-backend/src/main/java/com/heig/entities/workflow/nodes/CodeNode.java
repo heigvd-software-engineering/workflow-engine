@@ -15,7 +15,13 @@ import java.io.*;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * The code node
+ */
 public class CodeNode extends ModifiableNode {
+    /**
+     * Used to convert a json representation to a {@link CodeNode}
+     */
     public static class Deserializer extends Node.NodeDeserializer<CodeNode> {
         public Deserializer(int id, Workflow workflow) {
             super(id, workflow);
@@ -37,11 +43,25 @@ public class CodeNode extends ModifiableNode {
         }
     }
 
+    /**
+     * Represents the language options
+     */
     public enum Language {
+        /**
+         * Javascript
+         */
         JS("js", "function main(inputs, outputs){%s}");
 
+        /**
+         * The language code used by GraalVM
+         */
         private final String graalLanguageCode;
+
+        /**
+         * The template containing one %s to place the code written by the user
+         */
         private final String mainCodeTemplate;
+
         Language(@Nonnull String graalLanguageCode, @Nonnull String mainCodeTemplate) {
             this.graalLanguageCode = Objects.requireNonNull(graalLanguageCode);
             this.mainCodeTemplate = Objects.requireNonNull(mainCodeTemplate);
@@ -60,9 +80,20 @@ public class CodeNode extends ModifiableNode {
         .engine(engine)
         .allowHostAccess(HostAccess.ALL);
 
+    /**
+     * The code
+     */
     private String code = "";
+
+    /**
+     * The language
+     */
     private Language language = Language.JS;
-    private Context context;
+
+    /**
+     * The current context
+     */
+    private Context context = null;
 
     protected CodeNode(int id, @Nonnull Workflow workflow) {
         super(id, workflow);
@@ -72,6 +103,7 @@ public class CodeNode extends ModifiableNode {
     public NodeArguments execute(@Nonnull NodeArguments inputs, @Nonnull Consumer<String> logLine) {
         Objects.requireNonNull(inputs);
 
+        //Creates a new context that writes its standard output to the logLine Consumer
         context = contextBuilder.out(new OutputStream() {
             private String current = "";
             @Override
@@ -88,6 +120,7 @@ public class CodeNode extends ModifiableNode {
 
         context.eval(language.graalLanguageCode, language.completeMain(code));
         var mainFunc = bindings.getMember("main");
+        //Executes the code
         mainFunc.execute(inputs, outputs);
 
         return outputs;

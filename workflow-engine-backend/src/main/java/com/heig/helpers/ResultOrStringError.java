@@ -1,9 +1,11 @@
 package com.heig.helpers;
 
-import com.heig.entities.workflow.errors.WorkflowErrors;
-
 import java.util.function.Function;
 
+/**
+ * Implementation of {@link ResultOrError} with an error message as an error type
+ * @param <T> The result type
+ */
 public class ResultOrStringError<T> extends ResultOrError<T, String> {
     protected ResultOrStringError(T result, String errorMessage, boolean isError) {
         super(result, errorMessage, isError);

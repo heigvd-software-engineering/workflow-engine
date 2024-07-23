@@ -22,8 +22,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Represents a node
+ */
 public abstract class Node {
-    public static abstract class NodeDeserializer<T> implements CustomJsonDeserializer<T> {
+    /**
+     * Used to deserialize a specific node from a json representation
+     * @param <T> The class implementing {@link Node}
+     */
+    public static abstract class NodeDeserializer<T extends Node> implements CustomJsonDeserializer<T> {
         protected int id;
         protected Workflow workflow;
         public NodeDeserializer(int id, Workflow workflow) {
@@ -32,6 +39,9 @@ public abstract class Node {
         }
     }
 
+    /**
+     * Used to serialize a {@link Node}. Uses {@link Node#toJson()}.
+     */
     public static class Serializer implements CustomJsonSerializer<Node> {
         @Override
         public JsonElement serialize(Node value) {
@@ -41,6 +51,9 @@ public abstract class Node {
         }
     }
 
+    /**
+     * Used to deserialize a {@link Node}
+     */
     public static class Deserializer implements CustomJsonDeserializer<Node> {
         private final Workflow workflow;
         private final Utils.Connexions connexionsToMake;
@@ -87,44 +100,102 @@ public abstract class Node {
         }
     }
 
+    /**
+     * Builder allows to create nodes for a workflow
+     */
     public static class Builder {
         private final Workflow workflow;
         public Builder(@Nonnull Workflow workflow) {
             this.workflow = Objects.requireNonNull(workflow);
         }
 
+        /**
+         * Builds a {@link CodeNode}
+         * @return A {@link CodeNode}
+         */
         public CodeNode buildCodeNode() {
             return workflow.addNode((id) -> new CodeNode(id, workflow));
         }
 
+        /***
+         * Builds a {@link PrimitiveNode} with a specific {@link WPrimitive} type
+         * @param type The primitive type
+         * @return A {@link PrimitiveNode}
+         */
         public PrimitiveNode buildPrimitiveNode(@Nonnull WPrimitive type) {
             return workflow.addNode((id) -> new PrimitiveNode(id, workflow, type));
         }
 
+        /**
+         * Builds a {@link FileNode}
+         * @return A {@link FileNode}
+         */
         public FileNode buildFileNode() {
             return workflow.addNode((id) -> new FileNode(id, workflow));
         }
     }
 
+    /**
+     * The Builder to build connectors
+     */
     protected final Connector.Builder connectorBuilder;
+
+    /**
+     * The current id used to generate connectors
+     */
     private final AtomicInteger currentId = new AtomicInteger(0);
 
+    /**
+     * Whether the node is deterministic or not
+     */
     private boolean isDeterministic = false;
+
+    /**
+     * The execution timeout in ms
+     */
     private int timeout = 5000;
 
+    /**
+     * The id of the node
+     */
     private final int id;
+
+    /**
+     * The workflow the node is contained in
+     */
     private final Workflow workflow;
+
+    /**
+     * The inputs connectors
+     */
     private final ConcurrentMap<Integer, InputConnector> inputs = new ConcurrentHashMap<>();
+
+    /**
+     * The outputs connectors
+     */
     private final ConcurrentMap<Integer, OutputConnector> outputs = new ConcurrentHashMap<>();
 
     //region Deserialization
 
+    /**
+     * Used only in the Deserialization process.
+     * Sets multiple information about the current node
+     * @param currentId The current id for the connectors
+     * @param isDeterministic Whether the node is deterministic or not
+     * @param timeout The timeout in ms
+     */
     private void setInfos(int currentId, boolean isDeterministic, int timeout) {
         this.currentId.set(currentId);
         this.isDeterministic = isDeterministic;
         this.timeout = timeout;
     }
 
+    /**
+     * Used only in the Deserialization process.
+     * Sets the inputs and outputs
+     * @param inputs The inputs
+     * @param outputs The outputs
+     */
     private void setConnectors(List<InputConnector> inputs, List<OutputConnector> outputs) {
         for (var inputConnector : inputs) {
             this.inputs.put(inputConnector.getId(), inputConnector);
@@ -135,6 +206,10 @@ public abstract class Node {
         }
     }
 
+    /**
+     * Used only in the Deserialization process.
+     * Removes all the connectors
+     */
     private void removeAllConnectors() {
         this.inputs.clear();
         this.outputs.clear();
@@ -163,6 +238,10 @@ public abstract class Node {
         return timeout;
     }
 
+    /**
+     * Sets the timeout. Throws an {@link IllegalArgumentException} if the timeout value is smaller or equals than 0
+     * @param timeout The timeout in ms
+     */
     protected void setTimeout(int timeout) {
         if (timeout <= 0) {
             throw new IllegalArgumentException("The timeout must be greater than 0");
@@ -190,12 +269,22 @@ public abstract class Node {
         return Optional.ofNullable(outputs.get(id));
     }
 
+    /**
+     * Disconnects every node connected (all inputs and all outputs).
+     * Notifies {@link Workflow#nodeModified(Node)}.
+     */
     public void disconnectEverything() {
         inputs.values().forEach(workflow::disconnect);
         outputs.values().forEach(output -> output.getConnectedTo().forEach(workflow::disconnect));
         workflow.nodeModified(this);
     }
 
+    /**
+     * Removes an input.
+     * Notifies {@link Workflow#nodeModified(Node)}.
+     * @param input The input to disconnect
+     * @return False if the input could not be removed, true otherwise
+     */
     protected boolean removeInput(@Nonnull InputConnector input) {
         Objects.requireNonNull(input);
         if (!inputs.containsKey(input.getId())) {
@@ -212,6 +301,12 @@ public abstract class Node {
         return removeSuccess;
     }
 
+    /**
+     * Removes an output.
+     * Notifies {@link Workflow#nodeModified(Node)}.
+     * @param output The output to disconnect
+     * @return False if the output could not be removed, true otherwise
+     */
     protected boolean removeOutput(@Nonnull OutputConnector output) {
         Objects.requireNonNull(output);
         if (!outputs.containsKey(output.getId())) {
@@ -228,6 +323,13 @@ public abstract class Node {
         return removeSuccess;
     }
 
+    /**
+     * Adds a new {@link InputConnector}.
+     * Notifies {@link Workflow#nodeModified(Node)}.
+     * @param connectorSupplier A function taking an id in parameter and return an object of type T
+     * @return The connector added
+     * @param <T> The type of the {@link InputConnector}
+     */
     public <T extends InputConnector> T addInputConnector(@Nonnull Function<Integer, T> connectorSupplier) {
         Objects.requireNonNull(connectorSupplier);
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
@@ -236,6 +338,13 @@ public abstract class Node {
         return connector;
     }
 
+    /**
+     * Adds a new {@link OutputConnector}.
+     * Notifies {@link Workflow#nodeModified(Node)}.
+     * @param connectorSupplier A function taking an id in parameter and return an object of type T
+     * @return The connector added
+     * @param <T> The type of the {@link OutputConnector}
+     */
     public <T extends OutputConnector> T addOutputConnector(@Nonnull Function<Integer, T> connectorSupplier) {
         Objects.requireNonNull(connectorSupplier);
         var connector = connectorSupplier.apply(currentId.incrementAndGet());
@@ -244,12 +353,23 @@ public abstract class Node {
         return connector;
     }
 
+    /**
+     * Executes the node
+     * @param inputs The inputs
+     * @param logLine The function allowing to log
+     * @return The outputs
+     */
     public abstract NodeArguments execute(@Nonnull NodeArguments inputs, @Nonnull Consumer<String> logLine);
 
     protected Connector.Builder getConnectorBuilder() {
         return connectorBuilder;
     }
 
+    /**
+     * Notifies that a connector has been modified (in this version it calls directly {@link Workflow#nodeModified(Node)}).
+     * Notifies {@link Workflow#nodeModified(Node)}.
+     * @param connector
+     */
     public void connectorModified(@Nonnull Connector connector) {
         workflow.nodeModified(connector.getParent());
     }
@@ -263,6 +383,10 @@ public abstract class Node {
         return "Node (" + getId() + ")";
     }
 
+    /**
+     * The representation of the node in the json format
+     * @return The representation of the node in the json format
+     */
     public JsonObject toJson() {
         var obj = new JsonObject();
         obj.addProperty("nodeType", getClass().getSimpleName());

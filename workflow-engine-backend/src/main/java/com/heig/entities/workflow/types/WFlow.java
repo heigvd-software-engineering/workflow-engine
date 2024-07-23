@@ -6,6 +6,9 @@ import java.io.File;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Type representing an operation flow
+ */
 public class WFlow implements WType {
     private static final WFlow instance = new WFlow();
 

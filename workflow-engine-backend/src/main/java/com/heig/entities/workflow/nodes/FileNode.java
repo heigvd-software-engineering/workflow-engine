@@ -13,7 +13,13 @@ import jakarta.annotation.Nonnull;
 
 import java.util.function.Consumer;
 
+/**
+ * The file node
+ */
 public class FileNode extends Node {
+    /**
+     * Used to convert a json representation to a {@link FileNode}
+     */
     public static class Deserializer extends Node.NodeDeserializer<FileNode> {
         public Deserializer(int id, Workflow workflow) {
             super(id, workflow);
@@ -25,7 +31,14 @@ public class FileNode extends Node {
         }
     }
 
+    /**
+     * The input name for the file path
+     */
     public static String I_FILEPATH_NAME = "filePath";
+
+    /**
+     * The output name for the file
+     */
     public static String O_FILE_NAME = "file";
 
     private final InputConnector input;

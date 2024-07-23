@@ -2,21 +2,37 @@ package com.heig.entities.workflow.data;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.heig.entities.workflow.execution.NodeState;
 import com.heig.entities.workflow.execution.WorkflowExecutionListener;
 import com.heig.entities.workflow.execution.WorkflowExecutor;
-import com.heig.entities.workflow.execution.WorkflowManager;
 import jakarta.annotation.Nonnull;
 
 import java.io.*;
 import java.util.*;
 
+/**
+ * Used the save the workflow
+ */
 public class Save {
+    /**
+     * The save directory
+     */
     private final File saveDirectory;
+
+    /**
+     * The workflow executor
+     */
     private final WorkflowExecutor workflowExecutor;
 
+    /**
+     * The name of the save file
+     */
     private static final String saveFileName = "workflowExecutor.json";
 
+    /**
+     * Returns the save directory from the root directory
+     * @param rootDirectory The root directory
+     * @return The save directory
+     */
     private File getSaveDirectory(File rootDirectory) {
         var saveDirectory = new File(rootDirectory, "save");
         if (!saveDirectory.exists() && !saveDirectory.mkdirs()) {
@@ -41,6 +57,9 @@ public class Save {
         save();
     }
 
+    /**
+     * Saves the current {@link WorkflowExecutor}
+     */
     public synchronized void save() {
         var serializer = new WorkflowExecutor.Serializer();
         var json = new Gson().toJson(serializer.serialize(workflowExecutor));
@@ -62,6 +81,12 @@ public class Save {
         }
     }
 
+    /**
+     * Returns a {@link WorkflowExecutor} loaded from the save file
+     * @param data The {@link Data} object representing the workflow to load
+     * @param listener The listener to attach when creating the {@link WorkflowExecutor}
+     * @return The {@link WorkflowExecutor} loaded from the save file or {@link Optional#empty()} if the loading failed
+     */
     public synchronized Optional<WorkflowExecutor> load(@Nonnull Data data, @Nonnull WorkflowExecutionListener listener) {
         Objects.requireNonNull(data);
         Objects.requireNonNull(listener);

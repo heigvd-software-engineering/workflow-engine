@@ -3,13 +3,19 @@ package com.heig.entities.workflow.types;
 import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
-import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * Type representing a map
+ */
 public class WMap implements WIterableType {
     private static final ConcurrentMap<Tuple2<WIterableType, WIterableType>, WMap> cache = new ConcurrentHashMap<>();
+
+    /**
+     * The key and value types
+     */
     private final WIterableType keyType, valueType;
 
     private WMap(@Nonnull Tuple2<WIterableType, WIterableType> types) {
@@ -26,6 +32,12 @@ public class WMap implements WIterableType {
         return valueType;
     }
 
+    /**
+     * Creates a type for a map having keyType type as key and valueType type as value
+     * @param keyType The type of the type
+     * @param valueType The type of the value
+     * @return The type
+     */
     public static WMap of(@Nonnull WIterableType keyType, @Nonnull WIterableType valueType) {
         Objects.requireNonNull(keyType);
         Objects.requireNonNull(valueType);

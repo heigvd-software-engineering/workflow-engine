@@ -6,8 +6,15 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * Type representing a list or a collection
+ */
 public class WCollection implements WIterableType {
     private static final ConcurrentMap<WIterableType, WCollection> cache = new ConcurrentHashMap<>();
+
+    /**
+     * The type of the values
+     */
     private final WIterableType valueType;
 
     private WCollection(@Nonnull WIterableType valueType) {
@@ -18,6 +25,11 @@ public class WCollection implements WIterableType {
         return valueType;
     }
 
+    /**
+     * Creates a type for a list with values specified by valueType
+     * @param valueType The type of the list values
+     * @return The list type
+     */
     public static WCollection of(@Nonnull WIterableType valueType) {
         return cache.computeIfAbsent(valueType, WCollection::new);
     }

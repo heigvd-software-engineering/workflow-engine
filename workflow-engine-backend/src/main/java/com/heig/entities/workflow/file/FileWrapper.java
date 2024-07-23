@@ -31,6 +31,9 @@ public class FileWrapper {
         }
     }
 
+    /**
+     * Throws an {@link IllegalStateException} if the file is null
+     */
     private void assertFileNotNull() {
         if (isFileNull()) {
             throw new IllegalStateException("File is null");
@@ -110,7 +113,7 @@ public class FileWrapper {
 
     /**
      * Ensures that all the parent directories of the file are created
-     * @return
+     * @return False if an error occurred when creating the directories, true otherwise
      */
     private boolean ensureDirsCreated() {
         assertFileNotNull();
@@ -153,6 +156,16 @@ public class FileWrapper {
         return new FileWriterWrapper(file);
     }
 
+    /**
+     * Returns the hash code for the specified file
+     * Returns
+     * <ul>
+     *     <li>0 if the file is null. Can only append if the {@link FileWrapper#NONE} is used</li>
+     *     <li>2 if the file does not exist</li>
+     *     <li>the hash obtained with the content of the file and the relative path of the file</li>
+     * </ul>
+     * @return The hash code representing the file
+     */
     public int getContentHashCode() {
         if (isFileNull()) {
             return 0;

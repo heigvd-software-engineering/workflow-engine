@@ -6,19 +6,26 @@ import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.Nonnull;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
+/**
+ * Manages all the {@link WorkflowExecutor}
+ */
 public class WorkflowManager {
     private WorkflowManager() {}
 
     private static final ConcurrentMap<UUID, WorkflowExecutor> workflowExecutors = new ConcurrentHashMap<>();
 
+    /**
+     * Creates a new {@link WorkflowExecutor} and add it to the manager
+     * @param workflow The {@link Workflow}
+     * @param workflowExecutionListener The {@link WorkflowExecutionListener}
+     * @return The {@link WorkflowExecutor} created
+     */
     public static WorkflowExecutor createWorkflowExecutor(@Nonnull Workflow workflow, @Nonnull WorkflowExecutionListener workflowExecutionListener) {
         Objects.requireNonNull(workflow);
         Objects.requireNonNull(workflowExecutionListener);
@@ -28,6 +35,10 @@ public class WorkflowManager {
         return we;
     }
 
+    /**
+     * Loads all existing {@link WorkflowExecutor}
+     * @param supplier A function taking the workflow UUID in parameter and returns a {@link Tuple2} of a {@link WorkflowExecutionListener} and a {@link Consumer} that takes a {@link WorkflowExecutor} in parameter
+     */
     public static void loadExistingWorkflows(@Nonnull Function<UUID, Tuple2<WorkflowExecutionListener, Consumer<WorkflowExecutor>>> supplier) {
         Objects.requireNonNull(supplier);
 
