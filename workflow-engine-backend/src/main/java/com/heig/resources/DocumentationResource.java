@@ -1,11 +1,10 @@
 package com.heig.resources;
 
 import com.google.gson.*;
-import com.heig.documentation.DocumentClass;
-import com.heig.documentation.DocumentMethod;
-import com.heig.documentation.DocumentParameter;
-import com.heig.documentation.Documentation;
-import com.heig.helpers.ResultOrError;
+import com.heig.entities.documentation.DocumentClass;
+import com.heig.entities.documentation.DocumentMethod;
+import com.heig.entities.documentation.DocumentParameter;
+import com.heig.entities.documentation.Documentation;
 import com.heig.helpers.ResultOrStringError;
 import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.ws.rs.GET;
@@ -14,9 +13,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 

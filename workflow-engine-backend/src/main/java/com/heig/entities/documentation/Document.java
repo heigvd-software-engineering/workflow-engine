@@ -1,4 +1,4 @@
-package com.heig.documentation;
+package com.heig.entities.documentation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

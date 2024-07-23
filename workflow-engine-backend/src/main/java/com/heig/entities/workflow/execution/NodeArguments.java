@@ -1,6 +1,6 @@
 package com.heig.entities.workflow.execution;
 
-import com.heig.documentation.Document;
+import com.heig.entities.documentation.Document;
 import jakarta.annotation.Nonnull;
 
 import java.util.*;

@@ -41,8 +41,8 @@ public class TestScenario {
         nodeAdd = w.getNodeBuilder().buildCodeNode();
         nodeAdd.setCode(
             """
-            let result = arguments.getArgument('num1').get() + arguments.getArgument('num2').get();
-            returnArguments.putArgument('result', result);
+            let result = inputs.getArgument('num1').get() + inputs.getArgument('num2').get();
+            outputs.putArgument('result', result);
             """
         );
 
@@ -55,12 +55,12 @@ public class TestScenario {
         nodeStringRepeat = w.getNodeBuilder().buildCodeNode();
         nodeStringRepeat.setCode(
             """
-            let times = arguments.getArgument('times').get();
-            let str = arguments.getArgument('string').get();
+            let times = inputs.getArgument('times').get();
+            let str = inputs.getArgument('string').get();
             
             let result = str.repeat(times);
             
-            returnArguments.putArgument('string', result);
+            outputs.putArgument('string', result);
             """
         );
 
@@ -97,7 +97,7 @@ public class TestScenario {
         var nodeLog = w.getNodeBuilder().buildCodeNode();
         nodeLog.setCode(
             """
-            console.log(arguments.getArgument('obj').get());
+            console.log(inputs.getArgument('obj').get());
             """
         );
 

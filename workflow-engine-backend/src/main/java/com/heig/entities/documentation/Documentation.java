@@ -1,4 +1,4 @@
-package com.heig.documentation;
+package com.heig.entities.documentation;
 
 import org.reflections.Reflections;
 

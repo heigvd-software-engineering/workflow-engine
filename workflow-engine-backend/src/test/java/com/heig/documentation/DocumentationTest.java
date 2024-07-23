@@ -1,5 +1,6 @@
 package com.heig.documentation;
 
+import com.heig.entities.documentation.Documentation;
 import com.heig.entities.workflow.execution.NodeArguments;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;

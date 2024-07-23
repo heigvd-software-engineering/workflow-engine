@@ -1,10 +1,9 @@
 package com.heig.entities.workflow.file;
 
-import com.heig.documentation.Document;
+import com.heig.entities.documentation.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.Objects;
 
 @Document("""
