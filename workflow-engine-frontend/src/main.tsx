@@ -6,62 +6,13 @@ import "@fontsource/roboto/700.css";
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import HomePage from "./HomePage.tsx";
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
-import NotFoundPage from "./NotFoundPage.tsx";
-import WorkflowsPage from "./WorkflowsPage.tsx";
-import { SnackbarProvider } from "notistack";
-import AlertProvider from "./utils/alert/AlertProvider.tsx";
-import { ReactFlowProvider } from "@xyflow/react";
-import WorkflowDataProvider from "./utils/workflowData/WorkflowDataProvider.tsx";
-import { Documentation } from "./Documentation.tsx";
-
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <HomePage />
-  },
-  {
-    path: "/workflows",
-    element: 
-    <ReactFlowProvider>
-      <WorkflowDataProvider>
-        <WorkflowsPage />
-      </WorkflowDataProvider>
-    </ReactFlowProvider>
-  },
-  {
-    path: "/documentation",
-    element: <Documentation />,
-    children: [
-      {
-        path: ":type",
-        element: <Documentation />
-      }
-    ]
-  },
-  {
-    path: "*",
-    element: <NotFoundPage />
-  }
-]);
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-  }
-})
+import App from "./App.tsx";
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <SnackbarProvider maxSnack={5} anchorOrigin={{horizontal: "right", vertical: "bottom"}}>
-      <AlertProvider>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <RouterProvider router={router} />
-        </ThemeProvider>
-      </AlertProvider>
-    </SnackbarProvider>
-  </React.StrictMode>
+  import.meta.env.MODE == "production" ?
+    <App />
+    :
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
 );
